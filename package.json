@@ -1,0 +1,32 @@
+{
+  "name": "principality_ai",
+  "version": "1.0.0",
+  "description": "a Dominion inspired card game with MCP support",
+  "private": true,
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "test": "npm run test --workspaces",
+    "lint": "npm run lint --workspaces",
+    "build": "npm run build --workspaces",
+    "play": "npm run start --workspace=packages/cli"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/edd426/principality_ai.git"
+  },
+  "keywords": ["dominion", "card-game", "mcp", "ai", "typescript"],
+  "author": "Evan DeLord",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/edd426/principality_ai/issues"
+  },
+  "homepage": "https://github.com/edd426/principality_ai#readme",
+  "devDependencies": {
+    "typescript": "^5.0.0",
+    "@types/node": "^20.0.0",
+    "eslint": "^8.0.0",
+    "prettier": "^3.0.0"
+  }
+}
