@@ -294,7 +294,7 @@ export class GameEngine {
   } {
     let currentDeck = [...deck];
     let currentDiscard = [...discard];
-    let currentHand = [...hand];
+    const currentHand = [...hand];
 
     for (let i = 0; i < count; i++) {
       if (currentDeck.length === 0) {
@@ -341,7 +341,7 @@ export class GameEngine {
     }
 
     // Remove discarded cards from hand
-    let newHand = [...player.hand];
+    const newHand = [...player.hand];
     cardsToDiscard.forEach(cardToDiscard => {
       const index = newHand.indexOf(cardToDiscard);
       if (index !== -1) {
@@ -426,7 +426,7 @@ export class GameEngine {
         moves.push({ type: 'end_phase' });
         break;
 
-      case 'buy':
+      case 'buy': {
         // Can play treasure cards
         const treasureCards = player.hand.filter(card => isTreasureCard(card));
         treasureCards.forEach(card => {
@@ -445,6 +445,7 @@ export class GameEngine {
         // Can always end buy phase
         moves.push({ type: 'end_phase' });
         break;
+      }
 
       case 'cleanup':
         // Only option is to end cleanup (which triggers cleanup logic)

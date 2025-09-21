@@ -86,6 +86,115 @@ interface GameState {
 **Phase 4**: Web UI with drag-and-drop interface
 **Phase 5+**: Advanced cards, tournaments, mobile apps
 
+## Phase 1 Status & Testing
+
+**Current Implementation State**:
+- ✅ Core game engine complete (`packages/core`)
+- ✅ All unit tests passing (8/8)
+- ✅ TypeScript compilation working
+- ✅ ESLint configuration working
+- ❌ CLI interface not yet implemented (`packages/cli` is empty)
+
+**How to Test Current Functionality**:
+```bash
+# Build and test core engine (from project root)
+npm run build
+npm run test
+
+# Manual engine testing - copy/paste this for quick validation:
+node -e "
+const {GameEngine} = require('./packages/core/dist/game.js');
+console.log('✓ Successfully loaded GameEngine');
+const engine = new GameEngine('12345');
+const gameState = engine.initializeGame(1);
+console.log('✓ Game initialized successfully');
+console.log('Player hand:', gameState.players[0].hand.join(', '));
+console.log('Available actions:', gameState.players[0].actions);
+console.log('Game phase:', gameState.phase);
+console.log('Supply cards available:', gameState.supply.size);
+"
+
+# Test a complete game turn:
+node -e "
+const {GameEngine} = require('./packages/core/dist/game.js');
+const engine = new GameEngine('12345');
+let gameState = engine.initializeGame(1);
+console.log('Initial hand:', gameState.players[0].hand.join(', '));
+console.log('Initial coins:', gameState.players[0].coins);
+
+// End action phase (auto-plays treasures)
+let result = engine.executeMove(gameState, {type: 'end_phase'});
+if (result.success) {
+  gameState = result.gameState;
+  console.log('After treasures played - Coins:', gameState.players[0].coins);
+  console.log('Phase:', gameState.phase);
+}
+"
+```
+
+**Known Limitations (Expected Failures)**:
+- `npm run play` - CLI package not implemented yet (shows helpful message)
+- Phase 1 focus is core engine only; CLI will be added later
+
+**Available Commands That Work**:
+- `npm run test` - Run all unit tests ✅
+- `npm run build` - Build all packages ✅
+- `npm run lint` - Check code style ✅
+- `npm run test-engine` - Quick engine validation ✅
+
+**Manual Testing is the Current Approach**: Use Node.js scripts above to validate game engine functionality.
+
+## Core Engine API Quick Reference
+
+**Essential patterns for Claude Code when working with the game engine**:
+
+```typescript
+// 1. INITIALIZATION (seed parameter is REQUIRED)
+const engine = new GameEngine('seed-string');  // Must provide seed
+const gameState = engine.initializeGame(numPlayers: number);
+
+// 2. MAKING MOVES (returns result object, not direct state)
+const result = engine.executeMove(gameState, move);
+if (result.success) {
+  gameState = result.gameState;  // Extract new state from result
+} else {
+  console.log('Move failed:', result.error);
+}
+
+// 3. COMMON MOVE TYPES
+// End current phase
+{type: 'end_phase'}
+
+// Play action card from hand
+{type: 'play_action', card: 'Village'}
+
+// Buy card from supply
+{type: 'buy', card: 'Silver'}
+
+// Play treasure card
+{type: 'play_treasure', card: 'Copper'}
+
+// 4. GETTING VALID MOVES
+const validMoves = engine.getValidMoves(gameState);
+// Returns array of move objects that are currently legal
+
+// 5. GAME STATE STRUCTURE
+gameState.players[0].hand         // Array of card names ['Copper', 'Estate']
+gameState.players[0].actions      // Number of actions remaining
+gameState.players[0].buys         // Number of buys remaining
+gameState.players[0].coins        // Coins available to spend
+gameState.phase                   // 'action' | 'buy' | 'cleanup'
+gameState.supply                  // Map<CardName, number> of available cards
+gameState.currentPlayer           // Index of current player
+gameState.turnNumber              // Current turn number
+```
+
+**Common Gotchas**:
+- `new GameEngine()` without seed → runtime error
+- `engine.makeMove()` → doesn't exist, use `executeMove()`
+- `executeMove()` returns `{success, gameState}`, not `gameState` directly
+- Card names are strings, not objects: `'Copper'` not `{name: 'Copper'}`
+
 ## Testing Strategy
 
 - **Core game engine**: 95%+ coverage target

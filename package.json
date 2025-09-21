@@ -10,13 +10,20 @@
     "test": "npm run test --workspaces",
     "lint": "npm run lint --workspaces",
     "build": "npm run build --workspaces",
-    "play": "npm run start --workspace=packages/cli"
+    "play": "echo 'CLI not yet implemented. Use: npm run test-engine'",
+    "test-engine": "node -e \"const {GameEngine} = require('./packages/core/dist/game.js'); console.log('✓ Loading engine...'); const engine = new GameEngine('12345'); const gameState = engine.initializeGame(1); console.log('✓ Game initialized'); console.log('Hand:', gameState.players[0].hand.join(', ')); console.log('Phase:', gameState.phase); console.log('🎮 Engine working!');\""
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/edd426/principality_ai.git"
   },
-  "keywords": ["dominion", "card-game", "mcp", "ai", "typescript"],
+  "keywords": [
+    "dominion",
+    "card-game",
+    "mcp",
+    "ai",
+    "typescript"
+  ],
   "author": "Evan DeLord",
   "license": "MIT",
   "bugs": {
@@ -24,9 +31,11 @@
   },
   "homepage": "https://github.com/edd426/principality_ai#readme",
   "devDependencies": {
-    "typescript": "^5.0.0",
     "@types/node": "^20.0.0",
+    "@typescript-eslint/eslint-plugin": "^8.44.0",
+    "@typescript-eslint/parser": "^8.44.0",
     "eslint": "^8.0.0",
-    "prettier": "^3.0.0"
+    "prettier": "^3.0.0",
+    "typescript": "^5.0.0"
   }
 }
