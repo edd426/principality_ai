@@ -23,16 +23,16 @@ principality-ai/
 ├── packages/
 │   ├── core/              # Game engine (Phase 1)
 │   │   ├── src/
-│   │   │   ├── game.ts
-│   │   │   ├── cards.ts
-│   │   │   └── types.ts
+│   │   │   ├── game.ts    # Main game engine
+│   │   │   ├── cards.ts   # Card definitions (TypeScript)
+│   │   │   ├── types.ts   # Type definitions
+│   │   │   ├── utils.ts   # Utilities (seeded random, scoring)
+│   │   │   └── index.ts   # Public API exports
 │   │   └── tests/
 │   ├── cli/               # CLI interface (Phase 1)
 │   ├── mcp-server/        # MCP integration (Phase 2)
 │   ├── ai-simple/         # Rule-based AI (Phase 3)
 │   └── web/               # Web UI (Phase 4)
-├── data/
-│   └── cards.yaml         # Card definitions
 ├── .github/
 │   └── workflows/
 │       └── main.yml       # Single workflow file
@@ -88,17 +88,19 @@ npm run play -- --seed=12345
 ```
 
 ### Data Storage
-- **Card Definitions**: `data/cards.yaml`
-```yaml
-village:
-  name: "Village"
-  cost: 3
-  type: "action"
-  effects:
-    cards: 1
-    actions: 2
-  description: "+1 Card, +2 Actions"
+- **Card Definitions**: `packages/core/src/cards.ts`
+```typescript
+// Cards defined as TypeScript constants with type safety
+export const VILLAGE: Card = {
+  name: 'Village',
+  cost: 3,
+  type: 'action',
+  effect: { cards: 1, actions: 2 },
+  description: '+1 Card, +2 Actions'
+};
 ```
+
+**Note**: Cards are defined in TypeScript rather than external YAML files to maintain type safety and simplify the build process. This approach ensures card definitions are validated at compile time.
 
 ## Phase 2: MCP Integration
 
@@ -319,6 +321,232 @@ class GameSessionManager {
 - **Move Validation**: Server-side only
 - **Session Isolation**: Unique IDs, no cross-contamination
 - **Rate Limiting**: Azure Functions built-in throttling
+
+## Error Handling & Taxonomy
+
+### Error Philosophy
+
+The game engine uses a **no-exceptions** approach for all public APIs:
+- All errors returned as `{success: false, error: string}` objects
+- Never throws exceptions from public methods
+- Consistent error format for easy handling
+- Human-readable error messages for debugging
+
+### Complete Error Catalog
+
+#### Phase Validation Errors
+
+| Error Code | Message | Cause | Recovery |
+|------------|---------|-------|----------|
+| **E001** | `"Cannot play actions outside action phase"` | Attempted `play_action` in buy/cleanup phase | Wait for action phase or use `end_phase` |
+| **E002** | `"Cannot play treasures outside buy phase"` | Attempted `play_treasure` in action/cleanup phase | Use `end_phase` to reach buy phase |
+| **E003** | `"Cannot buy cards outside buy phase"` | Attempted `buy` in action/cleanup phase | Use `end_phase` to reach buy phase |
+
+#### Resource Errors
+
+| Error Code | Message | Cause | Recovery |
+|------------|---------|-------|----------|
+| **E101** | `"No actions remaining"` | Tried to play action with `actions = 0` | Play action enabler (Village) first or end phase |
+| **E102** | `"No buys remaining"` | Tried to buy with `buys = 0` | Can't buy more cards this turn |
+| **E103** | `"Insufficient coins to buy [CardName]"` | `coins < card.cost` | Play more treasures or choose cheaper card |
+
+#### Card Validation Errors
+
+| Error Code | Message | Cause | Recovery |
+|------------|---------|-------|----------|
+| **E201** | `"Must specify card to play"` | Move missing `card` field | Add `card: 'CardName'` to move |
+| **E202** | `"Must specify card to buy"` | Buy move missing `card` field | Add `card: 'CardName'` to move |
+| **E203** | `"Card not in hand: [CardName]"` | Specified card not in player's hand | Check hand contents, use different card |
+| **E204** | `"Card not in supply: [CardName]"` | Supply pile empty (`count = 0`) | Choose different card to buy |
+| **E205** | `"Must specify cards to discard"` | Cellar move missing `cards` field | Add `cards: []` (empty array is valid) |
+| **E206** | `"Cannot discard card not in hand: [CardName]"` | Cellar discard includes card not in hand | Only specify cards actually in hand |
+
+#### Move Type Errors
+
+| Error Code | Message | Cause | Recovery |
+|------------|---------|-------|----------|
+| **E301** | `"Unknown move type: [type]"` | Invalid move type | Use valid move type: `play_action`, `play_treasure`, `buy`, `end_phase`, `discard_for_cellar` |
+
+### Error Categories
+
+#### 1. Validation Errors (E001-E206)
+Errors preventing move execution due to invalid game state or move parameters.
+
+**Characteristics**:
+- User error (incorrect move for game state)
+- Recoverable (try different move)
+- Should not occur in production AI (validation before submission)
+
+**Handling**:
+```typescript
+if (!result.success) {
+  // Log error
+  logger.warn('Invalid move', { error: result.error, move });
+
+  // Get valid moves instead
+  const validMoves = engine.getValidMoves(gameState);
+
+  // Choose from valid moves
+  const alternateMove = validMoves[0];
+}
+```
+
+#### 2. System Errors
+**Currently None** - All errors are validation errors
+
+Future Phase 2+ may introduce:
+- Network errors (MCP communication)
+- Timeout errors (LLM response time)
+- Persistence errors (session storage)
+
+### Error Response Format
+
+All errors follow this format:
+
+```typescript
+interface GameResult {
+  success: false;
+  error: string;  // Human-readable message from catalog
+}
+```
+
+**Example**:
+```typescript
+{
+  success: false,
+  error: "Cannot play actions outside action phase"
+}
+```
+
+### MCP Error Mapping (Phase 2)
+
+For LLM communication, errors map to structured responses:
+
+```typescript
+// Game engine error
+{ success: false, error: "No actions remaining" }
+
+// MCP response to LLM
+{
+  error: {
+    code: "E101",
+    category: "resource",
+    message: "No actions remaining",
+    suggestion: "Play an action-generating card like Village first, or end the action phase"
+  }
+}
+```
+
+### Error Prevention Strategies
+
+#### 1. Use getValidMoves()
+**Best Practice**: Always choose from valid moves
+
+```typescript
+const validMoves = engine.getValidMoves(gameState);
+const move = selectMove(validMoves);  // Guaranteed valid
+const result = engine.executeMove(gameState, move);
+// result.success === true (if game state unchanged between calls)
+```
+
+#### 2. Pre-Validate Moves
+**Before Submission**: Check move validity
+
+```typescript
+function canPlayAction(state: GameState, card: CardName): boolean {
+  return state.phase === 'action'
+    && state.players[state.currentPlayer].actions > 0
+    && state.players[state.currentPlayer].hand.includes(card);
+}
+```
+
+#### 3. Defensive Programming
+**Assume Errors Can Occur**:
+
+```typescript
+function playCard(state: GameState, card: CardName): GameState {
+  const result = engine.executeMove(state, { type: 'play_action', card });
+
+  if (!result.success) {
+    // Fallback: end phase instead
+    const fallback = engine.executeMove(state, { type: 'end_phase' });
+    return fallback.success ? fallback.newState : state;
+  }
+
+  return result.newState;
+}
+```
+
+### Error Logging Requirements
+
+**Phase 1** (Current):
+- Log all errors during development
+- Include full move and game state context
+
+**Phase 2** (MCP):
+- Log all LLM move attempts (valid and invalid)
+- Track error rates by category
+- Alert on high error rates (> 5% of moves)
+
+**Phase 3** (Multiplayer):
+- Separate client/server error logs
+- Track desync indicators
+- Log all validation failures
+
+### Testing Error Conditions
+
+All error conditions must have corresponding tests:
+
+```typescript
+describe('Error Handling', () => {
+  test('should reject action play in buy phase', () => {
+    const state = { ...gameState, phase: 'buy' };
+    const result = engine.executeMove(state, {
+      type: 'play_action',
+      card: 'Village'
+    });
+
+    expect(result.success).toBe(false);
+    expect(result.error).toBe('Cannot play actions outside action phase');
+  });
+});
+```
+
+**Coverage Target**: 100% of error paths tested
+
+### Error Message Standards
+
+**Format**: `[Action] [context/reason]`
+
+**Good Examples**:
+- ✅ `"Cannot play actions outside action phase"`
+- ✅ `"No actions remaining"`
+- ✅ `"Card not in hand: Village"`
+
+**Bad Examples**:
+- ❌ `"Invalid move"` (too vague)
+- ❌ `"Error 42"` (no context)
+- ❌ `"You can't do that"` (informal)
+
+**Rules**:
+1. Be specific (include card name, phase, resource type)
+2. Use present tense
+3. Avoid technical jargon
+4. Suggest solution when obvious
+5. Keep under 80 characters
+
+### Error Rate Metrics
+
+**Acceptable Error Rates**:
+
+| Context | Target Error Rate | Notes |
+|---------|------------------|-------|
+| **Human Player** | < 10% | Learning curve |
+| **Rule-Based AI** | < 1% | Should validate before submission |
+| **LLM Player** | < 5% | Natural language ambiguity |
+| **Production System** | < 0.1% | All moves pre-validated |
+
+**Monitoring**: Track error rates per category, alert on anomalies
 
 ## Cost Analysis
 

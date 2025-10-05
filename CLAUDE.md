@@ -30,8 +30,6 @@ principality-ai/
 │   ├── mcp-server/        # MCP integration (Phase 2)
 │   ├── ai-simple/         # Rule-based AI (Phase 3)
 │   └── web/               # Web UI (Phase 4)
-├── data/
-│   └── cards.yaml         # Card definitions
 ├── .github/workflows/
 └── azure/functions/
 ```
@@ -64,7 +62,7 @@ interface GameState {
 ```
 
 ### Card System
-- Card definitions stored in `data/cards.yaml`
+- Card definitions in `packages/core/src/cards.ts` (TypeScript for type safety)
 - Effects system: `+Cards`, `+Actions`, `+Buys`, `+$`
 - MVP set: 8 simple kingdom cards (Village, Smithy, Laboratory, Market, etc.)
 
@@ -80,11 +78,52 @@ interface GameState {
 
 ## Development Phases
 
-**Phase 1 (Current)**: CLI-based solo sandbox game with core 8 kingdom cards
+**Phase 1 (Complete)**: CLI-based solo sandbox game with core 8 kingdom cards
+**Phase 1.5 (Approved - Ready for Implementation)**: CLI UX improvements - 5 features approved
 **Phase 2**: MCP server integration for LLM gameplay
 **Phase 3**: Multiplayer with simple AI opponents
 **Phase 4**: Web UI with drag-and-drop interface
 **Phase 5+**: Advanced cards, tournaments, mobile apps
+
+### Phase 1.5 Features (APPROVED)
+
+**Total Effort**: 25 hours | **Status**: Ready for implementation | **All questions resolved**
+
+1. **Auto-Play Treasures** (4 hours) - Command-based
+   - Commands: `treasures`, `t`, `play all`, or `all`
+   - Plays all treasures in hand at once (not automatic)
+   - Shows summary: "Played all treasures: Copper (+$1), Copper (+$1). Total: $2"
+
+2. **Stable Card Numbers** (6 hours) - AI-friendly
+   - Fixed numbers that never change: Village always [7], Smithy always [6]
+   - Simple display: `[7] Play Village` (no hybrid sequential/stable)
+   - Opt-in via `--stable-numbers` flag
+   - Critical for Phase 2 MCP/AI integration
+
+3. **Multi-Card Chained Submission** (8 hours) - Speed optimization
+   - Accept comma/space-separated chains: `1, 2, 3`
+   - Full rollback on ANY error (transaction behavior)
+   - Detailed error messages showing which move failed
+
+4. **Reduced Supply Piles** (2 hours) - Testing enhancement
+   - `--quick-game` flag reduces victory piles: Estate, Duchy, Province (12 → 8)
+   - Kingdom cards stay at 10 (Villages NOT reduced)
+   - Treasures unchanged (60 Copper, 40 Silver, 30 Gold)
+   - Games finish 40% faster (10-15 turns vs 20-25)
+
+5. **Victory Points Display** (5 hours) - NEW FEATURE (missing from Phase 1)
+   - Display VP in game header: `VP: 5 (3E, 1D)` or expanded format
+   - Calculate from entire deck (hand + draw + discard + in-play)
+   - Update automatically after buying/gaining victory cards
+   - Include in `hand` and `status` commands
+   - **Priority**: Must-have (basic game feature)
+
+**See Also**:
+- [CLI_PHASE2_REQUIREMENTS.md](./CLI_PHASE2_REQUIREMENTS.md) - Full technical specifications
+- [CLI_PHASE2_SUMMARY.md](./CLI_PHASE2_SUMMARY.md) - Executive summary
+- [CLI_PHASE2_VISUAL_GUIDE.md](./CLI_PHASE2_VISUAL_GUIDE.md) - Visual examples
+- [CLI_PHASE2_TEST_SPEC.md](./CLI_PHASE2_TEST_SPEC.md) - Test requirements
+- [STABLE_NUMBER_REFERENCE.md](./STABLE_NUMBER_REFERENCE.md) - Stable number mappings
 
 ## Phase 1 Status & Testing
 
@@ -93,7 +132,8 @@ interface GameState {
 - ✅ All unit tests passing (8/8)
 - ✅ TypeScript compilation working
 - ✅ ESLint configuration working
-- ❌ CLI interface not yet implemented (`packages/cli` is empty)
+- ✅ Basic CLI interface implemented (`packages/cli`)
+- ⏳ CLI Phase 2 UX improvements (requirements documented, implementation pending)
 
 **How to Test Current Functionality**:
 ```bash

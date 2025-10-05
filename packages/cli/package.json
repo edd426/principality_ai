@@ -1,0 +1,28 @@
+{
+  "name": "@principality/cli",
+  "version": "1.0.0",
+  "description": "CLI interface for Principality AI",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "tsc && node dist/index.js",
+    "clean": "rm -rf dist",
+    "lint": "eslint src/**/*.ts"
+  },
+  "dependencies": {
+    "@principality/core": "file:../core"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0"
+  },
+  "keywords": [
+    "dominion",
+    "card-game",
+    "cli",
+    "game"
+  ],
+  "author": "Evan DeLord",
+  "license": "MIT"
+}

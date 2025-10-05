@@ -8,9 +8,10 @@
   ],
   "scripts": {
     "test": "npm run test --workspaces",
+    "test:coverage": "npm run test:coverage --workspaces",
     "lint": "npm run lint --workspaces",
     "build": "npm run build --workspaces",
-    "play": "echo 'CLI not yet implemented. Use: npm run test-engine'",
+    "play": "npm run build && node packages/cli/dist/index.js",
     "test-engine": "node -e \"const {GameEngine} = require('./packages/core/dist/game.js'); console.log('✓ Loading engine...'); const engine = new GameEngine('12345'); const gameState = engine.initializeGame(1); console.log('✓ Game initialized'); console.log('Hand:', gameState.players[0].hand.join(', ')); console.log('Phase:', gameState.phase); console.log('🎮 Engine working!');\""
   },
   "repository": {

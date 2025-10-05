@@ -4,8 +4,10 @@ import { SeededRandom, createStartingDeck, createDefaultSupply, calculateScore, 
 
 export class GameEngine {
   private random: SeededRandom;
+  private seed: string;
 
   constructor(seed: string) {
+    this.seed = seed;
     this.random = new SeededRandom(seed);
   }
 
@@ -33,7 +35,7 @@ export class GameEngine {
       currentPlayer: 0,
       phase: 'action',
       turnNumber: 1,
-      seed: this.random.toString(),
+      seed: this.seed,
       gameLog: ['Game started']
     };
   }
