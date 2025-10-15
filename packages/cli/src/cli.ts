@@ -1,7 +1,18 @@
 import * as readline from 'readline';
-import { GameEngine, GameState, Move } from '@principality/core';
+import { GameEngine, GameState, Move, getCard } from '@principality/core';
 import { Display } from './display';
 import { Parser, ParseResult } from './parser';
+import { formatVPDisplay, formatVPDisplayExpanded } from './vp-calculator';
+import { TransactionManager } from './transaction';
+
+/**
+ * CLI options configuration
+ */
+export interface CLIOptions {
+  quickGame?: boolean;
+  stableNumbers?: boolean;
+  autoPlayTreasures?: boolean;
+}
 
 /**
  * Main CLI interface for Principality AI
@@ -13,12 +24,18 @@ export class PrincipalityCLI {
   private parser: Parser;
   private rl: readline.Interface;
   private isRunning: boolean;
+  private options: CLIOptions;
 
-  constructor(seed?: string, players: number = 1) {
+  constructor(seed?: string, players: number = 1, options: CLIOptions = {}) {
     const gameSeed = seed || this.generateRandomSeed();
-    this.engine = new GameEngine(gameSeed);
+    this.options = options;
+
+    // Initialize engine with options
+    this.engine = new GameEngine(gameSeed, { quickGame: options.quickGame });
     this.gameState = this.engine.initializeGame(players);
-    this.display = new Display();
+
+    // Initialize display and parser with stable numbers option
+    this.display = new Display({ stableNumbers: options.stableNumbers });
     this.parser = new Parser();
     this.isRunning = false;
 
@@ -34,7 +51,7 @@ export class PrincipalityCLI {
    */
   async start(): Promise<void> {
     this.isRunning = true;
-    this.display.displayWelcome(this.gameState.seed);
+    this.display.displayWelcome(this.gameState.seed, this.options.quickGame);
 
     // Start the game loop
     await this.gameLoop();
@@ -67,8 +84,10 @@ export class PrincipalityCLI {
         continue;
       }
 
-      // Parse input
-      const parseResult = this.parser.parseInput(input, validMoves);
+      // Parse input with options
+      const parseResult = this.parser.parseInput(input, validMoves, {
+        stableNumbers: this.options.stableNumbers
+      });
 
       // Handle parse result
       await this.handleParseResult(parseResult);
@@ -90,6 +109,12 @@ export class PrincipalityCLI {
         if (result.command) {
           const normalizedCommand = this.parser.normalizeCommand(result.command);
           await this.handleCommand(normalizedCommand);
+        }
+        break;
+
+      case 'chain':
+        if (result.chain) {
+          this.executeChain(result.chain);
         }
         break;
 
@@ -118,6 +143,65 @@ export class PrincipalityCLI {
   }
 
   /**
+   * Execute a chain of moves with full rollback on ANY failure
+   */
+  private executeChain(chain: number[]): void {
+    const transactionManager = new TransactionManager();
+
+    // Save state BEFORE execution
+    transactionManager.saveState(this.gameState);
+
+    // CRITICAL: Capture all moves at the START of the chain
+    // This prevents move numbers from shifting as moves are executed
+    const initialValidMoves = this.engine.getValidMoves(this.gameState);
+
+    // Validate all move numbers are valid BEFORE executing any
+    for (const moveNumber of chain) {
+      if (moveNumber < 1 || moveNumber > initialValidMoves.length) {
+        this.display.displayError(
+          `Invalid move number: ${moveNumber}. Valid range is 1-${initialValidMoves.length}`
+        );
+        return;
+      }
+    }
+
+    // Convert move numbers to actual Move objects
+    const movesToExecute = chain.map(num => initialValidMoves[num - 1]);
+
+    try {
+      // Execute moves sequentially using the captured moves
+      for (let i = 0; i < movesToExecute.length; i++) {
+        const move = movesToExecute[i];
+        const result = this.engine.executeMove(this.gameState, move);
+
+        if (!result.success) {
+          throw new Error(result.error || 'Move failed');
+        }
+
+        // Display the move result
+        if (result.newState) {
+          const lastLog = result.newState.gameLog[result.newState.gameLog.length - 1];
+          this.display.displayMoveResult(true, lastLog);
+          this.gameState = result.newState;
+        }
+      }
+
+      // Success - clear saved state
+      transactionManager.clearSavedState();
+      this.display.displayInfo(`Chain completed successfully (${chain.length} moves)`);
+
+    } catch (error) {
+      // ROLLBACK - restore saved state
+      this.gameState = transactionManager.restoreState();
+
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+
+      console.log(`✗ Error: Chain failed: ${errorMessage}`);
+      console.log('   All moves rolled back. Game state unchanged.');
+    }
+  }
+
+  /**
    * Handle special commands
    */
   private async handleCommand(command: string): Promise<void> {
@@ -129,12 +213,25 @@ export class PrincipalityCLI {
 
       case 'hand': {
         const player = this.gameState.players[this.gameState.currentPlayer];
-        this.display.displayInfo(`Hand: ${player.hand.join(', ')}`);
+        const vpDisplay = formatVPDisplay(player);
+        this.display.displayInfo(`Hand: ${player.hand.join(', ')}\nVictory Points: ${vpDisplay}`);
         break;
       }
 
       case 'supply': {
         this.display.displaySupply(this.gameState);
+        break;
+      }
+
+      case 'treasures': {
+        this.autoPlayTreasures();
+        break;
+      }
+
+      case 'status': {
+        const player = this.gameState.players[this.gameState.currentPlayer];
+        const vpDisplay = formatVPDisplay(player);
+        this.display.displayInfo(`Actions: ${player.actions}  Buys: ${player.buys}  Coins: $${player.coins}\nVictory Points: ${vpDisplay}`);
         break;
       }
 
@@ -144,9 +241,51 @@ export class PrincipalityCLI {
       }
 
       default: {
-        this.display.displayError(`Unknown command: ${command}`);
+        console.log(`✗ Error: Unknown command: ${command}`);
       }
     }
+  }
+
+  /**
+   * Auto-play all treasure cards in hand
+   */
+  private autoPlayTreasures(): void {
+    if (this.gameState.phase !== 'buy') {
+      this.display.displayError('Can only play treasures during buy phase');
+      return;
+    }
+
+    const player = this.gameState.players[this.gameState.currentPlayer];
+    const treasureCards = player.hand.filter(card => {
+      const cardData = getCard(card);
+      return cardData.type === 'treasure';
+    });
+
+    if (treasureCards.length === 0) {
+      this.display.displayInfo('No treasures to play');
+      return;
+    }
+
+    const treasureDetails: string[] = [];
+    let totalCoins = 0;
+
+    // Play each treasure
+    for (const treasure of treasureCards) {
+      const move: Move = { type: 'play_treasure', card: treasure };
+      const result = this.engine.executeMove(this.gameState, move);
+
+      if (result.success && result.newState) {
+        const cardData = getCard(treasure);
+        const coinValue = cardData.effect.coins || 0;
+        treasureDetails.push(`${treasure} (+$${coinValue})`);
+        totalCoins += coinValue;
+        this.gameState = result.newState;
+      }
+    }
+
+    // Display summary
+    const summary = `Played all treasures: ${treasureDetails.join(', ')}. Total: $${totalCoins}`;
+    console.log(`✓ ${summary}`);
   }
 
   /**

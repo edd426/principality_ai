@@ -22,10 +22,10 @@ export interface Card {
 }
 
 export interface PlayerState {
-  readonly deck: ReadonlyArray<CardName>;
+  readonly drawPile: ReadonlyArray<CardName>;
   readonly hand: ReadonlyArray<CardName>;
-  readonly discard: ReadonlyArray<CardName>;
-  readonly playArea: ReadonlyArray<CardName>;
+  readonly discardPile: ReadonlyArray<CardName>;
+  readonly inPlay: ReadonlyArray<CardName>;
   readonly actions: number;
   readonly buys: number;
   readonly coins: number;
@@ -57,4 +57,8 @@ export interface Victory {
   isGameOver: boolean;
   winner?: number;
   scores?: ReadonlyArray<number>;
+}
+
+export interface GameOptions {
+  quickGame?: boolean;
 }

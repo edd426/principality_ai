@@ -1,5 +1,5 @@
 import { GameEngine } from '../src/game';
-import { GameState } from '../src/types';
+import { GameState, Move } from '../src/types';
 
 describe('GameEngine', () => {
   let engine: GameEngine;
@@ -18,14 +18,14 @@ describe('GameEngine', () => {
     
     const player = state.players[0];
     expect(player.hand).toHaveLength(5);
-    expect(player.deck).toHaveLength(5);
-    expect(player.discard).toHaveLength(0);
+    expect(player.drawPile).toHaveLength(5);
+    expect(player.discardPile).toHaveLength(0);
     expect(player.actions).toBe(1);
     expect(player.buys).toBe(1);
     expect(player.coins).toBe(0);
     
     // Check starting cards (7 Copper + 3 Estate)
-    const allCards = [...player.hand, ...player.deck];
+    const allCards = [...player.hand, ...player.drawPile];
     const copperCount = allCards.filter(card => card === 'Copper').length;
     const estateCount = allCards.filter(card => card === 'Estate').length;
     expect(copperCount).toBe(7);
@@ -41,7 +41,7 @@ describe('GameEngine', () => {
       players: [{
         ...state.players[0],
         hand: ['Village', 'Copper', 'Copper', 'Silver', 'Estate'],
-        deck: ['Smithy', 'Market', 'Gold']
+        drawPile: ['Smithy', 'Market', 'Gold']
       }]
     };
 
@@ -54,7 +54,7 @@ describe('GameEngine', () => {
       const player = result.newState.players[0];
       expect(player.actions).toBe(2); // Started with 1, spent 1, gained 2 = 2
       expect(player.hand).toHaveLength(5); // Removed Village, drew 1 card
-      expect(player.playArea).toContain('Village');
+      expect(player.inPlay).toContain('Village');
       expect(player.hand).not.toContain('Village');
     }
   });
@@ -80,7 +80,7 @@ describe('GameEngine', () => {
     if (result.newState) {
       const player = result.newState.players[0];
       expect(player.coins).toBe(2);
-      expect(player.playArea).toContain('Silver');
+      expect(player.inPlay).toContain('Silver');
       expect(player.hand).not.toContain('Silver');
     }
   });
@@ -107,7 +107,7 @@ describe('GameEngine', () => {
       const player = result.newState.players[0];
       expect(player.coins).toBe(0); // 4 - 4 = 0
       expect(player.buys).toBe(0);
-      expect(player.discard).toContain('Smithy');
+      expect(player.discardPile).toContain('Smithy');
       
       // Check supply decreased
       expect(result.newState.supply.get('Smithy')).toBe(9);
@@ -136,7 +136,7 @@ describe('GameEngine', () => {
     // Player should have new hand of 5 cards
     const player = result3.newState?.players[0];
     expect(player?.hand).toHaveLength(5);
-    expect(player?.playArea).toHaveLength(0);
+    expect(player?.inPlay).toHaveLength(0);
     expect(player?.actions).toBe(1);
     expect(player?.buys).toBe(1);
     expect(player?.coins).toBe(0);
@@ -212,8 +212,8 @@ describe('GameEngine', () => {
       players: [{
         ...state.players[0],
         hand: ['Cellar', 'Estate', 'Estate', 'Copper', 'Copper'],
-        deck: ['Village', 'Smithy', 'Market', 'Gold', 'Silver'],
-        discard: []
+        drawPile: ['Village', 'Smithy', 'Market', 'Gold', 'Silver'],
+        discardPile: []
       }]
     };
 
@@ -237,8 +237,8 @@ describe('GameEngine', () => {
         // Should have drawn 2 cards (same as discarded count)
         expect(player.hand).toHaveLength(4); // Started with 4 after Cellar, discarded 2, drew 2
         expect(player.hand).not.toContain('Estate'); // Estates should be discarded
-        expect(player.discard).toHaveLength(2); // 2 Estates discarded
-        expect(player.discard.filter(c => c === 'Estate')).toHaveLength(2);
+        expect(player.discardPile).toHaveLength(2); // 2 Estates discarded
+        expect(player.discardPile.filter(c => c === 'Estate')).toHaveLength(2);
       }
     }
   });
@@ -252,8 +252,8 @@ describe('GameEngine', () => {
       players: [{
         ...state.players[0],
         hand: ['Smithy', 'Copper'],
-        deck: ['Village', 'Market'], // Only 2 cards in deck
-        discard: ['Estate', 'Duchy', 'Province', 'Gold'] // 4 cards in discard
+        drawPile: ['Village', 'Market'], // Only 2 cards in deck
+        discardPile: ['Estate', 'Duchy', 'Province', 'Gold'] // 4 cards in discard
       }]
     };
 
@@ -270,11 +270,11 @@ describe('GameEngine', () => {
       // Deck should have remaining cards after shuffle
       // Total: 2 starting hand + 2 deck + 4 discard = 8 cards
       // After: 4 in hand, 1 in play area (Smithy), 3 remaining in deck/discard
-      const totalCards = player.deck.length + player.discard.length + player.hand.length + player.playArea.length;
+      const totalCards = player.drawPile.length + player.discardPile.length + player.hand.length + player.inPlay.length;
       expect(totalCards).toBe(8); // All cards accounted for
 
       // Discard should be empty or deck should have cards (shuffle occurred)
-      expect(player.deck.length + player.discard.length).toBeGreaterThan(0);
+      expect(player.drawPile.length + player.discardPile.length).toBeGreaterThan(0);
     }
   });
 
@@ -287,8 +287,8 @@ describe('GameEngine', () => {
       players: [{
         ...state.players[0],
         hand: ['Council Room'], // Draws 4 cards
-        deck: ['Copper'], // Only 1 card
-        discard: ['Estate'] // Only 1 card
+        drawPile: ['Copper'], // Only 1 card
+        discardPile: ['Estate'] // Only 1 card
       }]
     };
 
@@ -301,8 +301,8 @@ describe('GameEngine', () => {
 
       // Should draw all available cards (2) even though card says draw 4
       expect(player.hand).toHaveLength(2); // Drew all available cards
-      expect(player.deck).toHaveLength(0);
-      expect(player.discard).toHaveLength(0);
+      expect(player.drawPile).toHaveLength(0);
+      expect(player.discardPile).toHaveLength(0);
     }
   });
 
@@ -433,7 +433,7 @@ describe('GameEngine', () => {
 
     // Same seed should produce same shuffle
     expect(state1.players[0].hand).toEqual(state2.players[0].hand);
-    expect(state1.players[0].deck).toEqual(state2.players[0].deck);
+    expect(state1.players[0].drawPile).toEqual(state2.players[0].drawPile);
   });
 
   test('should verify different seeds produce different results', () => {
@@ -445,7 +445,7 @@ describe('GameEngine', () => {
 
     // Different seeds should produce different shuffles (very high probability)
     const sameHand = JSON.stringify(state1.players[0].hand) === JSON.stringify(state2.players[0].hand);
-    const sameDeck = JSON.stringify(state1.players[0].deck) === JSON.stringify(state2.players[0].deck);
+    const sameDeck = JSON.stringify(state1.players[0].drawPile) === JSON.stringify(state2.players[0].drawPile);
 
     expect(sameHand && sameDeck).toBe(false);
   });
@@ -459,7 +459,7 @@ describe('GameEngine', () => {
       players: [{
         ...state.players[0],
         hand: ['Village', 'Copper', 'Copper', 'Silver', 'Estate'],
-        deck: ['Smithy', 'Market', 'Gold', 'Silver', 'Province']
+        drawPile: ['Smithy', 'Market', 'Gold', 'Silver', 'Province']
       }]
     };
 
@@ -494,7 +494,7 @@ describe('GameEngine', () => {
       console.error('Buy failed:', result.error);
     }
     currentState = result.newState!;
-    expect(currentState.players[0].discard).toContain('Estate');
+    expect(currentState.players[0].discardPile).toContain('Estate');
 
     // End buy phase
     result = engine.executeMove(currentState, { type: 'end_phase' });
@@ -511,7 +511,7 @@ describe('GameEngine', () => {
     expect(currentState.phase).toBe('action');
     expect(currentState.turnNumber).toBe(2);
     expect(currentState.players[0].hand).toHaveLength(5);
-    expect(currentState.players[0].playArea).toHaveLength(0);
+    expect(currentState.players[0].inPlay).toHaveLength(0);
     expect(currentState.players[0].actions).toBe(1);
     expect(currentState.players[0].buys).toBe(1);
     expect(currentState.players[0].coins).toBe(0);
@@ -537,7 +537,7 @@ describe('GameEngine - Kingdom Card Effects', () => {
         players: [{
           ...state.players[0],
           hand: ['Laboratory', 'Copper', 'Copper'],
-          deck: ['Village', 'Smithy', 'Market', 'Gold'],
+          drawPile: ['Village', 'Smithy', 'Market', 'Gold'],
           actions: 1
         }]
       };
@@ -549,7 +549,7 @@ describe('GameEngine - Kingdom Card Effects', () => {
         const player = result.newState.players[0];
         expect(player.hand).toHaveLength(4); // 2 original + 2 drawn - 1 played = 3, but Laboratory draws 2 so 4
         expect(player.actions).toBe(1); // Started with 1, used 1, gained 1 = 1
-        expect(player.playArea).toContain('Laboratory');
+        expect(player.inPlay).toContain('Laboratory');
       }
     });
 
@@ -560,7 +560,7 @@ describe('GameEngine - Kingdom Card Effects', () => {
         players: [{
           ...state.players[0],
           hand: ['Laboratory', 'Laboratory', 'Laboratory'],
-          deck: ['Village', 'Smithy', 'Market', 'Gold', 'Silver', 'Copper'],
+          drawPile: ['Village', 'Smithy', 'Market', 'Gold', 'Silver', 'Copper'],
           actions: 1
         }]
       };
@@ -596,7 +596,7 @@ describe('GameEngine - Kingdom Card Effects', () => {
         players: [{
           ...state.players[0],
           hand: ['Market', 'Copper', 'Copper'],
-          deck: ['Village', 'Smithy'],
+          drawPile: ['Village', 'Smithy'],
           actions: 1,
           buys: 1,
           coins: 0
@@ -612,7 +612,7 @@ describe('GameEngine - Kingdom Card Effects', () => {
         expect(player.actions).toBe(1); // 1 - 1 + 1 = 1
         expect(player.coins).toBe(1);
         expect(player.buys).toBe(2); // 1 + 1 = 2
-        expect(player.playArea).toContain('Market');
+        expect(player.inPlay).toContain('Market');
       }
     });
 
@@ -624,7 +624,7 @@ describe('GameEngine - Kingdom Card Effects', () => {
         players: [{
           ...state.players[0],
           hand: ['Copper'],
-          playArea: ['Market', 'Market'], // Played 2 Markets
+          inPlay: ['Market', 'Market'], // Played 2 Markets
           coins: 6, // Enough for 2 Estates
           buys: 3, // 1 base + 2 from Markets
           actions: 0
@@ -644,7 +644,7 @@ describe('GameEngine - Kingdom Card Effects', () => {
       currentState = result.newState!;
       expect(currentState.players[0].buys).toBe(1);
       expect(currentState.players[0].coins).toBe(2);
-      expect(currentState.players[0].discard.filter(c => c === 'Estate')).toHaveLength(2);
+      expect(currentState.players[0].discardPile.filter(c => c === 'Estate')).toHaveLength(2);
     });
   });
 
@@ -656,7 +656,7 @@ describe('GameEngine - Kingdom Card Effects', () => {
         players: [{
           ...state.players[0],
           hand: ['Woodcutter', 'Copper', 'Copper'],
-          deck: ['Village'],
+          drawPile: ['Village'],
           actions: 1,
           buys: 1,
           coins: 0
@@ -671,7 +671,7 @@ describe('GameEngine - Kingdom Card Effects', () => {
         expect(player.coins).toBe(2);
         expect(player.buys).toBe(2);
         expect(player.actions).toBe(0); // Terminal card
-        expect(player.playArea).toContain('Woodcutter');
+        expect(player.inPlay).toContain('Woodcutter');
       }
     });
   });
@@ -684,7 +684,7 @@ describe('GameEngine - Kingdom Card Effects', () => {
         players: [{
           ...state.players[0],
           hand: ['Festival', 'Copper', 'Copper'],
-          deck: ['Village'],
+          drawPile: ['Village'],
           actions: 1,
           buys: 1,
           coins: 0
@@ -700,7 +700,7 @@ describe('GameEngine - Kingdom Card Effects', () => {
         expect(player.coins).toBe(2);
         expect(player.buys).toBe(2);
         expect(player.hand).toHaveLength(2); // No cards drawn
-        expect(player.playArea).toContain('Festival');
+        expect(player.inPlay).toContain('Festival');
       }
     });
 
@@ -711,7 +711,7 @@ describe('GameEngine - Kingdom Card Effects', () => {
         players: [{
           ...state.players[0],
           hand: ['Festival', 'Festival', 'Festival'],
-          deck: ['Village'],
+          drawPile: ['Village'],
           actions: 1,
           coins: 0
         }]
@@ -741,8 +741,8 @@ describe('GameEngine - Kingdom Card Effects', () => {
         players: [{
           ...state.players[0],
           hand: ['Cellar', 'Copper', 'Copper', 'Silver'],
-          deck: ['Village', 'Smithy'],
-          playArea: []
+          drawPile: ['Village', 'Smithy'],
+          inPlay: []
         }]
       };
 
@@ -768,8 +768,8 @@ describe('GameEngine - Kingdom Card Effects', () => {
         players: [{
           ...state.players[0],
           hand: ['Copper', 'Copper'],
-          deck: ['Village', 'Smithy'],
-          playArea: ['Cellar']
+          drawPile: ['Village', 'Smithy'],
+          inPlay: ['Cellar']
         }]
       };
 
@@ -789,8 +789,8 @@ describe('GameEngine - Kingdom Card Effects', () => {
         players: [{
           ...state.players[0],
           hand: ['Estate', 'Estate', 'Estate', 'Copper'],
-          deck: ['Village', 'Smithy', 'Market'],
-          playArea: ['Cellar']
+          drawPile: ['Village', 'Smithy', 'Market'],
+          inPlay: ['Cellar']
         }]
       };
 
@@ -803,7 +803,7 @@ describe('GameEngine - Kingdom Card Effects', () => {
       if (result.newState) {
         const player = result.newState.players[0];
         expect(player.hand).toHaveLength(4); // 1 Copper + 3 drawn
-        expect(player.discard.filter(c => c === 'Estate')).toHaveLength(3);
+        expect(player.discardPile.filter(c => c === 'Estate')).toHaveLength(3);
       }
     });
   });
@@ -837,7 +837,7 @@ describe('GameEngine - Treasure Cards', () => {
     expect(result.success).toBe(true);
     if (result.newState) {
       expect(result.newState.players[0].coins).toBe(1);
-      expect(result.newState.players[0].playArea).toContain('Copper');
+      expect(result.newState.players[0].inPlay).toContain('Copper');
     }
   });
 
@@ -858,7 +858,7 @@ describe('GameEngine - Treasure Cards', () => {
     expect(result.success).toBe(true);
     if (result.newState) {
       expect(result.newState.players[0].coins).toBe(2);
-      expect(result.newState.players[0].playArea).toContain('Silver');
+      expect(result.newState.players[0].inPlay).toContain('Silver');
     }
   });
 
@@ -879,7 +879,7 @@ describe('GameEngine - Treasure Cards', () => {
     expect(result.success).toBe(true);
     if (result.newState) {
       expect(result.newState.players[0].coins).toBe(3);
-      expect(result.newState.players[0].playArea).toContain('Gold');
+      expect(result.newState.players[0].inPlay).toContain('Gold');
     }
   });
 
@@ -1083,7 +1083,7 @@ describe('GameEngine - Error Validation', () => {
         players: [{
           ...state.players[0],
           hand: ['Estate', 'Copper'],
-          playArea: ['Cellar']
+          inPlay: ['Cellar']
         }]
       };
 
@@ -1127,7 +1127,7 @@ describe('GameEngine - Multiplayer', () => {
     // Each player should have proper starting conditions
     state.players.forEach(player => {
       expect(player.hand).toHaveLength(5);
-      expect(player.deck).toHaveLength(5);
+      expect(player.drawPile).toHaveLength(5);
       expect(player.actions).toBe(1);
       expect(player.buys).toBe(1);
       expect(player.coins).toBe(0);
@@ -1169,15 +1169,15 @@ describe('GameEngine - Multiplayer', () => {
       players: [
         {
           ...state.players[0],
-          deck: ['Province', 'Province', 'Duchy'],
+          drawPile: ['Province', 'Province', 'Duchy'],
           hand: ['Estate', 'Copper', 'Copper', 'Copper', 'Copper'],
-          discard: []
+          discardPile: []
         },
         {
           ...state.players[1],
-          deck: ['Estate', 'Estate', 'Copper'],
+          drawPile: ['Estate', 'Estate', 'Copper'],
           hand: ['Copper', 'Copper', 'Copper', 'Copper', 'Copper'],
-          discard: []
+          discardPile: []
         }
       ],
       supply: new Map(state.supply).set('Province', 0) // Trigger game end
@@ -1187,7 +1187,7 @@ describe('GameEngine - Multiplayer', () => {
 
     expect(victory.isGameOver).toBe(true);
     expect(victory.winner).toBe(0);
-    expect(victory.scores).toEqual([16, 1]); // Player 0: 12+3+1=16, Player 1: 1
+    expect(victory.scores).toEqual([16, 2]); // Player 0: 12+3+1=16, Player 1: 2 (2 Estates from hand)
   });
 });
 
@@ -1210,7 +1210,7 @@ describe('GameEngine - Complex Scenarios', () => {
       players: [{
         ...state.players[0],
         hand: ['Copper'],
-        playArea: ['Market', 'Market', 'Gold', 'Gold'], // 2+6=8 coins + 2 buys
+        inPlay: ['Market', 'Market', 'Gold', 'Gold'], // 2+6=8 coins + 2 buys
         coins: 13, // Enough for Province + Duchy
         buys: 3,
         actions: 0
@@ -1230,8 +1230,8 @@ describe('GameEngine - Complex Scenarios', () => {
     currentState = result.newState!;
     expect(currentState.players[0].coins).toBe(0);
     expect(currentState.players[0].buys).toBe(1);
-    expect(currentState.players[0].discard).toContain('Province');
-    expect(currentState.players[0].discard).toContain('Duchy');
+    expect(currentState.players[0].discardPile).toContain('Province');
+    expect(currentState.players[0].discardPile).toContain('Duchy');
   });
 
   test('should handle Village → Smithy → Market chain', () => {
@@ -1241,7 +1241,7 @@ describe('GameEngine - Complex Scenarios', () => {
       players: [{
         ...state.players[0],
         hand: ['Village', 'Smithy', 'Market'],
-        deck: ['Copper', 'Copper', 'Copper', 'Silver', 'Gold', 'Estate'],
+        drawPile: ['Copper', 'Copper', 'Copper', 'Silver', 'Gold', 'Estate'],
         actions: 1,
         buys: 1,
         coins: 0
@@ -1287,7 +1287,7 @@ describe('GameEngine - Complex Scenarios', () => {
 
     expect(result.success).toBe(true);
     expect(result.newState!.players[0].coins).toBe(0);
-    expect(result.newState!.players[0].discard).toContain('Province');
+    expect(result.newState!.players[0].discardPile).toContain('Province');
   });
 
   test('should handle buying with one coin short', () => {

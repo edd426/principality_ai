@@ -1,28 +1,30 @@
-import { GameState, PlayerState, Move, GameResult, Victory, CardName } from './types';
+import { GameState, PlayerState, Move, GameResult, Victory, CardName, GameOptions } from './types';
 import { getCard, isActionCard, isTreasureCard } from './cards';
 import { SeededRandom, createStartingDeck, createDefaultSupply, calculateScore, getAllPlayerCards } from './utils';
 
 export class GameEngine {
   private random: SeededRandom;
   private seed: string;
+  private options: GameOptions;
 
-  constructor(seed: string) {
+  constructor(seed: string, options: GameOptions = {}) {
     this.seed = seed;
     this.random = new SeededRandom(seed);
+    this.options = options;
   }
 
   initializeGame(numPlayers: number = 1): GameState {
     const players: PlayerState[] = [];
-    
+
     for (let i = 0; i < numPlayers; i++) {
       const startingDeck = createStartingDeck();
       const shuffledDeck = this.random.shuffle(startingDeck);
-      
+
       players.push({
-        deck: shuffledDeck.slice(5),
+        drawPile: shuffledDeck.slice(5),
         hand: shuffledDeck.slice(0, 5),
-        discard: [],
-        playArea: [],
+        discardPile: [],
+        inPlay: [],
         actions: 1,
         buys: 1,
         coins: 0
@@ -31,7 +33,7 @@ export class GameEngine {
 
     return {
       players,
-      supply: createDefaultSupply(),
+      supply: createDefaultSupply(this.options),
       currentPlayer: 0,
       phase: 'action',
       turnNumber: 1,
@@ -120,8 +122,8 @@ export class GameEngine {
     if (cardIndex !== -1) {
       newHand.splice(cardIndex, 1);
     }
-    const newPlayArea = [...player.playArea, cardName];
-    
+    const newInPlay = [...player.inPlay, cardName];
+
     let newActions = Math.max(0, player.actions - 1);
     let newCards = 0;
     let newCoins = player.coins;
@@ -134,23 +136,23 @@ export class GameEngine {
     if (card.effect.buys) newBuys += card.effect.buys;
 
     let finalHand: CardName[] = [...newHand];
-    let finalDeck: CardName[] = [...player.deck];
-    let finalDiscard: CardName[] = [...player.discard];
+    let finalDrawPile: CardName[] = [...player.drawPile];
+    let finalDiscardPile: CardName[] = [...player.discardPile];
 
     // Draw cards if needed
     if (newCards > 0) {
-      const drawResult = this.drawCards(finalDeck, finalDiscard, finalHand, newCards);
+      const drawResult = this.drawCards(finalDrawPile, finalDiscardPile, finalHand, newCards);
       finalHand = drawResult.newHand;
-      finalDeck = drawResult.newDeck;
-      finalDiscard = drawResult.newDiscard;
+      finalDrawPile = drawResult.newDeck;
+      finalDiscardPile = drawResult.newDiscard;
     }
 
     const updatedPlayer: PlayerState = {
       ...player,
       hand: finalHand,
-      deck: finalDeck,
-      discard: finalDiscard,
-      playArea: newPlayArea,
+      drawPile: finalDrawPile,
+      discardPile: finalDiscardPile,
+      inPlay: newInPlay,
       actions: newActions,
       coins: newCoins,
       buys: newBuys
@@ -183,13 +185,13 @@ export class GameEngine {
     if (cardIndex !== -1) {
       newHand.splice(cardIndex, 1);
     }
-    const newPlayArea = [...player.playArea, cardName];
+    const newInPlay = [...player.inPlay, cardName];
     const newCoins = player.coins + (card.effect.coins || 0);
 
     const updatedPlayer: PlayerState = {
       ...player,
       hand: newHand,
-      playArea: newPlayArea,
+      inPlay: newInPlay,
       coins: newCoins
     };
 
@@ -223,7 +225,7 @@ export class GameEngine {
       ...player,
       coins: player.coins - card.cost,
       buys: player.buys - 1,
-      discard: [...player.discard, cardName]
+      discardPile: [...player.discardPile, cardName]
     };
 
     const newPlayers = [...state.players];
@@ -255,18 +257,18 @@ export class GameEngine {
 
   private performCleanup(state: GameState): GameState {
     const player = state.players[state.currentPlayer];
-    
+
     // Discard everything from hand and play area
-    const allDiscards = [...player.discard, ...player.hand, ...player.playArea];
-    
+    const allDiscards = [...player.discardPile, ...player.hand, ...player.inPlay];
+
     // Draw new hand of 5 cards
-    const drawResult = this.drawCards(player.deck, allDiscards, [], 5);
-    
+    const drawResult = this.drawCards(player.drawPile, allDiscards, [], 5);
+
     const updatedPlayer: PlayerState = {
-      deck: drawResult.newDeck,
+      drawPile: drawResult.newDeck,
       hand: drawResult.newHand,
-      discard: drawResult.newDiscard,
-      playArea: [],
+      discardPile: drawResult.newDiscard,
+      inPlay: [],
       actions: 1,
       buys: 1,
       coins: 0
@@ -352,16 +354,16 @@ export class GameEngine {
     });
 
     // Add to discard pile
-    const newDiscard = [...player.discard, ...cardsToDiscard];
+    const newDiscardPile = [...player.discardPile, ...cardsToDiscard];
 
     // Draw cards equal to number discarded
-    const drawResult = this.drawCards(player.deck, newDiscard, newHand, cardsToDiscard.length);
+    const drawResult = this.drawCards(player.drawPile, newDiscardPile, newHand, cardsToDiscard.length);
 
     const updatedPlayer: PlayerState = {
       ...player,
       hand: drawResult.newHand,
-      deck: drawResult.newDeck,
-      discard: drawResult.newDiscard
+      drawPile: drawResult.newDeck,
+      discardPile: drawResult.newDiscard
     };
 
     const newPlayers = [...state.players];
@@ -397,7 +399,7 @@ export class GameEngine {
 
   private calculateWinner(state: GameState): Victory {
     const scores = state.players.map(player => {
-      const allCards = getAllPlayerCards(player.deck, player.hand, player.discard);
+      const allCards = getAllPlayerCards(player.drawPile, player.hand, player.discardPile);
       return calculateScore(allCards);
     });
 

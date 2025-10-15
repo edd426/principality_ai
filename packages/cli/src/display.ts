@@ -1,18 +1,33 @@
-import { GameState, PlayerState, Move, Victory } from '@principality/core';
+import { GameState, PlayerState, Move, Victory, getCard } from '@principality/core';
+import { formatVPDisplay } from './vp-calculator';
+import { getStableNumber } from './stable-numbers';
+
+/**
+ * Display options
+ */
+export interface DisplayOptions {
+  stableNumbers?: boolean;
+}
 
 /**
  * Formats and displays game state to the console
  */
 export class Display {
+  private options: DisplayOptions;
+
+  constructor(options: DisplayOptions = {}) {
+    this.options = options;
+  }
   /**
    * Display the current game state with player information
    */
   displayGameState(state: GameState): void {
     const player = state.players[state.currentPlayer];
     const phaseLabel = this.capitalizePhase(state.phase);
+    const vpDisplay = formatVPDisplay(player);
 
     console.log('\n' + '='.repeat(60));
-    console.log(`Turn ${state.turnNumber} | Player ${state.currentPlayer + 1} | ${phaseLabel} Phase`);
+    console.log(`Turn ${state.turnNumber} | Player ${state.currentPlayer + 1} | VP: ${vpDisplay} | ${phaseLabel} Phase`);
     console.log('='.repeat(60));
 
     this.displayPlayerHand(player);
@@ -44,9 +59,47 @@ export class Display {
     console.log('Available Moves:');
     moves.forEach((move, index) => {
       const moveDescription = this.describeMoveCompact(move);
-      console.log(`  [${index + 1}] ${moveDescription}`);
+
+      if (this.options.stableNumbers) {
+        // Show stable numbers
+        const stableNum = this.getStableNumberForMove(move);
+        if (stableNum !== null) {
+          console.log(`  [${stableNum}] ${moveDescription}`);
+        } else {
+          console.log(`  ${moveDescription}`);
+        }
+      } else {
+        // Show sequential numbers
+        console.log(`  [${index + 1}] ${moveDescription}`);
+      }
     });
     console.log('');
+  }
+
+  /**
+   * Get stable number for a move
+   */
+  private getStableNumberForMove(move: Move): number | null {
+    let moveKey: string;
+
+    switch (move.type) {
+      case 'play_action':
+        moveKey = move.card || '';
+        break;
+      case 'play_treasure':
+        moveKey = move.card || '';
+        break;
+      case 'buy':
+        moveKey = `Buy ${move.card}`;
+        break;
+      case 'end_phase':
+        moveKey = 'End Phase';
+        break;
+      default:
+        return null;
+    }
+
+    return getStableNumber(moveKey);
   }
 
   /**
@@ -87,7 +140,10 @@ export class Display {
    * Format a group of supply piles
    */
   private formatSupplyGroup(piles: [string, number][]): string {
-    return piles.map(([name, count]) => `${name} (${count})`).join(', ');
+    return piles.map(([name, count]) => {
+      const card = getCard(name as any);
+      return `${name} ($${card.cost}, ${count})`;
+    }).join(', ');
   }
 
   /**
@@ -113,7 +169,9 @@ export class Display {
       console.log('\nFinal Scores:');
       victory.scores.forEach((score, index) => {
         const marker = index === victory.winner ? '★ WINNER' : '';
-        console.log(`  Player ${index + 1}: ${score} VP ${marker}`);
+        const player = state.players[index];
+        const vpDisplay = formatVPDisplay(player);
+        console.log(`  Player ${index + 1}: ${score} VP (${vpDisplay}) ${marker}`);
       });
     }
 
@@ -124,9 +182,12 @@ export class Display {
   /**
    * Display welcome message
    */
-  displayWelcome(seed: string): void {
+  displayWelcome(seed: string, quickGame?: boolean): void {
     console.log('\n' + '='.repeat(60));
     console.log('PRINCIPALITY AI - Deck Building Game');
+    if (quickGame) {
+      console.log('Quick Game Mode: Victory piles reduced to 8');
+    }
     console.log('='.repeat(60));
     console.log(`Game Seed: ${seed}`);
     console.log('\nCommands:');
@@ -143,12 +204,13 @@ export class Display {
    */
   displayHelp(): void {
     console.log('\nAvailable Commands:');
-    console.log('  [number] - Select move by number from the list');
-    console.log('  hand     - Display your current hand');
-    console.log('  supply   - Display all available supply piles');
-    console.log('  help     - Show this help message');
-    console.log('  quit     - Exit the game');
-    console.log('  exit     - Exit the game');
+    console.log('  [number] - Select move by number');
+    console.log('  1, 2, 3      - Chain multiple moves (e.g., "1, 2, 3" or "1 2 3")');
+    console.log('  treasures    - Auto-play all treasure cards at once (alias: t)');
+    console.log('  hand         - Display your current hand with victory points');
+    console.log('  supply       - Display all available supply piles');
+    console.log('  help         - Show this help message');
+    console.log('  quit         - Exit the game (alias: exit)');
     console.log('');
   }
 
@@ -162,7 +224,8 @@ export class Display {
       case 'play_treasure':
         return `Play ${move.card}`;
       case 'buy':
-        return `Buy ${move.card}`;
+        const card = getCard(move.card!);
+        return `Buy ${move.card} ($${card.cost})`;
       case 'end_phase':
         return 'End Phase';
       case 'discard_for_cellar':

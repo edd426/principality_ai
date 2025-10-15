@@ -40,16 +40,18 @@ export function createStartingDeck(): ReadonlyArray<CardName> {
   ];
 }
 
-export function createDefaultSupply(): ReadonlyMap<CardName, number> {
+export function createDefaultSupply(options?: { quickGame?: boolean }): ReadonlyMap<CardName, number> {
+  const victoryPileSize = options?.quickGame ? 8 : 12;
+
   return new Map([
     // Basic cards (always available)
     ['Copper', 60],
     ['Silver', 40],
     ['Gold', 30],
-    ['Estate', 12],
-    ['Duchy', 12],
-    ['Province', 12],
-    
+    ['Estate', victoryPileSize],
+    ['Duchy', victoryPileSize],
+    ['Province', victoryPileSize],
+
     // Kingdom cards (MVP set - all 8 available)
     ['Village', 10],
     ['Smithy', 10],

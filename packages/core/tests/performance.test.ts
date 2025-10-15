@@ -63,7 +63,7 @@ describe('Performance Tests', () => {
         players: [{
           ...gameState.players[0],
           hand: ['Village', 'Smithy', 'Copper', 'Copper', 'Estate'],
-          deck: ['Market', 'Laboratory', 'Gold', 'Silver', 'Province'],
+          drawPile: ['Market', 'Laboratory', 'Gold', 'Silver', 'Province'],
           actions: 1,
           buys: 1,
           coins: 0
@@ -101,7 +101,7 @@ describe('Performance Tests', () => {
             players: [{
               ...gameState.players[0],
               hand: ['Village', 'Smithy', 'Copper', 'Copper', 'Estate'],
-              deck: ['Market', 'Laboratory', 'Gold', 'Silver', 'Province'],
+              drawPile: ['Market', 'Laboratory', 'Gold', 'Silver', 'Province'],
               actions: 1,
               buys: 1,
               coins: 0
@@ -136,7 +136,7 @@ describe('Performance Tests', () => {
         players: [{
           ...gameState.players[0],
           hand: ['Smithy', 'Copper', 'Copper'],
-          deck: ['Village', 'Market', 'Laboratory', 'Gold'],
+          drawPile: ['Village', 'Market', 'Laboratory', 'Gold'],
           actions: 1
         }]
       };
@@ -156,7 +156,7 @@ describe('Performance Tests', () => {
           players: [{
             ...gameState.players[0],
             hand: ['Smithy'],
-            deck: ['Village', 'Market', 'Laboratory'],
+            drawPile: ['Village', 'Market', 'Laboratory'],
             actions: 1
           }]
         };
@@ -431,7 +431,7 @@ describe('Performance Tests', () => {
           players: [{
             ...gameState.players[0],
             hand: ['Village', 'Copper', 'Copper', 'Silver', 'Estate'],
-            deck: ['Smithy', 'Market']
+            drawPile: ['Smithy', 'Market']
           }]
         };
 
@@ -457,7 +457,7 @@ describe('Performance Tests', () => {
           players: [{
             ...gameState.players[0],
             hand: ['Village', 'Copper', 'Copper', 'Silver', 'Estate'],
-            deck: ['Smithy', 'Market']
+            drawPile: ['Smithy', 'Market']
           }]
         };
 
