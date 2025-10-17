@@ -1,8 +1,10 @@
 # CLI Phase 2 Test Specification
 
+**Status**: APPROVED
+**Created**: 2025-10-05
+**Last Updated**: 2025-10-17 (moved during documentation reorganization)
+**Phase**: 1.5
 **Purpose**: Test requirements for CLI UX improvements
-**Audience**: test-architect agent
-**Status**: Draft - Ready for test implementation
 
 ---
 

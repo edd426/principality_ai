@@ -84,3 +84,9 @@ sessions/
 test-results/
 playwright-report/
 
+# Agent session files (ephemeral)
+.claude/sessions/
+
+# Optional: Keep active threads private
+# .claude/communication/ACTIVE_THREADS.md
+

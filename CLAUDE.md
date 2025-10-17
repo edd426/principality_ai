@@ -76,21 +76,6 @@ interface GameState {
 - Lock-step synchronization (all clients acknowledge moves)
 - Simple rule-based AI opponent
 
-## 🚨 NEXT PRIORITY: Documentation Reorganization
-
-**Status**: CRITICAL | **Time Required**: ~3 hours | **See**: [docs/DOCUMENTATION_SYSTEM.md](./docs/DOCUMENTATION_SYSTEM.md)
-
-The project has accumulated documentation sprawl (7+ root .md files, oversized logs at 1,356 lines, duplicate Phase 1.5 docs). Before proceeding with Phase 1.5 implementation, we need to reorganize the documentation system for long-term maintainability.
-
-**Quick Summary**:
-- Consolidate 4 CLI_PHASE2_* files → docs/requirements/phase-1.5/
-- Split communication-log.md (1,356 lines) → monthly rotation
-- Clean root directory (7 files → 2-3 files)
-- Establish file size limits and lifecycle rules
-- Create templates for agents to use
-
-**Action**: Next agent should execute the 8-step plan in docs/DOCUMENTATION_SYSTEM.md
-
 ---
 
 ## Development Phases
@@ -136,11 +121,11 @@ The project has accumulated documentation sprawl (7+ root .md files, oversized l
    - **Priority**: Must-have (basic game feature)
 
 **See Also**:
-- [CLI_PHASE2_REQUIREMENTS.md](./CLI_PHASE2_REQUIREMENTS.md) - Full technical specifications
-- [CLI_PHASE2_SUMMARY.md](./CLI_PHASE2_SUMMARY.md) - Executive summary
-- [CLI_PHASE2_VISUAL_GUIDE.md](./CLI_PHASE2_VISUAL_GUIDE.md) - Visual examples
-- [CLI_PHASE2_TEST_SPEC.md](./CLI_PHASE2_TEST_SPEC.md) - Test requirements
-- [STABLE_NUMBER_REFERENCE.md](./STABLE_NUMBER_REFERENCE.md) - Stable number mappings
+- [FEATURES.md](./docs/requirements/phase-1.5/FEATURES.md) - Full technical specifications
+- [OVERVIEW.md](./docs/requirements/phase-1.5/OVERVIEW.md) - Executive summary
+- [UX_GUIDE.md](./docs/requirements/phase-1.5/UX_GUIDE.md) - Visual examples
+- [TESTING.md](./docs/requirements/phase-1.5/TESTING.md) - Test requirements
+- [STABLE_NUMBERS.md](./docs/reference/cards/STABLE_NUMBERS.md) - Stable number mappings
 
 ## Phase 1 Status & Testing
 

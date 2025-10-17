@@ -1,9 +1,10 @@
 # CLI Phase 2 Requirements - UX Improvements
 
+**Status**: APPROVED
+**Created**: 2025-10-05
+**Last Updated**: 2025-10-17 (moved during documentation reorganization)
+**Phase**: 1.5
 **Version**: 2.0.0
-**Target**: Phase 1.5 (CLI Enhancement)
-**Last Updated**: October 5, 2025
-**Status**: APPROVED - Ready for Implementation
 
 ---
 
