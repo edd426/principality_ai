@@ -10,8 +10,11 @@ async function main(): Promise<void> {
   const args = process.argv.slice(2);
   let seed: string | undefined;
   let players = 1;
+  let quickGame = false;
+  let stableNumbers = false;
+  let manualCleanup = false;
 
-  // Look for --seed and --players flags
+  // Look for flags
   for (let i = 0; i < args.length; i++) {
     if (args[i].startsWith('--seed=')) {
       seed = args[i].split('=')[1];
@@ -27,11 +30,17 @@ async function main(): Promise<void> {
       if (!isNaN(playerCount) && playerCount >= 1 && playerCount <= 4) {
         players = playerCount;
       }
+    } else if (args[i] === '--quick-game') {
+      quickGame = true;
+    } else if (args[i] === '--stable-numbers') {
+      stableNumbers = true;
+    } else if (args[i] === '--manual-cleanup') {
+      manualCleanup = true;
     }
   }
 
-  // Create and start the CLI
-  const cli = new PrincipalityCLI(seed, players);
+  // Create and start the CLI with options
+  const cli = new PrincipalityCLI(seed, players, { quickGame, stableNumbers, manualCleanup });
   await cli.start();
 }
 

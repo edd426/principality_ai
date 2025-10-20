@@ -223,18 +223,21 @@ describe('Display', () => {
       expect(consoleCapture.contains('Province ($8, 0)')).toBe(true);
     });
 
-    test('should handle missing supply categories', () => {
+    test('should display all supply categories even with zero counts', () => {
       const state = GameStateBuilder.create()
         .withSupply({
-          'Copper': 46 // Only treasures
+          'Copper': 46, // Only treasures with count
+          'Estate': 0, 'Duchy': 0, 'Province': 0, // Victory cards at zero
+          'Village': 0, 'Smithy': 0 // Kingdom cards at zero
         })
         .build();
 
       display.displaySupply(state);
 
+      // All categories should be shown, even if counts are 0 (useful game information)
       expect(consoleCapture.contains('Treasures:')).toBe(true);
-      expect(consoleCapture.contains('Victory:')).toBe(false);
-      expect(consoleCapture.contains('Kingdom:')).toBe(false);
+      expect(consoleCapture.contains('Victory:')).toBe(true); // Shows empty piles
+      expect(consoleCapture.contains('Kingdom:')).toBe(true); // Shows empty piles
     });
 
     test('should format supply groups correctly', () => {
@@ -293,7 +296,7 @@ describe('Display', () => {
 
       expect(output).toMatch(/GAME OVER/);
       expect(output).toMatch(/Final Scores:/);
-      expect(output).toMatch(/Player 1: 15 VP ★ WINNER/);
+      expect(output).toMatch(/Player 1: 15 VP .* ★ WINNER/); // Allow VP breakdown
       expect(output).toMatch(/Player 2: 8 VP/);
       expect(output).toMatch(/Total Turns: 20/);
     });
@@ -321,7 +324,9 @@ describe('Display', () => {
 
       display.displayGameOver(victory, state);
 
-      expect(consoleCapture.contains('Player 2: 15 VP ★ WINNER')).toBe(true);
+      expect(consoleCapture.contains('Player 2:')).toBe(true);
+      expect(consoleCapture.contains('15 VP')).toBe(true);
+      expect(consoleCapture.contains('★ WINNER')).toBe(true);
       expect(consoleCapture.contains('Player 1: 10 VP')).toBe(true);
       expect(consoleCapture.contains('Player 3: 8 VP')).toBe(true);
     });

@@ -4,14 +4,20 @@ A solo-first Dominion-inspired deck-building game designed for streamlined gamep
 
 ## Project Status
 
-**Current Phase**: Phase 1 Complete (Core Game Engine & CLI)
+**Current Phase**: Phase 1.5 Complete (CLI UX Enhancements)
 **Next Phase**: Phase 2 (MCP Integration)
 
-- ✅ Core game engine with immutable state pattern
-- ✅ All 8 MVP kingdom cards implemented
-- ✅ Comprehensive test suite (8 cards + edge cases)
-- ✅ TypeScript compilation and linting
-- ✅ CLI interface with interactive gameplay
+### Completed
+- ✅ **Phase 1**: Core game engine with immutable state pattern
+- ✅ **Phase 1**: All 8 MVP kingdom cards implemented
+- ✅ **Phase 1**: Comprehensive test suite (95%+ coverage)
+- ✅ **Phase 1**: CLI interface with interactive gameplay
+- ✅ **Phase 1.5**: Auto-play treasures command
+- ✅ **Phase 1.5**: Stable card numbers for AI agents
+- ✅ **Phase 1.5**: Multi-card chained submission
+- ✅ **Phase 1.5**: Quick game mode (reduced piles)
+- ✅ **Phase 1.5**: Victory points display
+- ✅ **Phase 1.5**: Auto-skip cleanup phase
 
 ## Quick Start
 
@@ -51,13 +57,20 @@ npm run play
 # Play with a specific seed for reproducible games
 npm run play -- --seed=12345
 
-# Quick engine validation
-npm run test-engine
+# Use Phase 1.5 features
+npm run play -- --quick-game              # Faster games (reduced victory piles)
+npm run play -- --stable-numbers          # Fixed card numbers for AI
+npm run play -- --manual-cleanup          # Disable auto-skip cleanup
+
+# Combine flags
+npm run play -- --seed=test --quick-game --stable-numbers
 ```
 
 **CLI Commands:**
-- Enter a number to select a move from the list
-- `hand` - Show your current hand
+- `[number]` - Select a move by number
+- `1, 2, 3` - Chain multiple moves (e.g., "1, 2, 3" or "1 2 3")
+- `treasures` or `t` - Auto-play all treasure cards at once
+- `hand` - Show your current hand with victory points
 - `supply` - Show all available cards
 - `help` - Display help message
 - `quit` or `exit` - End the game

@@ -16,6 +16,7 @@
 - [Feature 3: Multi-Card Chained Submission](#feature-3-multi-card-chained-submission)
 - [Feature 4: Reduced Supply Pile Sizes](#feature-4-reduced-supply-pile-sizes)
 - [Feature 5: Victory Points Display](#feature-5-victory-points-display)
+- [Feature 6: Auto-Skip Cleanup Phase](#feature-6-auto-skip-cleanup-phase)
 - [Feature Interactions](#feature-interactions)
 - [Implementation Priority](#implementation-priority)
 - [Acceptance Criteria Summary](#acceptance-criteria-summary)
@@ -26,11 +27,12 @@
 
 ### Purpose
 
-This document specifies four user experience improvements for the Principality AI CLI interface designed to:
-1. Reduce tedious repeated actions (auto-play treasures)
+This document specifies six user experience improvements for the Principality AI CLI interface designed to:
+1. Reduce tedious repeated actions (auto-play treasures, auto-skip cleanup)
 2. Improve AI agent playability (stable card numbering)
 3. Increase gameplay speed (chained move submission)
 4. Shorten game duration for testing (reduced supply sizes)
+5. Display critical game information (victory points)
 
 ### Target Users
 
@@ -55,6 +57,7 @@ All open questions have been resolved:
 3. **Stable Numbering Display**: Simple stable-only display (e.g., `[7] Play Village`), no hybrid
 4. **Chain Error Handling**: Full rollback - if ANY move fails, revert ALL moves in chain
 5. **NEW Feature Discovered**: Victory Points display was missing from Phase 1 CLI
+6. **NEW Feature Discovered**: Auto-skip cleanup phase to eliminate manual input for no-choice phases
 
 ---
 
@@ -860,6 +863,210 @@ function calculateVictoryPoints(player: PlayerState): number {
 
 ---
 
+## Feature 6: Auto-Skip Cleanup Phase
+
+### User Story
+
+**As a** player
+**I want** cleanup to execute automatically when no decisions are required
+**So that** I don't have to manually press a key every single turn for a phase with no choices
+
+### Current Behavior
+
+**Manual Cleanup Required**: Every turn, players must manually trigger cleanup by pressing a key to execute the `end_phase` move.
+
+**Current Implementation** (from `packages/core/src/game.ts`):
+```typescript
+case 'cleanup':
+  // Only option is to end cleanup (which triggers cleanup logic)
+  moves.push({ type: 'end_phase' });
+  break;
+```
+
+**Problem**:
+- Cleanup offers exactly ONE move option: `end_phase`
+- No player decisions to make during cleanup with MVP card set
+- User must still press a key/enter command every turn
+- This adds unnecessary friction to gameplay
+- Slows down turn cycle for no benefit
+
+**Example of current tedium**:
+```
+=== Cleanup Phase ===
+Available Moves:
+  [1] End Phase
+
+> 1                          ← Required manual input every turn
+✓ Cleanup complete
+```
+
+### Proposed Behavior
+
+**Automatic Execution**: When cleanup phase has no interactive choices, execute cleanup immediately and advance to next turn.
+
+**Display Cleanup Summary**:
+```
+✓ Cleanup: Discarded 3 cards (Village, Copper, Copper), drew 5 new cards
+
+=== Turn 2 | Player 1 | Action Phase ===
+```
+
+**Future-Proofing**: If a card requires cleanup decisions (e.g., Cellar in future phases), system pauses for user input.
+
+**Opt-Out Option**: `--manual-cleanup` flag disables auto-skip for players who prefer manual control.
+
+### Functional Requirements
+
+**FR-6.1**: The cleanup phase SHALL execute automatically when no interactive choices are required.
+
+**FR-6.2**: The system SHALL display a cleanup summary showing:
+- Cards discarded from in-play area
+- Number of cards drawn for new hand
+- **Format**: "✓ Cleanup: Discarded N cards, drew 5 new cards"
+- **Detailed format** (optional): "✓ Cleanup: Discarded 3 cards (Village, Copper, Copper), drew 5 new cards"
+
+**FR-6.3**: If a card requires cleanup decisions (future cards), the system SHALL pause for user input.
+
+**FR-6.4**: The `--manual-cleanup` flag SHALL disable auto-skip when specified.
+
+**FR-6.5**: Auto-skip SHALL only apply to single-player games initially (multiplayer may require different handling).
+
+**FR-6.6**: After cleanup, the game SHALL immediately advance to the next turn without requiring user input.
+
+### Non-Functional Requirements
+
+**NFR-6.1**: The cleanup summary SHALL be clearly visible before the next turn starts.
+
+**NFR-6.2**: Auto-advance SHALL feel instantaneous (< 100ms from cleanup start to next turn display).
+
+**NFR-6.3**: The summary format SHALL match existing game output style and visual consistency.
+
+**NFR-6.4**: Auto-skip behavior SHALL be obvious and not confuse users about what happened.
+
+### Edge Cases
+
+**EC-6.1**: Multiplayer games with auto-skip:
+- **Behavior**: Each player's cleanup auto-executes in sequence
+- **Display**: Show cleanup summary for each player as their turn ends
+- **Consideration**: May need brief pause between players for readability
+
+**EC-6.2**: Future cards with cleanup choices (e.g., Cellar discard):
+- **Behavior**: System detects interactive cleanup choices and pauses
+- **Detection**: Check if `getValidMoves()` during cleanup returns > 1 option
+- **Display**: Show available moves and wait for user input
+- **Example**: "Cellar: Choose cards to discard" → pause for input
+
+**EC-6.3**: Verbose/debug mode:
+- **Behavior**: Show detailed cleanup steps even when auto-skipping
+- **Display**: Include step-by-step breakdown: "Discarded: Village, Copper | Drew: Estate, Copper, Copper, Silver, Estate"
+- **Use Case**: Useful for debugging or learning game mechanics
+
+**EC-6.4**: `--manual-cleanup` flag specified:
+- **Behavior**: Cleanup behaves like current implementation (manual trigger required)
+- **Display**: Show standard "Available Moves: [1] End Phase" prompt
+- **Use Case**: Players who want full control or want to review board state before cleanup
+
+**EC-6.5**: No cards in play during cleanup:
+- **Behavior**: Still auto-execute cleanup (discard hand, draw 5)
+- **Display**: "✓ Cleanup: Discarded 5 cards, drew 5 new cards"
+
+### Acceptance Criteria
+
+**AC-6.1**: Given I complete the buy phase with no cleanup choices required
+When cleanup phase begins
+Then cleanup executes automatically without user input
+And I see a cleanup summary message
+And the game advances to the next turn
+
+**AC-6.2**: Given cleanup executes automatically
+When the summary is displayed
+Then I see the number of cards discarded
+And I see the number of cards drawn
+And the format matches "✓ Cleanup: Discarded N cards, drew 5 new cards"
+
+**AC-6.3**: Given I complete a turn in a standard game
+When cleanup auto-executes
+Then the next turn begins immediately (< 100ms)
+And I see the next turn's action phase without additional input
+
+**AC-6.4**: Given I start a game with `--manual-cleanup` flag
+When cleanup phase begins
+Then the game pauses and shows available moves
+And I must manually enter a command to proceed
+And cleanup does NOT auto-execute
+
+**AC-6.5**: Given a future card requires cleanup decisions (placeholder test)
+When cleanup phase begins with interactive choices
+Then the game pauses and shows available moves
+And auto-skip does NOT activate
+And I can make cleanup decisions manually
+
+### Priority
+
+**Should-Have** - Significantly improves UX by eliminating tedious manual input, but not critical for MVP functionality.
+
+### Implementation Notes
+
+**Detection Logic**:
+```typescript
+function shouldAutoSkipCleanup(gameState: GameState): boolean {
+  // Don't auto-skip if manual mode enabled
+  if (cliOptions.manualCleanup) {
+    return false;
+  }
+
+  // Check if cleanup has any interactive choices
+  const validMoves = engine.getValidMoves(gameState);
+
+  // If only move is 'end_phase', auto-skip
+  return validMoves.length === 1 && validMoves[0].type === 'end_phase';
+}
+```
+
+**Summary Generation**:
+```typescript
+function generateCleanupSummary(gameState: GameState): string {
+  const player = gameState.players[gameState.currentPlayer];
+  const cardsDiscarded = player.inPlay.length + player.hand.length;
+  const cardsDrawn = 5;
+
+  // Basic format
+  return `✓ Cleanup: Discarded ${cardsDiscarded} cards, drew ${cardsDrawn} new cards`;
+
+  // Detailed format (optional)
+  const discardedCards = [...player.inPlay, ...player.hand].join(', ');
+  return `✓ Cleanup: Discarded ${cardsDiscarded} cards (${discardedCards}), drew ${cardsDrawn} new cards`;
+}
+```
+
+**CLI Integration**:
+- Modify CLI game loop to detect cleanup phase
+- Check `shouldAutoSkipCleanup()` when entering cleanup
+- If true, execute cleanup automatically and display summary
+- If false, show available moves as current behavior
+
+**Testing Considerations**:
+- Test auto-skip in single-player games
+- Test manual cleanup flag disables auto-skip
+- Test summary message displays correctly
+- Test performance (< 100ms auto-advance)
+- Future-proof test for cards with cleanup choices (can be placeholder)
+
+### Estimated Effort
+
+**Implementation**: 2 hours
+- Modify CLI game loop: 1 hour
+- Add cleanup summary generation: 0.5 hour
+- Add `--manual-cleanup` flag handling: 0.5 hour
+
+**Testing**: 1 hour
+- Write unit tests for auto-skip detection: 0.5 hour
+- Write integration tests for cleanup flow: 0.5 hour
+
+**Total**: 3 hours
+
+---
+
 ## Feature Interactions
 
 ### Auto-Play Treasures + Chained Submission
@@ -968,33 +1175,44 @@ Available Moves:
 
 **Priority**: Must-Have
 
-1. **Feature 1: Auto-Play All Treasures** (Option A - Automatic)
+1. **Feature 1: Auto-Play All Treasures** (Command-based)
    - Highest usability impact
    - Simplest to implement
    - Benefits all users immediately
    - **Estimated Effort**: 4 hours
 
+2. **Feature 5: Victory Points Display**
+   - Missing from Phase 1, essential game feature
+   - Clear strategic information
+   - **Estimated Effort**: 5 hours
+
 ### Phase 1.5b - AI Readiness (Week 2)
 
 **Priority**: Should-Have
 
-2. **Feature 2: Stable Card Numbers** (Option C - Hybrid)
+3. **Feature 2: Stable Card Numbers** (Simple stable-only display)
    - Critical for Phase 2 MCP integration
-   - Provides both human and AI usability
+   - Provides AI usability
    - Requires stable mapping documentation
-   - **Estimated Effort**: 8 hours
+   - **Estimated Effort**: 6 hours
 
-3. **Feature 3: Multi-Card Chained Submission**
+4. **Feature 3: Multi-Card Chained Submission**
    - Significant speed improvement
    - More complex parsing logic
-   - Requires robust error handling
-   - **Estimated Effort**: 6 hours
+   - Requires robust error handling with rollback
+   - **Estimated Effort**: 8 hours
+
+5. **Feature 6: Auto-Skip Cleanup Phase**
+   - Eliminates tedious manual input
+   - Improves turn flow
+   - Simple implementation
+   - **Estimated Effort**: 3 hours
 
 ### Phase 1.5c - Testing Enhancement (Week 3)
 
 **Priority**: Could-Have
 
-4. **Feature 4: Reduced Supply Piles** (Option A - Flag-based)
+6. **Feature 4: Reduced Supply Piles** (Flag-based)
    - Useful for testing
    - Simple implementation (config change)
    - Low risk
@@ -1002,7 +1220,7 @@ Available Moves:
 
 ### Total Estimated Effort
 
-**20 hours total** (1-2 sprints depending on team size)
+**28 hours total** (2 sprints)
 
 ---
 
@@ -1088,6 +1306,14 @@ All open questions have been resolved with user input:
 - [ ] AC-5.4: VP breakdown shows card counts (e.g., "5 VP (3E, 1D)")
 - [ ] AC-5.5: VP shown in `hand` and `status` commands
 
+### Feature 6: Auto-Skip Cleanup Phase
+
+- [ ] AC-6.1: Cleanup executes automatically when no choices available
+- [ ] AC-6.2: Cleanup summary displays cards discarded and drawn
+- [ ] AC-6.3: Game advances to next turn immediately (< 100ms)
+- [ ] AC-6.4: `--manual-cleanup` flag disables auto-skip
+- [ ] AC-6.5: Future cards with cleanup choices pause correctly (placeholder)
+
 ### Integration Testing
 
 - [ ] All features work independently
@@ -1095,6 +1321,7 @@ All open questions have been resolved with user input:
 - [ ] Performance remains < 100ms per turn with all features enabled
 - [ ] Error messages remain clear with all features enabled
 - [ ] VP display updates correctly when chaining buy moves
+- [ ] Cleanup auto-skip works seamlessly with chained moves
 
 ---
 
@@ -1110,7 +1337,7 @@ Options:
   --players=<number>      Number of players (default: 1)
   --quick-game            Reduce pile sizes to 8 for faster games
   --stable-numbers        Enable stable card numbering for AI agents
-  --manual-treasures      Disable auto-play of treasures (optional)
+  --manual-cleanup        Disable auto-skip of cleanup phase
   --help                  Show help message
 ```
 
@@ -1164,6 +1391,7 @@ Commands:
 |---------|------|--------|---------|
 | 1.0.0 | 2025-10-05 | Requirements Architect | Initial draft with 4 features and open questions |
 | 2.0.0 | 2025-10-05 | Requirements Architect | All questions resolved, Feature 5 (VP display) added, ready for implementation |
+| 2.1.0 | 2025-10-19 | Requirements Architect | Feature 6 (Auto-skip cleanup) added, total effort now 28 hours |
 
 ---
 

@@ -10,13 +10,13 @@
 
 ## Overview
 
-All user clarifications received. Five CLI UX improvement features are fully specified and ready for implementation. All open questions have been resolved.
+All user clarifications received. Six CLI UX improvement features are fully specified and ready for implementation. All open questions have been resolved.
 
-**Total Estimated Effort**: 25 hours (5-6 days)
+**Total Estimated Effort**: 28 hours (6-7 days)
 
 ---
 
-## Feature Summary (5 Features)
+## Feature Summary (6 Features)
 
 ### 1. Auto-Play All Treasures ✨ Must-Have
 
@@ -150,6 +150,27 @@ Victory Points: 5 VP (2 Estates, 1 Duchy)
 
 ---
 
+### 6. Auto-Skip Cleanup Phase ⚡ Should-Have
+
+**Problem**: Players must manually press a key every turn to execute cleanup even though no decisions are required
+
+**Solution**: Automatically execute cleanup and advance to next turn when no choices exist
+
+**Example**:
+```
+✓ Cleanup: Discarded 3 cards, drew 5 new cards
+
+=== Turn 2 | Player 1 | Action Phase ===
+```
+
+**Opt-Out**: `--manual-cleanup` flag disables auto-skip
+
+**Impact**: Eliminates one manual input per turn, smoother game flow
+
+**Effort**: 3 hours
+
+---
+
 ## All Questions Resolved ✅
 
 ### Question 1: "Principalities" Clarification
@@ -183,11 +204,18 @@ Victory Points: 5 VP (2 Estates, 1 Duchy)
 - Show in game header
 - Update after buying victory cards
 
+### Question 6: Auto-Skip Cleanup (NEW FEATURE)
+**Observation**: User identified cleanup phase requires manual input despite having no choices
+- Auto-execute cleanup when only one move option exists
+- Display cleanup summary
+- Opt-out via `--manual-cleanup` flag
+- Future-proof for cards with cleanup decisions
+
 ---
 
 ## Implementation Plan
 
-### Week 1: Core Features (14 hours)
+### Week 1: Core Features (17 hours)
 1. **Feature 1**: Auto-Play Treasures (4 hours)
    - Command parser for `treasures`, `t`, `play all`
    - Play all treasures in sequence
@@ -198,28 +226,33 @@ Victory Points: 5 VP (2 Estates, 1 Duchy)
    - Header display integration
    - Update after buy/gain actions
 
-3. **Feature 4**: Reduced Piles (2 hours)
+3. **Feature 6**: Auto-Skip Cleanup (3 hours)
+   - Auto-skip detection logic
+   - Cleanup summary generation
+   - `--manual-cleanup` flag handling
+
+4. **Feature 4**: Reduced Piles (2 hours)
    - `--quick-game` flag parsing
    - Victory pile size configuration
    - Help text updates
 
-4. **Feature 2**: Stable Numbers (3 hours partial)
+5. **Feature 2**: Stable Numbers (3 hours partial)
    - Stable number mapping
    - Display formatting
 
 ### Week 2: Advanced Features (11 hours)
-5. **Feature 2**: Stable Numbers (3 hours completion)
+6. **Feature 2**: Stable Numbers (3 hours completion)
    - Input parsing for stable numbers
    - Help command reference
    - Testing edge cases
 
-6. **Feature 3**: Chained Submission (8 hours)
+7. **Feature 3**: Chained Submission (8 hours)
    - Chain parsing (comma/space separated)
    - Transaction/rollback mechanism
    - Error handling and messages
    - Integration testing
 
-### Total: 25 hours
+### Total: 28 hours
 
 ---
 
@@ -231,8 +264,9 @@ Victory Points: 5 VP (2 Estates, 1 Duchy)
 | Feature 2 | 8 hrs | 6 hrs | Simpler (no hybrid) |
 | Feature 3 | 6 hrs | 8 hrs | More complex (rollback) |
 | Feature 4 | 2 hrs | 2 hrs | Unchanged |
-| Feature 5 | - | 5 hrs | New feature |
-| **Total** | **20 hrs** | **25 hrs** | +25% |
+| Feature 5 | - | 5 hrs | New feature (VP display) |
+| Feature 6 | - | 3 hrs | New feature (auto-skip) |
+| **Total** | **20 hrs** | **28 hrs** | +40% |
 
 ---
 
@@ -269,6 +303,13 @@ Victory Points: 5 VP (2 Estates, 1 Duchy)
 - Update after buy/gain
 - Show in `hand` and `status` commands
 
+### Auto-Skip Cleanup
+- **Auto-execute** when no choices required
+- Display cleanup summary: "✓ Cleanup: Discarded N cards, drew 5 new cards"
+- Immediately advance to next turn (< 100ms)
+- Opt-out via `--manual-cleanup` flag
+- Future-proof for cards with cleanup decisions
+
 ---
 
 ## Testing Requirements
@@ -279,6 +320,7 @@ Victory Points: 5 VP (2 Estates, 1 Duchy)
 - Feature 3: Chain parsing, rollback, error messages
 - Feature 4: Flag parsing, pile configuration
 - Feature 5: VP calculation, display, updates
+- Feature 6: Auto-skip detection, cleanup summary, manual flag
 
 ### Integration Tests
 - All features together
@@ -305,6 +347,7 @@ Options:
   --players=<number>      Number of players (default: 1)
   --quick-game            Reduce victory piles to 8 for faster games
   --stable-numbers        Enable stable card numbering for AI agents
+  --manual-cleanup        Disable auto-skip of cleanup phase
   --help                  Show help message
 ```
 
@@ -365,6 +408,7 @@ All requirements are finalized. No blocking questions remain.
 **Feature 3**: ✓ Chains rollback completely on any error
 **Feature 4**: ✓ `--quick-game` reduces victory piles only
 **Feature 5**: ✓ VP always visible in game header
+**Feature 6**: ✓ Cleanup auto-executes when no choices exist
 
 **Integration**: ✓ All features work together without conflicts
 **Performance**: ✓ < 100ms per turn with all features enabled

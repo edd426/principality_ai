@@ -12,6 +12,7 @@ export interface CLIOptions {
   quickGame?: boolean;
   stableNumbers?: boolean;
   autoPlayTreasures?: boolean;
+  manualCleanup?: boolean;
 }
 
 /**
@@ -62,35 +63,56 @@ export class PrincipalityCLI {
    */
   private async gameLoop(): Promise<void> {
     while (this.isRunning) {
-      // Check if game is over
-      const victory = this.engine.checkGameOver(this.gameState);
-      if (victory.isGameOver) {
-        this.display.displayGameOver(victory, this.gameState);
-        this.quit();
+      try {
+        // Check if game is over
+        const victory = this.engine.checkGameOver(this.gameState);
+        if (victory.isGameOver) {
+          this.display.displayGameOver(victory, this.gameState);
+          this.quit();
+          return;
+        }
+
+        // Display current game state
+        this.display.displayGameState(this.gameState);
+
+        // Auto-skip cleanup if enabled and in cleanup phase
+        if (this.gameState.phase === 'cleanup' && !this.options.manualCleanup) {
+          // Check if cleanup requires user input
+          const requiresInput = this.cleanupRequiresInput(this.gameState);
+
+          if (!requiresInput) {
+            // Auto-execute cleanup
+            this.autoExecuteCleanup();
+            continue; // Skip to next iteration (next turn)
+          }
+        }
+
+        // Get valid moves
+        const validMoves = this.engine.getValidMoves(this.gameState);
+        this.display.displayAvailableMoves(validMoves);
+
+        // Get user input
+        const input = await this.promptUser();
+
+        if (!input) {
+          continue;
+        }
+
+        // Parse input with options
+        const parseResult = this.parser.parseInput(input, validMoves, {
+          stableNumbers: this.options.stableNumbers
+        });
+
+        // Handle parse result
+        await this.handleParseResult(parseResult);
+      } catch (error) {
+        // Handle any unexpected errors gracefully - log but don't throw
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        console.error(`Unexpected error in game loop: ${errorMessage}`);
+        // For critical errors, exit the loop gracefully
+        this.isRunning = false;
         return;
       }
-
-      // Display current game state
-      this.display.displayGameState(this.gameState);
-
-      // Get valid moves
-      const validMoves = this.engine.getValidMoves(this.gameState);
-      this.display.displayAvailableMoves(validMoves);
-
-      // Get user input
-      const input = await this.promptUser();
-
-      if (!input) {
-        continue;
-      }
-
-      // Parse input with options
-      const parseResult = this.parser.parseInput(input, validMoves, {
-        stableNumbers: this.options.stableNumbers
-      });
-
-      // Handle parse result
-      await this.handleParseResult(parseResult);
     }
   }
 
@@ -243,6 +265,43 @@ export class PrincipalityCLI {
       default: {
         console.log(`✗ Error: Unknown command: ${command}`);
       }
+    }
+  }
+
+  /**
+   * Check if cleanup phase requires user input
+   * Returns false for MVP (no cards require cleanup choices yet)
+   */
+  private cleanupRequiresInput(state: GameState): boolean {
+    // In MVP, cleanup never requires user input
+    // Future cards (like Cellar) might require choices during cleanup
+
+    // For now, always return false
+    // TODO: Check for cards that have cleanup effects requiring choices
+    return false;
+  }
+
+  /**
+   * Auto-execute cleanup phase and display summary
+   */
+  private autoExecuteCleanup(): void {
+    const player = this.gameState.players[this.gameState.currentPlayer];
+
+    // Count cards in play (will be discarded)
+    const cardsToDiscard = player.inPlay.length;
+
+    // Execute cleanup (end_phase from cleanup)
+    const move: Move = { type: 'end_phase' };
+    const result = this.engine.executeMove(this.gameState, move);
+
+    if (result.success && result.newState) {
+      this.gameState = result.newState;
+
+      // Display cleanup summary
+      const newPlayer = this.gameState.players[this.gameState.currentPlayer];
+      const cardsDrawn = newPlayer.hand.length;
+
+      console.log(`✓ Cleanup: Discarded ${cardsToDiscard} cards, drew ${cardsDrawn} new cards\n`);
     }
   }
 

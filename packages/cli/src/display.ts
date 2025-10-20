@@ -22,6 +22,12 @@ export class Display {
    * Display the current game state with player information
    */
   displayGameState(state: GameState): void {
+    // Handle null/undefined states gracefully
+    if (!state || !state.players || !state.players[state.currentPlayer]) {
+      console.log('Error: Invalid game state');
+      return;
+    }
+
     const player = state.players[state.currentPlayer];
     const phaseLabel = this.capitalizePhase(state.phase);
     const vpDisplay = formatVPDisplay(player);
@@ -39,6 +45,10 @@ export class Display {
    * Display player's hand
    */
   private displayPlayerHand(player: PlayerState): void {
+    if (!player || !player.hand) {
+      console.log('Hand: (invalid)');
+      return;
+    }
     const handDisplay = player.hand.length > 0
       ? player.hand.join(', ')
       : '(empty)';
@@ -141,8 +151,13 @@ export class Display {
    */
   private formatSupplyGroup(piles: [string, number][]): string {
     return piles.map(([name, count]) => {
-      const card = getCard(name as any);
-      return `${name} ($${card.cost}, ${count})`;
+      try {
+        const card = getCard(name as any);
+        return `${name} ($${card.cost}, ${count})`;
+      } catch {
+        // Handle unknown cards gracefully (e.g., in tests)
+        return `${name} (${count})`;
+      }
     }).join(', ');
   }
 
@@ -204,13 +219,14 @@ export class Display {
    */
   displayHelp(): void {
     console.log('\nAvailable Commands:');
-    console.log('  [number] - Select move by number');
+    console.log('  [number]     - Select move by number');
     console.log('  1, 2, 3      - Chain multiple moves (e.g., "1, 2, 3" or "1 2 3")');
     console.log('  treasures    - Auto-play all treasure cards at once (alias: t)');
     console.log('  hand         - Display your current hand with victory points');
     console.log('  supply       - Display all available supply piles');
     console.log('  help         - Show this help message');
-    console.log('  quit         - Exit the game (alias: exit)');
+    console.log('  quit         - Exit the game');
+    console.log('  exit         - Exit the game (same as quit)');
     console.log('');
   }
 

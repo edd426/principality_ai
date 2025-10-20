@@ -419,6 +419,250 @@ test('should reject invalid pile sizes', () => {
 
 ---
 
+## Feature 5: Victory Points Display
+
+### Unit Tests
+
+#### Test Suite: `victory-points.test.ts`
+
+**UT-5.1: Calculate VP from entire deck**
+```typescript
+test('should calculate VP from all deck zones', () => {
+  // Arrange
+  const player = {
+    hand: ['Estate', 'Copper'],
+    drawPile: ['Estate', 'Duchy'],
+    discardPile: ['Province', 'Estate'],
+    inPlay: ['Copper', 'Silver']
+  };
+
+  // Act
+  const vp = calculateVictoryPoints(player);
+
+  // Assert
+  expect(vp).toBe(13); // 3 Estates (3) + 1 Duchy (3) + 1 Province (6) = 12
+});
+```
+
+**UT-5.2: VP calculation performance**
+```typescript
+test('should calculate VP in < 5ms', () => {
+  // Arrange
+  const player = createLargeDeck(100); // 100 cards
+
+  // Act
+  const start = performance.now();
+  calculateVictoryPoints(player);
+  const duration = performance.now() - start;
+
+  // Assert
+  expect(duration).toBeLessThan(5);
+});
+```
+
+**UT-5.3: VP display formatting**
+```typescript
+test('should format VP display correctly', () => {
+  // Arrange
+  const player = {
+    deck: ['Estate', 'Estate', 'Duchy', 'Province']
+  };
+
+  // Act
+  const display = formatVPDisplay(player);
+
+  // Assert
+  expect(display).toMatch(/11 VP \(2E, 1D, 1P\)/);
+});
+```
+
+**UT-5.4: VP updates after buying victory card**
+```typescript
+test('should update VP after buying Duchy', () => {
+  // Arrange
+  let gameState = createGameState();
+  const initialVP = calculateVictoryPoints(gameState.players[0]);
+
+  // Act
+  const result = engine.executeMove(gameState, {type: 'buy', card: 'Duchy'});
+  gameState = result.gameState;
+  const newVP = calculateVictoryPoints(gameState.players[0]);
+
+  // Assert
+  expect(newVP).toBe(initialVP + 3);
+});
+```
+
+---
+
+## Feature 6: Auto-Skip Cleanup Phase
+
+### Unit Tests
+
+#### Test Suite: `auto-skip-cleanup.test.ts`
+
+**UT-6.1: Detect auto-skip condition**
+```typescript
+test('should detect cleanup phase has no choices', () => {
+  // Arrange
+  const gameState = createGameStateInCleanup();
+
+  // Act
+  const shouldSkip = shouldAutoSkipCleanup(gameState);
+
+  // Assert
+  expect(shouldSkip).toBe(true);
+});
+```
+
+**UT-6.2: Respect manual cleanup flag**
+```typescript
+test('should NOT auto-skip when manual flag is set', () => {
+  // Arrange
+  const gameState = createGameStateInCleanup();
+  const options = {manualCleanup: true};
+
+  // Act
+  const shouldSkip = shouldAutoSkipCleanup(gameState, options);
+
+  // Assert
+  expect(shouldSkip).toBe(false);
+});
+```
+
+**UT-6.3: Generate cleanup summary**
+```typescript
+test('should generate correct cleanup summary', () => {
+  // Arrange
+  const gameState = {
+    players: [{
+      hand: ['Copper', 'Copper', 'Estate'],
+      inPlay: ['Village', 'Smithy']
+    }]
+  };
+
+  // Act
+  const summary = generateCleanupSummary(gameState);
+
+  // Assert
+  expect(summary).toContain('Discarded 5 cards');
+  expect(summary).toContain('drew 5 new cards');
+});
+```
+
+**UT-6.4: Cleanup auto-advance performance**
+```typescript
+test('should auto-skip cleanup in < 100ms', () => {
+  // Arrange
+  const gameState = createGameStateInCleanup();
+
+  // Act
+  const start = performance.now();
+  cli.executeCleanupPhase(gameState);
+  const duration = performance.now() - start;
+
+  // Assert
+  expect(duration).toBeLessThan(100);
+});
+```
+
+**UT-6.5: Future-proof: Detect interactive cleanup**
+```typescript
+test('should NOT auto-skip when cleanup has choices', () => {
+  // Arrange
+  const gameState = createGameStateWithInteractiveCleanup();
+  // Mock future card that requires cleanup decisions
+  const validMoves = [
+    {type: 'cleanup_discard', card: 'Cellar'},
+    {type: 'end_phase'}
+  ];
+
+  // Act
+  const shouldSkip = shouldAutoSkipCleanup(gameState);
+
+  // Assert
+  expect(shouldSkip).toBe(false); // Multiple moves = interactive
+});
+```
+
+### Integration Tests
+
+**INT-6.1: Cleanup auto-skip in full turn**
+```typescript
+test('should auto-skip cleanup during complete turn', () => {
+  // Arrange
+  const cli = new PrincipalityCLI();
+  let gameState = cli.gameState;
+
+  // Act: Complete action and buy phases
+  gameState = cli.executeMove(gameState, {type: 'end_phase'}); // End action
+  gameState = cli.executeMove(gameState, {type: 'end_phase'}); // End buy
+
+  // Cleanup should auto-execute here
+
+  // Assert
+  expect(gameState.phase).toBe('action'); // Next turn started
+  expect(gameState.turnNumber).toBe(2);
+});
+```
+
+**INT-6.2: Manual cleanup flag workflow**
+```typescript
+test('should require manual input when flag set', () => {
+  // Arrange
+  const cli = new PrincipalityCLI({manualCleanup: true});
+  let gameState = cli.gameState;
+
+  // Act: Complete action and buy phases
+  gameState = cli.executeMove(gameState, {type: 'end_phase'}); // End action
+  gameState = cli.executeMove(gameState, {type: 'end_phase'}); // End buy
+
+  // Assert: Still in cleanup, waiting for manual input
+  expect(gameState.phase).toBe('cleanup');
+  expect(cli.awaitingInput).toBe(true);
+});
+```
+
+**INT-6.3: Cleanup summary display**
+```typescript
+test('should display cleanup summary correctly', () => {
+  // Arrange
+  const cli = new PrincipalityCLI();
+  const outputCapture: string[] = [];
+  cli.onOutput = (msg) => outputCapture.push(msg);
+
+  // Act: Complete turn through cleanup
+  cli.handleInput('end'); // End action
+  cli.handleInput('end'); // End buy
+  // Cleanup auto-executes
+
+  // Assert
+  const cleanupMessage = outputCapture.find(msg => msg.includes('Cleanup'));
+  expect(cleanupMessage).toContain('Discarded');
+  expect(cleanupMessage).toContain('drew');
+});
+```
+
+**INT-6.4: Multiplayer cleanup sequence**
+```typescript
+test('should auto-skip cleanup for each player in turn', () => {
+  // Arrange
+  const cli = new PrincipalityCLI({players: 2});
+  let gameState = cli.gameState;
+
+  // Act: Player 1 completes turn
+  gameState = cli.executeMove(gameState, {type: 'end_phase'}); // Action
+  gameState = cli.executeMove(gameState, {type: 'end_phase'}); // Buy
+  // Cleanup auto-executes
+
+  // Assert: Player 2's turn started
+  expect(gameState.currentPlayer).toBe(1);
+  expect(gameState.phase).toBe('action');
+});
+```
+
+---
+
 ## Integration Tests
 
 ### INT-1: Auto-Play + Chained Submission
