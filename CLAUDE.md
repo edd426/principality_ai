@@ -58,15 +58,15 @@ See [API.md](./docs/reference/API.md) for detailed API reference.
 ## Development Phases
 
 **Phase 1 (Complete)**: CLI-based solo sandbox game with core 8 kingdom cards
-**Phase 1.5 (Approved - Ready for Implementation)**: CLI UX improvements - 6 features approved
+**Phase 1.5 (Complete)**: CLI UX improvements - All 6 features implemented and tested
 **Phase 2**: MCP server integration for LLM gameplay
 **Phase 3**: Multiplayer with simple AI opponents
 **Phase 4**: Web UI with drag-and-drop interface
 **Phase 5+**: Advanced cards, tournaments, mobile apps
 
-### Phase 1.5 Features (APPROVED - Ready for Implementation)
+### Phase 1.5 Features (COMPLETE)
 
-**Status**: 6 features, 28 hours total effort
+**Status**: ✅ All 6 features implemented and tested (28 hours total effort)
 
 1. **Auto-Play Treasures** (4h) - Command to play all treasures at once
 2. **Stable Card Numbers** (6h) - Fixed numbers for AI consistency (opt-in via `--stable-numbers`)
