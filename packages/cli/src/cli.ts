@@ -5,6 +5,7 @@ import { Parser, ParseResult } from './parser';
 import { formatVPDisplay, formatVPDisplayExpanded } from './vp-calculator';
 import { TransactionManager } from './transaction';
 import { handleHelpCommand } from './commands/help';
+import { handleCardsCommand } from './commands/cards';
 
 /**
  * CLI options configuration
@@ -262,6 +263,12 @@ export class PrincipalityCLI {
         const player = this.gameState.players[this.gameState.currentPlayer];
         const vpDisplay = formatVPDisplay(player);
         this.display.displayInfo(`Actions: ${player.actions}  Buys: ${player.buys}  Coins: $${player.coins}\nVictory Points: ${vpDisplay}`);
+        break;
+      }
+
+      case 'cards': {
+        const output = handleCardsCommand();
+        console.log(output);
         break;
       }
 

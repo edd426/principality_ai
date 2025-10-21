@@ -194,7 +194,7 @@ export class Parser {
    * Check if input is a command
    */
   private isCommand(input: string): boolean {
-    const commands = ['help', 'quit', 'exit', 'hand', 'supply', 'h', 'q', 'treasures', 't', 'play all', 'all', 'status'];
+    const commands = ['help', 'quit', 'exit', 'hand', 'supply', 'h', 'q', 'treasures', 't', 'play all', 'all', 'status', 'cards'];
     return commands.includes(input);
   }
 
