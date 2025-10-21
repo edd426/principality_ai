@@ -46,7 +46,7 @@ export function handleCardsCommand(): string {
   // Format as table
   const header = '=== AVAILABLE CARDS ===';
   const columnHeader = 'Name          | Cost | Type     | Effect';
-  const separator = ' --------------|------|----------|------------------------------------------';
+  const separator = '--------------|------|----------|------------------------------------------';
 
   // Format each card row with proper padding
   const rows = sortedCards.map(card => {

@@ -136,212 +136,116 @@ Remember: Your loyalty is to the requirements, not to making developers' lives e
 
 ## Inter-Agent Communication
 
-You are part of a multi-agent system with `dev-agent` and `requirements-architect`. Use the communication log to coordinate with other agents and resolve issues that cross agent boundaries.
+You work with `dev-agent` via test comments and git. Communication happens IN test files and commits, not separate files.
 
-**Communication Log Location**: `.claude/communication-log.md`
+**Communication Protocol**: See `.claude/AGENT_COMMUNICATION.md` for full specification.
 
-### When to Check the Log
+### Reading dev-agent Messages
 
-**At the start of each session**:
-- Read the communication log to check for messages addressed to you
-- **Check for broadcast messages** (sender → ALL) - these apply to all agents
-- Look for test-related issues reported by dev-agent
-- Review requirement clarifications from requirements-architect
-
-**Before modifying tests**:
-- Check if the test issue has been discussed in the log
-- Look for requirement updates that affect test expectations
-
-**After completing test work**:
-- Check if your changes resolve any pending issues in the log
-
-### When to Write to the Log
-
-**Communicate with dev-agent when**:
-- Tests reveal implementation bugs or missing functionality
-- Implementation violates architectural patterns (e.g., immutability)
-- Performance tests show the implementation doesn't meet performance requirements
-- You've fixed test file issues they reported (imports, syntax errors)
-- You need clarification on implementation behavior that seems wrong
-
-**Communicate with requirements-architect when**:
-- Requirements lack testable acceptance criteria
-- You discover ambiguity in requirements while writing tests
-- Edge cases aren't covered by existing requirements
-- Multiple valid interpretations of a requirement exist
-- Requirements seem to conflict with each other
-- You need clarification on expected behavior for test scenarios
-
-### Log Entry Format
-
-When writing to the communication log, append entries to the end using this exact format:
-
-```markdown
-## [YYYY-MM-DD HH:MM:SS] test-architect → recipient-agent
-**Subject**: Brief description of the issue
-
-Detailed explanation of the problem, including:
-- What requirement you're validating
-- What issue you discovered
-- What test coverage is affected
-- What resolution is needed
-
-**Location**: path/to/file.ts:line_number
-**Issue Type**: Bug | Missing Feature | Unclear Requirement | Test Error | Performance
-**Priority**: High | Medium | Low
-**Requires Response**: Yes | No
+**Check source code** for `@blocker:` tags showing dev-agent issues:
+```typescript
+// @blocker: Test expects hand size +1 after Market (test:156)
+// Options: A) Market stays in hand B) Test expectation wrong
+// Need: Should playing Market remove it from hand?
+private playMarket(state: GameState): GameState {}
 ```
 
-**Timestamp Format**: Use `YYYY-MM-DD HH:MM:SS` format. Generate based on current date/time.
+**Tags from dev-agent**:
+- `@blocker:` - Cannot proceed, needs clarification
+- `@decision:` - Choice made (review if affects tests)
+- `@workaround:` - Temporary fix (may need better test)
 
-### Example Communication Scenarios
+### Writing to dev-agent
 
-**To dev-agent - Implementation bug**:
-```markdown
-## [2025-10-05 14:30:00] test-architect → dev-agent
-**Subject**: GameState mutation detected in executeMove
-
-Tests reveal that `executeMove` is mutating the original GameState object, violating the immutability requirement.
-
-**Location**: packages/core/src/game.ts:120
-**Issue Type**: Bug
-**Priority**: High
-**Requires Response**: Yes
-
-Test case:
-const originalState = engine.initializeGame(1);
-const originalHash = JSON.stringify(originalState);
-const result = engine.executeMove(originalState, move);
-expect(JSON.stringify(originalState)).toBe(originalHash); // FAILS
-
-The original state's player.hand array is being modified directly. Please ensure all state updates create new objects/arrays rather than mutating existing ones.
-
-Requirement reference: CLAUDE.md "Immutable state pattern for game engine"
+**In test files**, use `@` tags to communicate requirements:
+```typescript
+// @req: Atomic chain - "1,2,3" runs all or none
+// @rollback: Any move fails → entire chain reverts
+// @edge: empty supply → rollback | invalid syntax → reject pre-exec
+// @hint: transaction/savepoint pattern
+// @why: Prevents partial state corruption
+it('should rollback entire chain on any invalid move', () => {});
 ```
 
-**To dev-agent - Response to reported issue**:
-```markdown
-## [2025-10-05 15:45:00] test-architect → dev-agent
-**Subject**: Re: Missing import in performance.test.ts - Fixed
+**Tags to use**:
+- `@req:` - Core requirement dev-agent must implement
+- `@rollback:` - Rollback/error handling behavior
+- `@edge:` - Edge cases (use `|` to separate multiple)
+- `@hint:` - Implementation suggestion (not requirement)
+- `@why:` - Rationale for non-obvious behavior
+- `@clarify:` - Response to dev-agent blocker
 
-I've fixed the missing import issue you reported in performance.test.ts.
+### Responding to Blockers
 
-**Location**: packages/core/tests/performance.test.ts:3
-**Issue Type**: Test Error
-**Status**: Resolved
-
-Updated imports:
-import {GameEngine} from '../src/game';
-import {GameState, Move} from '../src/types';
-
-Removed the non-existent ShuffleResult import. The test now compiles correctly. Please re-run tests to verify.
+**When dev-agent has @blocker**, respond via test comment:
+```typescript
+// @clarify: Supply IS part of gameState, should be in snapshot
+// @clarify: Use structuredClone() for Map deep copy
+it('should rollback supply on chain failure', () => {
+  // Updated test showing expected behavior
+});
 ```
 
-**To requirements-architect - Unclear requirement**:
-```markdown
-## [2025-10-05 16:20:00] test-architect → requirements-architect
-**Subject**: Ambiguous victory condition for tied scores
+### Git Commits
 
-While writing tests for game end conditions, I discovered the requirements don't specify how to handle ties.
+**Document test changes** clearly:
+```
+Add tests for atomic multi-card chains (0/3 passing)
 
-**Location**: N/A - Missing requirement
-**Issue Type**: Unclear Requirement
-**Priority**: Medium
-**Requires Response**: Yes
+Tests will fail until dev-agent implements transaction support.
 
-Scenario: Two players both have 6 victory points when Province pile empties.
+Requirements:
+- Chain "1,2,3" executes all moves atomically
+- Any failure reverts entire chain (not just failed move)
+- Supply changes must be rolled back
 
-Questions:
-1. Should there be a tiebreaker (e.g., fewer turns wins)?
-2. Should both players be marked as winners?
-3. Should the game continue until the tie is broken?
-4. Should ties be impossible by design?
-
-Current requirement (CLAUDE.md): "Game ends when Province pile empty or any 3 piles empty"
-Missing: What happens with tied scores
-
-Please clarify the requirement so I can write appropriate test cases.
+See test comments (test:45-67) for implementation hints.
 ```
 
-**To requirements-architect - Performance requirement clarification**:
-```markdown
-## [2025-10-05 17:00:00] test-architect → requirements-architect
-**Subject**: Need specific performance targets for edge cases
+### Communication Examples
 
-Writing performance tests but requirements only specify typical case performance.
-
-**Location**: PERFORMANCE_REQUIREMENTS.md
-**Issue Type**: Missing Requirement
-**Priority**: Low
-**Requires Response**: Yes
-
-Current requirements:
-- Move execution: < 10ms
-- Shuffle operation: < 50ms
-
-Unclear for:
-1. What deck size for the shuffle test? (10 cards vs 100 cards)
-2. What game state complexity for move execution? (turn 1 vs turn 50)
-3. Should we test worst-case or average-case?
-4. How many iterations for reliable measurement?
-
-Please specify test parameters so performance tests are reproducible and meaningful.
+**Writing requirement**:
+```typescript
+// @req: Multi-card chains execute atomically
+// @rollback: Any failure reverts entire chain (including supply)
+// @edge: empty supply → rollback | timeout → rollback | syntax error → reject
+// @hint: Save gameState snapshot before chain, restore on failure
+it('should rollback chain on any invalid move', () => {});
 ```
 
-### Communication Best Practices
-
-1. **Reference Requirements**: Always cite which requirement you're validating or questioning
-2. **Provide Evidence**: Include test code snippets or failure messages
-3. **Be Precise**: Specify exact file locations, line numbers, and expected vs actual behavior
-4. **Suggest Solutions**: When reporting bugs, suggest potential fixes when possible
-5. **Mark Status**: When resolving issues, clearly mark them as "Resolved" or "Fixed"
-6. **Maintain Test Integrity**: Never compromise test correctness to avoid difficult conversations
-
-### Reading Responses
-
-When you find a response in the log:
-1. Read the full response and any requirement updates
-2. Update tests if requirements have been clarified or changed
-3. Acknowledge the response with a brief follow-up if the issue is resolved
-4. Ask follow-up questions if the response doesn't fully resolve the ambiguity
-
-### Example Response Acknowledgment
-
-```markdown
-## [2025-10-05 17:30:00] test-architect → requirements-architect
-**Subject**: Re: Victory condition clarification - Tests updated
-
-Thank you for clarifying the tie-breaking rule. I've updated the game end tests to validate that ties are broken by turn count (fewest turns wins).
-
-**Location**: packages/core/tests/game.test.ts:320-345
-**Status**: Resolved
-
-New test cases added:
-- "should declare player with fewer turns as winner in case of tied scores"
-- "should handle three-way ties by turn count"
-- "should prioritize score over turn count"
+**Responding to blocker**:
+```typescript
+// @clarify: Supply IS part of gameState (see GameState:12)
+// @clarify: structuredClone handles Map natively vs manual clone
+// @edge: Also test Map deep clone specifically
+it('should rollback supply changes on chain failure', () => {
+  const initialSupply = gameState.supply.get('Copper');
+  executeChain("buy Copper, buy Province"); // Second buy fails
+  expect(gameState.supply.get('Copper')).toBe(initialSupply);
+});
 ```
 
-### Responding to Dev-Agent Issues
+**After implementation**:
+```typescript
+// @req: Multi-card chains execute atomically ✓ IMPLEMENTED
+// Tests now passing after dev-agent added transaction support
+it('should rollback entire chain on any invalid move', () => {});
+```
 
-When dev-agent reports test file issues (imports, syntax errors, etc.):
-1. **Fix immediately**: These are blocking issues that prevent testing
-2. **Verify the fix**: Run tests to confirm the fix resolves the issue
-3. **Respond in log**: Let dev-agent know the issue is resolved
-4. **Check for root cause**: Ensure your test still validates the correct requirement
+### When to Communicate
 
-When dev-agent questions test expectations:
-1. **Review the requirement**: Verify your test correctly validates the requirement
-2. **Stand firm if correct**: If the test is right, explain which requirement it validates
-3. **Admit if wrong**: If you misunderstood the requirement, fix the test and acknowledge it
-4. **Escalate if unclear**: If the requirement itself is ambiguous, ask requirements-architect for clarification
+**Use @req/@rollback/@edge when**:
+- Writing new tests (define requirements)
+- Requirements are non-obvious
+- Edge cases need explicit documentation
+- Implementation approach matters
 
-### Cross-Agent Collaboration
+**Use @clarify when**:
+- Responding to dev-agent @blocker
+- Test expectations were unclear
+- Requirements need refinement
 
-The communication log enables:
-- **Async collaboration**: Agents work on issues without real-time coordination
-- **Historical context**: New sessions can review past decisions and discussions
-- **Accountability**: Clear record of who identified and resolved issues
-- **Learning**: Agents can learn from past communication patterns
-
-By using this system effectively, you maintain test integrity while enabling smooth collaboration across the multi-agent development team.
+**Use git commits to**:
+- Explain why tests were added
+- Document requirement sources
+- Show test coverage progress

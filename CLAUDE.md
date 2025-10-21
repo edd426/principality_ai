@@ -197,13 +197,12 @@ See [API.md](./docs/reference/API.md) for detailed API reference.
 3. **Use correct location**:
    - Permanent docs → `docs/` (reference, guides, requirements)
    - Session notes → `.claude/sessions/{date}/`
-   - Agent communication → `.claude/communication/`
+   - Agent communication → **In code/tests via @ tags** (see `.claude/AGENT_COMMUNICATION.md`)
    - Root → **ONLY** README.md, CLAUDE.md, CONTRIBUTING.md
 
 ### File Size Limits
 - Root .md files: **< 400 lines**
 - Requirements docs: **< 800 lines**
-- Communication logs: **< 500 lines** (rotate monthly)
 - Session notes: **< 300 lines**
 - Reference docs: **< 1000 lines**
 
@@ -224,6 +223,11 @@ Every new .md file must start with:
 ### Enforcement
 - Root directory accepts ONLY: README.md, CLAUDE.md, CONTRIBUTING.md
 - Any other .md file at root will be flagged for reorganization
-- Communication logs automatically rotate at 500 lines
+
+### Agent Communication System
+- test-architect and dev-agent communicate via **@ tags in code/tests**
+- No separate communication files needed
+- Minimal token format optimized for agent parsing
+- **See**: `.claude/AGENT_COMMUNICATION.md` for full protocol
 
 **See Full System**: [docs/DOCUMENTATION_SYSTEM.md](./docs/DOCUMENTATION_SYSTEM.md)

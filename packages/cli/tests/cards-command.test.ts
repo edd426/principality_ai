@@ -56,7 +56,7 @@ function handleCardsCommand(): string {
     const name = card.name.padEnd(14);
     const cost = String(card.cost).padStart(4);
     const type = card.type.padEnd(9);
-    return `${name} | ${cost} | ${type} | ${card.description}`;
+    return `${name}| ${cost} | ${type} | ${card.description}`;
   });
 
   return [header, '', columnHeader, separator, ...rows].join('\n');

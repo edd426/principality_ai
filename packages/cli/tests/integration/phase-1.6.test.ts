@@ -21,24 +21,24 @@
 
 import { GameEngine, GameState } from '@principality/core';
 import { GameStateBuilder, ConsoleCapture, PerformanceHelper } from '../utils/test-utils';
+import { handleHelpCommand } from '../../src/commands/help';
+import { handleCardsCommand } from '../../src/commands/cards';
 
 /**
- * Mock functions to be replaced by actual CLI implementations
- * These provide a reference for expected behavior
+ * Execute CLI commands using the actual implementations
+ * This allows integration tests to use real command handlers
  */
 function executeCommand(game: GameState, command: string): string {
-  // TODO: Implement command router in packages/cli/src/index.ts
-  // For testing, return mock output
   const parts = command.trim().split(/\s+/);
   const cmd = parts[0].toLowerCase();
   const arg = parts.slice(1).join(' ');
 
   if (cmd === 'help' || cmd === 'h') {
-    // Return help output
-    return `Test Card | 0 | action | Test effect`;
+    // Use actual help command implementation
+    return handleHelpCommand(arg);
   } else if (cmd === 'cards') {
-    // Return cards table
-    return `=== AVAILABLE CARDS ===\nName | Cost | Type | Effect`;
+    // Use actual cards command implementation
+    return handleCardsCommand();
   }
 
   return 'Unknown command';
