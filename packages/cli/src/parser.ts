@@ -8,6 +8,7 @@ export interface ParseResult {
   type: 'move' | 'command' | 'invalid' | 'chain';
   move?: Move;
   command?: string;
+  parameter?: string;
   error?: string;
   chain?: number[];
 }
@@ -32,20 +33,33 @@ export class Parser {
       return { type: 'invalid', error: 'Empty input' };
     }
 
-    const trimmed = input.trim().toLowerCase();
+    const trimmed = input.trim();
+    const trimmedLower = trimmed.toLowerCase();
 
     if (!trimmed) {
       return { type: 'invalid', error: 'Empty input' };
     }
 
-    // Check for special commands
-    if (this.isCommand(trimmed)) {
-      return { type: 'command', command: this.normalizeCommand(trimmed) };
+    // Check for commands with parameters first (e.g., "help village", "h copper")
+    // Match against original case-preserved input to preserve parameter case
+    const commandPattern = /^(help|h)\s+(.+)$/i;
+    const match = trimmed.match(commandPattern);
+    if (match) {
+      return {
+        type: 'command',
+        command: this.normalizeCommand(match[1]),
+        parameter: match[2].trim()
+      };
+    }
+
+    // Check for special commands (exact matches without parameters)
+    if (this.isCommand(trimmedLower)) {
+      return { type: 'command', command: this.normalizeCommand(trimmedLower) };
     }
 
     // Check for chained input (comma or space separated)
-    if (this.isChainedInput(trimmed)) {
-      const chain = this.parseChain(trimmed);
+    if (this.isChainedInput(trimmedLower)) {
+      const chain = this.parseChain(trimmedLower);
       if (chain.success) {
         return { type: 'chain', chain: chain.numbers };
       } else {
@@ -54,7 +68,7 @@ export class Parser {
     }
 
     // Check if input is a number (move selection)
-    const parsedNumber = this.parseNumber(trimmed);
+    const parsedNumber = this.parseNumber(trimmedLower);
     if (parsedNumber !== null) {
       // Handle stable numbering if enabled
       if (options?.stableNumbers) {
@@ -67,7 +81,7 @@ export class Parser {
         } else {
           return {
             type: 'invalid',
-            error: `Invalid stable number: ${trimmed} not available in current moves`
+            error: `Invalid stable number: ${trimmedLower} not available in current moves`
           };
         }
       }
@@ -87,7 +101,7 @@ export class Parser {
     }
 
     // Check if input looks like a number but is invalid (negative, decimal, etc.)
-    if (/^-?\d+\.?\d*$/.test(trimmed) || /^\d+\.?\d*$/.test(trimmed)) {
+    if (/^-?\d+\.?\d*$/.test(trimmedLower) || /^\d+\.?\d*$/.test(trimmedLower)) {
       return {
         type: 'invalid',
         error: `Invalid move number. Please select 1-${availableMoves.length}`

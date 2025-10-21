@@ -4,6 +4,7 @@ import { Display } from './display';
 import { Parser, ParseResult } from './parser';
 import { formatVPDisplay, formatVPDisplayExpanded } from './vp-calculator';
 import { TransactionManager } from './transaction';
+import { handleHelpCommand } from './commands/help';
 
 /**
  * CLI options configuration
@@ -130,7 +131,7 @@ export class PrincipalityCLI {
       case 'command':
         if (result.command) {
           const normalizedCommand = this.parser.normalizeCommand(result.command);
-          await this.handleCommand(normalizedCommand);
+          await this.handleCommand(normalizedCommand, result.parameter);
         }
         break;
 
@@ -226,10 +227,17 @@ export class PrincipalityCLI {
   /**
    * Handle special commands
    */
-  private async handleCommand(command: string): Promise<void> {
+  private async handleCommand(command: string, parameter?: string): Promise<void> {
     switch (command) {
       case 'help': {
-        this.display.displayHelp();
+        if (parameter) {
+          // User requested help for specific card
+          const helpText = handleHelpCommand(parameter);
+          console.log(helpText);
+        } else {
+          // General help
+          this.display.displayHelp();
+        }
         break;
       }
 
