@@ -9,7 +9,7 @@
  * Usage: cards (no arguments)
  */
 
-import { BASIC_CARDS, KINGDOM_CARDS } from '@principality/core/src/cards';
+import { BASIC_CARDS, KINGDOM_CARDS } from '@principality/core';
 
 /**
  * Handle the cards command to display all available cards in a table format

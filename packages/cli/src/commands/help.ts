@@ -10,7 +10,7 @@
  * Usage: help <card_name> or h <card_name>
  */
 
-import { BASIC_CARDS, KINGDOM_CARDS } from '@principality/core/src/cards';
+import { BASIC_CARDS, KINGDOM_CARDS } from '@principality/core';
 
 /**
  * Handle the help command to display card information
