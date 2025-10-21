@@ -346,3 +346,41 @@ The help command is correctly designed to display `card.description` as stored i
 
 **Test Results**: 524/524 CLI tests passing (100%)
 
+---
+
+## [2025-10-21 17:00:00] CRITICAL: Production Module Import Bug
+
+**Discovered**: User tried to run game: `npm run play -- --seed=demo --quick-game`
+
+**Error**: `Cannot find module '@principality/core/src/cards'`
+
+**Root Cause**: Import paths in help.ts and cards.ts used source-level paths
+```typescript
+import { BASIC_CARDS, KINGDOM_CARDS } from '@principality/core/src/cards';
+```
+
+These work in TypeScript/tests but fail in compiled JavaScript runtime.
+
+**Why Tests Didn't Catch This**:
+- Tests run in TypeScript/dev environment (source paths work)
+- Compiled output not validated by E2E tests
+- Classic integration gap: works in tests, fails in production
+
+**Fix Applied**: Changed to module-level imports
+```typescript
+import { BASIC_CARDS, KINGDOM_CARDS } from '@principality/core';
+```
+
+**This Validates Our TDD Improvements**:
+This bug demonstrates exactly what our three-level test specification prevents:
+- Unit tests ✓ (functions work)
+- Integration tests ✓ (components work together)
+- **E2E tests missing**: Should validate COMPILED output in real environment
+
+**Lesson**: E2E tests need to:
+1. Build the project
+2. Run compiled code
+3. Validate in actual deployment environment (not just TypeScript)
+
+**Status**: ✅ FIXED - Game now runs successfully with help command working
+
