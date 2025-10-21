@@ -34,6 +34,100 @@ See [DEVELOPMENT_GUIDE.md](./docs/reference/DEVELOPMENT_GUIDE.md#project-structu
 
 See [DEVELOPMENT_GUIDE.md](./docs/reference/DEVELOPMENT_GUIDE.md) for detailed workflows and testing.
 
+---
+
+## Development Standards: Test-Driven Development (TDD)
+
+**🚨 MANDATORY**: All code changes follow Test-Driven Development (TDD).
+
+### TDD Philosophy
+
+This project maintains high quality through TDD:
+- Tests are written **first** (before implementation)
+- Tests define the contract (what "done" means)
+- Implementation follows tests
+- Tests prevent regressions forever
+
+### Feature Development Workflow
+
+**For NEW FEATURES**:
+```
+1. Requirements defined (FEATURES.md, TESTING.md)
+   ↓
+2. Tests written (test-architect)
+   ↓
+3. All tests FAIL (red phase)
+   ↓
+4. Implementation written (dev-agent)
+   ↓
+5. All tests PASS (green phase)
+   ↓
+6. Refactoring if needed (tests still pass)
+```
+
+### Bug Fix Workflow
+
+**For BUGS**:
+```
+1. Bug discovered / reported
+   ↓
+2. Test written that reproduces bug (test-architect)
+   ↓
+3. Test FAILS (validates bug exists)
+   ↓
+4. Bug fix implemented (dev-agent)
+   ↓
+5. Test PASSES (validates fix works)
+   ↓
+6. Test stays in suite forever (prevents regression)
+```
+
+### Agent Responsibilities
+
+**test-architect**:
+- Implement all tests FIRST (before development)
+- Create tests that validate requirements
+- Ensure edge cases are covered
+- Target 95%+ coverage
+
+**dev-agent**:
+- Implement code to PASS existing tests
+- Refuse code-only requests (push back with reason)
+- Can suggest tests if missing
+- Verify no regressions
+
+**requirements-architect**:
+- Ensure requirements are clear before testing
+- Review TDD compliance
+- Document test specifications
+
+### When Tests Are Missing
+
+**If dev-agent receives code without tests**:
+> "Tests required before implementation. Per project TDD standard:
+> - For features: Requirements → Tests → Implementation
+> - For bugs: Tests → Bug Fix
+>
+> Please submit tests first."
+
+**If test-architect receives implementation request**:
+> "Implementation cannot proceed without tests. Submit test specifications first."
+
+### Quality Metrics
+
+- **All tests must pass** before PR submission
+- **Coverage must be 95%+** (enforced by CI)
+- **Zero regressions** (existing tests continue passing)
+- **Performance targets met** (as defined in tests)
+
+### Documentation
+
+- Test specifications defined in: `docs/requirements/phase-X/TESTING.md`
+- Test location: `packages/{core,cli}/tests/`
+- Coverage report: `npm run test -- --coverage`
+
+---
+
 ## Core Architecture
 
 **Game Engine**: Immutable state pattern with functional updates

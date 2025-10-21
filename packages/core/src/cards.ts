@@ -1,5 +1,7 @@
 import { Card, CardName } from './types';
 
+export type { Card } from './types';
+
 export const BASIC_CARDS: Record<CardName, Card> = {
   // Basic Treasures
   'Copper': {
@@ -7,21 +9,21 @@ export const BASIC_CARDS: Record<CardName, Card> = {
     type: 'treasure',
     cost: 0,
     effect: { coins: 1 },
-    description: '+$1'
+    description: 'Worth 1 coin'
   },
   'Silver': {
     name: 'Silver',
     type: 'treasure',
     cost: 3,
     effect: { coins: 2 },
-    description: '+$2'
+    description: 'Worth 2 coins'
   },
   'Gold': {
     name: 'Gold',
     type: 'treasure',
     cost: 6,
     effect: { coins: 3 },
-    description: '+$3'
+    description: 'Worth 3 coins'
   },
 
   // Victory Cards
@@ -30,7 +32,7 @@ export const BASIC_CARDS: Record<CardName, Card> = {
     type: 'victory',
     cost: 2,
     effect: {},
-    description: '1 Victory Point',
+    description: 'Worth 1 VP',
     victoryPoints: 1
   },
   'Duchy': {
@@ -38,7 +40,7 @@ export const BASIC_CARDS: Record<CardName, Card> = {
     type: 'victory',
     cost: 5,
     effect: {},
-    description: '3 Victory Points',
+    description: 'Worth 3 VP',
     victoryPoints: 3
   },
   'Province': {
@@ -46,8 +48,18 @@ export const BASIC_CARDS: Record<CardName, Card> = {
     type: 'victory',
     cost: 8,
     effect: {},
-    description: '6 Victory Points',
+    description: 'Worth 6 VP',
     victoryPoints: 6
+  },
+
+  // Curse
+  'Curse': {
+    name: 'Curse',
+    type: 'curse',
+    cost: 0,
+    effect: {},
+    description: 'Worth -1 VP',
+    victoryPoints: -1
   }
 };
 
@@ -81,21 +93,21 @@ export const KINGDOM_CARDS: Record<CardName, Card> = {
     type: 'action',
     cost: 5,
     effect: { cards: 1, actions: 1, coins: 1, buys: 1 },
-    description: '+1 Card, +1 Action, +$1, +1 Buy'
+    description: '+1 Card, +1 Action, +1 Buy, +1 Coin'
   },
   'Woodcutter': {
     name: 'Woodcutter',
     type: 'action',
     cost: 3,
     effect: { coins: 2, buys: 1 },
-    description: '+$2, +1 Buy'
+    description: '+1 Buy, +2 Coins'
   },
   'Festival': {
     name: 'Festival',
     type: 'action',
     cost: 5,
     effect: { actions: 2, coins: 2, buys: 1 },
-    description: '+2 Actions, +$2, +1 Buy'
+    description: '+2 Actions, +1 Buy, +2 Coins'
   },
 
   // Utility Cards

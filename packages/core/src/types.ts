@@ -1,6 +1,6 @@
 export type CardName = string;
 
-export type CardType = 'treasure' | 'victory' | 'action';
+export type CardType = 'treasure' | 'victory' | 'action' | 'curse';
 
 export type Phase = 'action' | 'buy' | 'cleanup';
 
