@@ -85,6 +85,9 @@ describe('Feature 2: `cards` Catalog Command - Phase 1.6', () => {
      * - Total: 15 cards displayed
      */
     test('UT-2.1: displays all 15 cards', () => {
+      // @req: All 15 cards (8 kingdom + 7 base) displayed in output
+      // @edge: Complete card set | no duplicates | no omissions
+      // @why: Ensures players see all available cards for purchase decisions
       const output = handleCardsCommand();
 
       // Check for all kingdom cards
@@ -119,6 +122,9 @@ describe('Feature 2: `cards` Catalog Command - Phase 1.6', () => {
      * - Data rows: pipe-separated columns
      */
     test('UT-2.2: output is properly formatted table', () => {
+      // @req: Output is pipe-separated table with header, columns, and separator
+      // @edge: Multi-line format | alignment | consistency
+      // @why: Readable tables prevent parsing errors and improve usability
       const output = handleCardsCommand();
       const lines = output.split('\n');
 
@@ -156,6 +162,9 @@ describe('Feature 2: `cards` Catalog Command - Phase 1.6', () => {
      * 4. Curse cards
      */
     test('UT-2.3: cards are sorted by type then cost', () => {
+      // @req: Cards sorted by type (action→treasure→victory→curse), cost within type
+      // @edge: Type transitions | cost ties | name ordering as tiebreaker
+      // @why: Logical grouping helps players find cards faster
       const output = handleCardsCommand();
       const lines = output.split('\n').filter(l =>
         l.includes('|') && !l.includes('Name') && !l.includes('===') && !l.includes('---')
@@ -202,6 +211,9 @@ describe('Feature 2: `cards` Catalog Command - Phase 1.6', () => {
      * - Column widths consistent
      */
     test('UT-2.4: columns are properly aligned', () => {
+      // @req: All rows have same pipe count, pipes align vertically
+      // @edge: Variable-length content | long descriptions | edge rows
+      // @why: Alignment ensures table is readable without parsing errors
       const output = handleCardsCommand();
       const lines = output.split('\n').filter(l => l.includes('|'));
 
@@ -237,6 +249,9 @@ describe('Feature 2: `cards` Catalog Command - Phase 1.6', () => {
      * - Description length > 5 characters
      */
     test('UT-2.5: all cards have effect descriptions', () => {
+      // @req: Every card row has non-empty effect description (>5 chars)
+      // @edge: Min/max description lengths | special characters
+      // @why: Effects help users understand card mechanics during discovery
       const output = handleCardsCommand();
       const lines = output.split('\n').filter(l =>
         l.includes('|') && !l.includes('Name') && !l.includes('---') && !l.includes('===')
@@ -267,6 +282,9 @@ describe('Feature 2: `cards` Catalog Command - Phase 1.6', () => {
      * - Can continue playing
      */
     test('IT-2.6: cards command works during active game', () => {
+      // @req: Cards command available and displays during active gameplay
+      // @edge: Various game states | player turns | phase transitions
+      // @why: Players need card reference even during active play
       const output = handleCardsCommand();
 
       expect(output).toContain('Village');
@@ -287,6 +305,9 @@ describe('Feature 2: `cards` Catalog Command - Phase 1.6', () => {
      * - Player can learn about cards before playing
      */
     test('IT-2.7: cards command works before first turn', () => {
+      // @req: Cards command available before game starts
+      // @edge: Initial game state | no moves executed yet
+      // @why: Players learn cards before first action
       const output = handleCardsCommand();
 
       expect(output).toContain('AVAILABLE CARDS');
@@ -306,6 +327,9 @@ describe('Feature 2: `cards` Catalog Command - Phase 1.6', () => {
      * - Game can continue normally
      */
     test('IT-2.8: cards command does not interrupt game', () => {
+      // @req: Multiple calls don't accumulate state or change output
+      // @edge: Rapid calls | sequential calls | interspersed with other commands
+      // @why: Command must be idempotent and non-intrusive
       capture.start();
 
       const output1 = handleCardsCommand();
@@ -335,6 +359,8 @@ describe('Feature 2: `cards` Catalog Command - Phase 1.6', () => {
      * - Cellar (2)... wait should be first
      */
     test('SV-1: action cards sorted by cost', () => {
+      // @req: Action cards appear grouped and sorted by cost ascending
+      // @edge: All 8 action cards | cost variations | ties
       const output = handleCardsCommand();
 
       // Find first action card and verify cost progression
@@ -368,6 +394,8 @@ describe('Feature 2: `cards` Catalog Command - Phase 1.6', () => {
      * - Gold (6)
      */
     test('SV-2: treasure cards sorted by cost', () => {
+      // @req: Treasure cards appear grouped and sorted by cost ascending
+      // @edge: 3 treasure cards | cost progression 0→3→6
       const output = handleCardsCommand();
 
       const lines = output.split('\n').filter(l =>
@@ -388,6 +416,8 @@ describe('Feature 2: `cards` Catalog Command - Phase 1.6', () => {
      * Test SV-3: Type order correct (Action < Treasure < Victory < Curse)
      */
     test('SV-3: types ordered correctly', () => {
+      // @req: Type order is action→treasure→victory→curse
+      // @edge: All types present | type transitions
       const output = handleCardsCommand();
 
       const hasAction = output.includes('action');
@@ -425,6 +455,9 @@ describe('Feature 2: `cards` Catalog Command - Phase 1.6', () => {
      * - Max response time < 20ms
      */
     test('PT-2.1: cards command response time < 10ms', async () => {
+      // @req: Cards command responds in < 10ms average
+      // @edge: Repeated calls | cold/warm cache
+      // @why: Instant feedback ensures good UX during gameplay
       await PerformanceHelper.assertWithinTime(
         () => handleCardsCommand(),
         10,
@@ -440,6 +473,9 @@ describe('Feature 2: `cards` Catalog Command - Phase 1.6', () => {
      * - No degradation over time
      */
     test('PT-2.2: multiple cards commands maintain performance', async () => {
+      // @req: 50 consecutive calls respond in < 500ms (avg <10ms each)
+      // @edge: No performance degradation over iterations
+      // @why: Repeated lookups should maintain constant performance
       const iterations = 50;
 
       await PerformanceHelper.assertWithinTime(
@@ -466,6 +502,8 @@ describe('Feature 2: `cards` Catalog Command - Phase 1.6', () => {
      * And the table is properly formatted with aligned columns
      */
     test('AC-2.1: displays all cards in formatted table', () => {
+      // @req: All 15 cards displayed in readable table format
+      // @edge: Complete set | formatting consistency
       const output = handleCardsCommand();
 
       // All kingdom cards
@@ -497,6 +535,8 @@ describe('Feature 2: `cards` Catalog Command - Phase 1.6', () => {
      * And curse cards appear last
      */
     test('AC-2.2: cards sorted correctly by type and cost', () => {
+      // @req: Type order action→treasure→victory→curse with costs ascending
+      // @edge: Type transitions | cost ordering within type
       const output = handleCardsCommand();
 
       // Extract card data
@@ -542,6 +582,9 @@ describe('Feature 2: `cards` Catalog Command - Phase 1.6', () => {
      * And long effects don't break layout
      */
     test('AC-2.3: table is readable and well-formatted', () => {
+      // @req: Header, column labels, separators, aligned content
+      // @edge: Long descriptions | varying column widths
+      // @why: Readable tables enable quick parsing and understanding
       const output = handleCardsCommand();
 
       // Has header
@@ -574,6 +617,8 @@ describe('Feature 2: `cards` Catalog Command - Phase 1.6', () => {
      * And the game state is unchanged
      */
     test('AC-2.4: cards command works at any time', () => {
+      // @req: Cards command available at any game state
+      // @edge: All phases | multi-player scenarios
       const output = handleCardsCommand();
 
       expect(output).toContain('AVAILABLE CARDS');
@@ -589,6 +634,8 @@ describe('Feature 2: `cards` Catalog Command - Phase 1.6', () => {
      * Then the response time is < 10ms
      */
     test('AC-2.5: meets performance requirement', async () => {
+      // @req: Cards command responds in < 10ms
+      // @edge: Cold/warm cache | repeated queries
       await PerformanceHelper.assertWithinTime(
         () => handleCardsCommand(),
         10,

@@ -82,6 +82,9 @@ describe('Feature 1: `help <card>` Command - Phase 1.6', () => {
      * - Pipe separators used correctly
      */
     test('UT-1.1: displays card information for valid card name', () => {
+      // @req: Display card in "Name | Cost | Type | Effect" format
+      // @edge: Valid kingdom card | base card | all 15 cards
+      // @why: Ensures consistent output format for all card lookups
       const output = handleHelpCommand('Village');
 
       expect(output).toContain('Village');
@@ -107,6 +110,9 @@ describe('Feature 1: `help <card>` Command - Phase 1.6', () => {
      * - Proper case "Village" displayed
      */
     test('UT-1.2: handles case-insensitive card names', () => {
+      // @req: Case-insensitive lookup returns identical output
+      // @edge: lowercase | UPPERCASE | MixedCase
+      // @why: User shouldn't need to know exact capitalization
       const lowercase = handleHelpCommand('village');
       const uppercase = handleHelpCommand('VILLAGE');
       const mixedcase = handleHelpCommand('ViLLaGe');
@@ -128,6 +134,9 @@ describe('Feature 1: `help <card>` Command - Phase 1.6', () => {
      * - `h` and `help` produce identical output
      */
     test('UT-1.3: h alias works identically to help', () => {
+      // @req: 'h' alias produces identical output to 'help'
+      // @edge: Single-char alias | all card types
+      // @why: Reduces typing for frequently used command
       const helpOutput = handleHelpCommand('Smithy');
       const aliasOutput = handleHAliasCommand('Smithy');
 
@@ -149,6 +158,9 @@ describe('Feature 1: `help <card>` Command - Phase 1.6', () => {
      * - Not formatted as valid card (no pipes)
      */
     test('UT-1.4: returns error for unknown card name', () => {
+      // @req: Unknown card returns error with 'cards' suggestion
+      // @edge: Typos | non-existent cards | special characters
+      // @why: Guides users to discover all available cards
       const output = handleHelpCommand('FakeCard');
 
       expect(output).toContain('Unknown card');
@@ -169,6 +181,9 @@ describe('Feature 1: `help <card>` Command - Phase 1.6', () => {
      * - Shows format: "help <card_name>"
      */
     test('UT-1.5: returns usage message for empty input', () => {
+      // @req: Empty input displays usage message
+      // @edge: No arguments | whitespace-only
+      // @why: Helps users understand command syntax
       const output = handleHelpCommand('');
 
       expect(output).toContain('Usage');
@@ -187,6 +202,9 @@ describe('Feature 1: `help <card>` Command - Phase 1.6', () => {
      * - Card found and displayed
      */
     test('UT-1.6: trims whitespace from card name', () => {
+      // @req: Leading/trailing whitespace is trimmed before lookup
+      // @edge: Single space | multiple spaces | tabs
+      // @why: Users may accidentally add spaces when typing
       const output = handleHelpCommand('  Market  ');
 
       expect(output).toContain('Market');
@@ -210,6 +228,9 @@ describe('Feature 1: `help <card>` Command - Phase 1.6', () => {
      * - Contains cost and type
      */
     test('UT-1.7: successfully looks up all kingdom cards', () => {
+      // @req: All 8 kingdom cards available and returnup valid format
+      // @edge: All action cards in MVP set
+      // @why: Ensures complete card database coverage
       const kingdomCards = [
         'Village', 'Smithy', 'Laboratory', 'Festival',
         'Market', 'Woodcutter', 'Council Room', 'Cellar'
@@ -238,6 +259,9 @@ describe('Feature 1: `help <card>` Command - Phase 1.6', () => {
      * - Correct type displayed
      */
     test('UT-1.8: successfully looks up all base cards', () => {
+      // @req: All 7 base cards (treasures, victory, curse) available
+      // @edge: Multiple card types | cost ranges 0-8
+      // @why: Ensures all non-kingdom cards are discoverable
       const baseCards = {
         'Copper': 'treasure',
         'Silver': 'treasure',
@@ -271,6 +295,9 @@ describe('Feature 1: `help <card>` Command - Phase 1.6', () => {
      * - Can continue playing
      */
     test('IT-1.9: help command works during action phase', () => {
+      // @req: Help command available during action phase without interrupting
+      // @edge: Called at start of phase | mid-phase | just before transitions
+      // @why: Validates help doesn't interfere with normal gameplay flow
       const output = handleHelpCommand('Village');
 
       expect(output).toContain('Village');
@@ -293,6 +320,9 @@ describe('Feature 1: `help <card>` Command - Phase 1.6', () => {
      * - Player can continue with buy phase
      */
     test('IT-1.10: help command works during buy phase', () => {
+      // @req: Help command available during buy phase
+      // @edge: Victory cards | expensive cards | mid-buy decisions
+      // @why: Users need info to make purchase decisions
       const output = handleHelpCommand('Province');
 
       expect(output).toContain('Province');
@@ -312,6 +342,9 @@ describe('Feature 1: `help <card>` Command - Phase 1.6', () => {
      * - Game state unchanged
      */
     test('IT-1.11: help command works between turns', () => {
+      // @req: Help command available between turns (cleanup/transition)
+      // @edge: Multi-player turns | after cleanup | planning next turn
+      // @why: Players may review cards while waiting for turn
       const output = handleHelpCommand('Smithy');
 
       expect(output).toContain('Smithy');
@@ -337,6 +370,9 @@ describe('Feature 1: `help <card>` Command - Phase 1.6', () => {
      * - Phase and turn number unchanged
      */
     test('IT-1.12: help command does not interrupt gameplay', () => {
+      // @req: Multiple help calls don't accumulate state or interrupt
+      // @edge: Sequential calls | different card types | rapid firing
+      // @why: Command must be truly non-intrusive for good UX
       capture.start();
 
       const output1 = handleHelpCommand('Village');
@@ -369,6 +405,9 @@ describe('Feature 1: `help <card>` Command - Phase 1.6', () => {
      * - Error doesn't prevent future help calls
      */
     test('IT-1.13: help works after encountering unknown card error', () => {
+      // @req: Errors don't leave command in broken state
+      // @edge: Error recovery | cascading failures | error handling
+      // @why: Single typo shouldn't require game restart
       const error = handleHelpCommand('FakeCard');
       expect(error).toContain('Unknown card');
 
@@ -394,6 +433,9 @@ describe('Feature 1: `help <card>` Command - Phase 1.6', () => {
      * - Max time < 10ms (allowing for spikes)
      */
     test('PT-1.14: help command response time < 5ms', async () => {
+      // @req: Help command responds in < 5ms (average) and < 10ms (max)
+      // @edge: Cold start | warm cache | repeated queries
+      // @why: Low latency ensures command feels instant to user
       const iterations = 100;
       const times: number[] = [];
 
@@ -427,6 +469,9 @@ describe('Feature 1: `help <card>` Command - Phase 1.6', () => {
      * - Returns unknown card error
      */
     test('EC-1.1: handles very long input gracefully', () => {
+      // @req: Reject pathologically long input without crashing
+      // @edge: 1000+ chars | memory pressure
+      // @why: Prevents DoS or memory exhaustion
       const veryLongInput = 'a'.repeat(1000);
 
       const output = handleHelpCommand(veryLongInput);
@@ -445,6 +490,9 @@ describe('Feature 1: `help <card>` Command - Phase 1.6', () => {
      * - No crash
      */
     test('EC-1.2: handles special characters gracefully', () => {
+      // @req: Special characters don't cause crashes or false matches
+      // @edge: !@#$% | punctuation | unicode
+      // @why: Input validation prevents injection or parser errors
       const specialInputs = ['!@#$%', 'Village!', '@Village'];
 
       specialInputs.forEach(input => {
@@ -462,6 +510,9 @@ describe('Feature 1: `help <card>` Command - Phase 1.6', () => {
      * - Unknown card error
      */
     test('EC-1.3: rejects numeric-only input', () => {
+      // @req: Numbers-only input treated as unknown cards, not costs
+      // @edge: Single digit | multi-digit | zero
+      // @why: Prevents accidental cost-based lookup attempts
       const numericInputs = ['123', '3', '999'];
 
       numericInputs.forEach(input => {
@@ -481,6 +532,9 @@ describe('Feature 1: `help <card>` Command - Phase 1.6', () => {
      * - Unknown card error (no fuzzy matching)
      */
     test('EC-1.4: requires exact card name match (no partial matching)', () => {
+      // @req: Exact match only, no fuzzy/partial matching in Phase 1.6
+      // @edge: Prefixes | typos | abbreviations
+      // @why: Exact matching is simpler and avoids ambiguity
       const partialInputs = ['Vil', 'Mark', 'Prov'];
 
       partialInputs.forEach(input => {
@@ -502,6 +556,8 @@ describe('Feature 1: `help <card>` Command - Phase 1.6', () => {
      * And I can continue playing normally
      */
     test('AC-1.1: successful card lookup displays all information', () => {
+      // @req: Successful lookup displays name, cost, type, and effect
+      // @edge: All 15 cards | each card type
       const output = handleHelpCommand('Village');
 
       expect(output).toContain('Village');
@@ -520,6 +576,8 @@ describe('Feature 1: `help <card>` Command - Phase 1.6', () => {
      * Then the output is identical to "help Village"
      */
     test('AC-1.2: case-insensitive matching produces same output', () => {
+      // @req: All case variations return identical output
+      // @edge: lowercase | UPPERCASE | MixedCase combinations
       const output1 = handleHelpCommand('village');
       const output2 = handleHelpCommand('Village');
       const output3 = handleHelpCommand('VILLAGE');
@@ -537,6 +595,8 @@ describe('Feature 1: `help <card>` Command - Phase 1.6', () => {
      * Then the output is identical to "help Smithy"
      */
     test('AC-1.3: h alias produces identical output to help', () => {
+      // @req: 'h' alias is indistinguishable from 'help'
+      // @edge: All cards via alias
       const helpOutput = handleHelpCommand('Smithy');
       const aliasOutput = handleHAliasCommand('Smithy');
 
@@ -554,6 +614,8 @@ describe('Feature 1: `help <card>` Command - Phase 1.6', () => {
      * And the game state is unchanged
      */
     test('AC-1.4: unknown card returns helpful error message', () => {
+      // @req: Unknown card error with actionable suggestion
+      // @edge: Any unknown input
       const output = handleHelpCommand('FakeCard');
 
       expect(output).toContain('Unknown card');
@@ -572,6 +634,8 @@ describe('Feature 1: `help <card>` Command - Phase 1.6', () => {
      * [Similar for buy phase and between turns]
      */
     test('AC-1.5: help available during all game phases', () => {
+      // @req: Help works during action, buy, and between-turn phases
+      // @edge: Phase transitions | multi-player turns
       // Action phase
       const actionOutput = handleHelpCommand('Market');
       expect(actionOutput).toContain('Market');
@@ -594,6 +658,8 @@ describe('Feature 1: `help <card>` Command - Phase 1.6', () => {
      * Then the response time is < 5ms
      */
     test('AC-1.6: response time meets performance requirement', async () => {
+      // @req: Help command performs in < 5ms average
+      // @edge: Repeated calls | cold/warm cache
       await PerformanceHelper.assertWithinTime(
         () => handleHelpCommand('Village'),
         5,
