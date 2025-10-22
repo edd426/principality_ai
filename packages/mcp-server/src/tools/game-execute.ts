@@ -42,7 +42,7 @@ export class GameExecuteTool {
         success: false,
         error: {
           message: `Cannot parse move: "${move}". Invalid format.`,
-          suggestion: 'Examples: "play 0", "buy Village", "end"'
+          suggestion: 'Examples: "play 0" (action), "play_treasure Copper" (buy phase), "buy Village", "end"'
         }
       };
     }
@@ -142,6 +142,24 @@ export class GameExecuteTool {
       return null;
     }
 
+    // Parse "play_treasure CARD" or "play treasure CARD"
+    if (trimmed.startsWith('play_treasure ') || trimmed.startsWith('play treasure ')) {
+      const cardName = trimmed.includes('_')
+        ? trimmed.substring('play_treasure '.length).trim()
+        : trimmed.substring('play treasure '.length).trim();
+
+      // Capitalize card name to match hand
+      const normalizedName = cardName.charAt(0).toUpperCase() + cardName.slice(1);
+
+      if (player.hand.includes(normalizedName)) {
+        return {
+          type: 'play_treasure',
+          card: normalizedName
+        };
+      }
+      return null;
+    }
+
     // Parse "buy CARD"
     if (trimmed.startsWith('buy ')) {
       const cardName = trimmed.substring(4).trim();
@@ -180,7 +198,7 @@ export class GameExecuteTool {
     if (moveType === 'play_action') {
       if (validOfType.length === 0) {
         if (state.phase === 'buy') {
-          return `Cannot play action cards in buy phase. Try "end" to move to cleanup, or "buy CARD" to make a purchase.`;
+          return `Cannot play action cards in buy phase. You must be in action phase. Try "play_treasure Copper" to play treasures or "buy CARD" to make a purchase.`;
         }
         return `No valid action plays available. Try "end" to move to next phase.`;
       }
@@ -192,7 +210,19 @@ export class GameExecuteTool {
         .filter(idx => idx !== -1)
         .join(', ');
 
-      return `Valid plays: ${validCards}. Use "play 0", "play 1", etc. or "play ${validCards.split(',')[0].trim()}"`;
+      return `Valid plays: ${validCards}. Use "play 0", "play 1", etc.`;
+    }
+
+    if (moveType === 'play_treasure') {
+      if (validOfType.length === 0) {
+        if (state.phase === 'action') {
+          return `Cannot play treasures in action phase. You're in action phase - play action cards or "end" to move to buy phase.`;
+        }
+        return `No treasures in hand to play. Try "buy CARD" to make a purchase or "end" to move to cleanup.`;
+      }
+
+      const validCards = validOfType.map(m => m.card).join(', ');
+      return `Valid treasures to play: ${validCards}. Use "play_treasure CARD" format, e.g., "play_treasure Copper"`;
     }
 
     if (moveType === 'buy') {
@@ -200,7 +230,7 @@ export class GameExecuteTool {
         if (state.phase === 'action') {
           return `Cannot buy in action phase. Play action cards or use "end" to move to buy phase.`;
         }
-        return `No valid purchases available. Try "end" to move to cleanup phase.`;
+        return `No valid purchases available. You may not have enough coins. Try "end" to move to cleanup phase.`;
       }
 
       const validCards = validOfType.map(m => m.card).join(', ');

@@ -107,11 +107,24 @@ export class GameObserveTool {
     return grouped;
   }
 
-  private formatHand(hand: readonly string[]): Array<{ index: number; name: string }> {
-    return hand.map((name, idx) => ({
-      index: idx,
-      name
-    }));
+  private formatHand(hand: readonly string[]): Array<{ index: number; name: string; type?: string }> {
+    return hand.map((name, idx) => {
+      let cardType = 'unknown';
+      // Determine card type (simplified - in real game would use isActionCard, isTreasureCard, etc.)
+      if (['Copper', 'Silver', 'Gold'].includes(name)) {
+        cardType = 'treasure';
+      } else if (['Estate', 'Duchy', 'Province'].includes(name)) {
+        cardType = 'victory';
+      } else if (['Village', 'Smithy', 'Militia', 'Remodel', 'Cellar'].includes(name)) {
+        cardType = 'action';
+      }
+
+      return {
+        index: idx,
+        name,
+        type: cardType
+      };
+    });
   }
 
   private formatValidMoves(validMoves: any[], detailLevel: string): any[] {
@@ -130,8 +143,18 @@ export class GameObserveTool {
         };
 
         // Add descriptions for standard+ detail
-        if (move.type === 'end_phase') {
-          formatted.description = 'End phase and advance to next';
+        if (move.type === 'play_action') {
+          formatted.description = `Play action card: ${move.card}`;
+          formatted.command = `play_action ${move.card}`;
+        } else if (move.type === 'play_treasure') {
+          formatted.description = `Play treasure card: ${move.card} (generates coins)`;
+          formatted.command = `play_treasure ${move.card}`;
+        } else if (move.type === 'buy') {
+          formatted.description = `Buy card: ${move.card}`;
+          formatted.command = `buy ${move.card}`;
+        } else if (move.type === 'end_phase') {
+          formatted.description = 'End current phase and advance to next';
+          formatted.command = 'end';
         }
 
         return formatted;
