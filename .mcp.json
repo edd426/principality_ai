@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "principality": {
+      "command": "node",
+      "args": [
+        "/Users/eddelord/Documents/Projects/principality_ai/packages/mcp-server/dist/index.js"
+      ],
+      "env": {
+        "LOG_LEVEL": "info"
+      }
+    }
+  }
+}

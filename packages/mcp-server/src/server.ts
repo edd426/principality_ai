@@ -14,8 +14,12 @@ import { GAME_OBSERVE_SCHEMA } from './schemas/game-observe';
 import { GAME_EXECUTE_SCHEMA } from './schemas/game-execute';
 import { GAME_SESSION_SCHEMA } from './schemas/game-session';
 import { ToolSchema, ToolResponse } from './types';
+import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
+import { z } from 'zod';
 
 export class MCPGameServer {
+  private server: McpServer;
   private gameEngine: GameEngine;
   private observeTool: GameObserveTool;
   private executeTool: GameExecuteTool;
@@ -29,6 +33,12 @@ export class MCPGameServer {
   constructor(config: Partial<MCPServerConfig> = {}) {
     this.config = { ...DEFAULT_CONFIG, ...config };
     this.logger = new Logger(this.config.logLevel, this.config.logFormat);
+
+    // Initialize MCP server
+    this.server = new McpServer({
+      name: this.config.name,
+      version: this.config.version
+    });
 
     // Initialize game engine (singleton for session)
     this.gameEngine = new GameEngine('mcp-session');
@@ -49,6 +59,45 @@ export class MCPGameServer {
     this.requestHandlers.set('game_observe', (args) => this.observeTool.execute(args));
     this.requestHandlers.set('game_execute', (args) => this.executeTool.execute(args));
     this.requestHandlers.set('game_session', (args) => this.sessionTool.execute(args));
+
+    // Register game_observe tool
+    this.server.tool(
+      'game_observe',
+      GAME_OBSERVE_SCHEMA.description,
+      {
+        detail_level: z.enum(['minimal', 'standard', 'full']).describe('Level of detail for game state')
+      },
+      async (args) => {
+        const result = await this.observeTool.execute(args);
+        return { content: [{ type: 'text', text: JSON.stringify(result) }] };
+      }
+    );
+
+    // Register game_execute tool
+    this.server.tool(
+      'game_execute',
+      GAME_EXECUTE_SCHEMA.description,
+      {
+        move: z.string().describe('The move to execute (e.g., "play 0", "buy Silver", "end")')
+      },
+      async (args) => {
+        const result = await this.executeTool.execute(args);
+        return { content: [{ type: 'text', text: JSON.stringify(result) }] };
+      }
+    );
+
+    // Register game_session tool
+    this.server.tool(
+      'game_session',
+      GAME_SESSION_SCHEMA.description,
+      {
+        command: z.enum(['new', 'end']).describe('Session command')
+      },
+      async (args) => {
+        const result = await this.sessionTool.execute(args);
+        return { content: [{ type: 'text', text: JSON.stringify(result) }] };
+      }
+    );
 
     this.logger.info('MCPGameServer initialized', {
       version: this.config.version,
@@ -124,15 +173,25 @@ export class MCPGameServer {
   }
 
   /**
-   * Start the server (placeholder for stdio transport setup)
+   * Start the server and connect to stdio transport
    */
   async start(): Promise<void> {
-    this.logger.info('MCP Server starting', {
-      name: this.config.name,
-      version: this.config.version,
-      tools: Array.from(this.tools.keys()),
-      transport: 'stdio'
-    });
+    try {
+      const transport = new StdioServerTransport();
+      await this.server.connect(transport);
+
+      this.logger.info('MCP Server ready (stdio, 3 tools)', {
+        name: this.config.name,
+        version: this.config.version,
+        tools: ['game_observe', 'game_execute', 'game_session'],
+        transport: 'stdio'
+      });
+
+      console.log('MCP Server ready (stdio, 3 tools)');
+    } catch (error) {
+      this.logger.error('Failed to start MCP server', error);
+      throw error;
+    }
   }
 
   /**

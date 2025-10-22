@@ -16,9 +16,11 @@
     "test:coverage": "jest --coverage"
   },
   "dependencies": {
-    "@principality/core": "workspace:*"
+    "@modelcontextprotocol/sdk": "^1.20.1",
+    "@principality/core": "file:../core"
   },
   "devDependencies": {
+    "@anthropic-ai/sdk": "^0.30.0",
     "@jest/globals": "^29.7.0",
     "@types/jest": "^29.5.0",
     "@types/node": "^20.0.0",
