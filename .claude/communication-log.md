@@ -661,3 +661,374 @@ The help command failed in production because E2E tests caught import path failu
 - `/.claude/communication-log.md` - This log (updated)
 
 ---
+
+## [2025-10-21 20:00:00] requirements-architect → ALL
+**Subject**: Phase 2 Requirements COMPLETE - MCP Server Integration for LLM Gameplay
+
+**Priority**: High
+**Requires Response**: No - Ready for user review and approval
+**Status**: DRAFT - Awaiting user approval before implementation
+
+**SUMMARY**:
+
+Phase 2 requirements documentation is now 100% COMPLETE. Comprehensive specifications for MCP server integration enable autonomous LLM gameplay through 5 interconnected features.
+
+**DOCUMENTATION CREATED** (5 files, ~3,800 lines total):
+
+1. **OVERVIEW.md** (~430 lines)
+   - Executive summary and problem statement
+   - Phase 2 goals and success criteria
+   - Feature scope (5 features, 25-30 hours)
+   - Risk assessment and dependencies
+   - Relationship to project roadmap
+
+2. **FEATURES.md** (~620 lines)
+   - Feature 1: MCP Server Infrastructure (6-8h, 16 tests)
+   - Feature 2: Game State Query Tools (4-5h, 22 tests)
+   - Feature 3: Move Validation API (5-6h, 28 tests)
+   - Feature 4: Autonomous Play Loop (6-7h, 34 tests)
+   - Feature 5: Reasoning/Explanation System (4-5h, 18 tests)
+   - Detailed functional requirements and acceptance criteria
+   - User stories and technical approach for each feature
+
+3. **TESTING.md** (~850 lines)
+   - Three-level test framework (unit/integration/E2E)
+   - 118 comprehensive test specifications
+   - Performance requirements and test utilities
+   - Mock strategy for E2E tests (cost management)
+   - Test execution plan and coverage targets
+
+4. **ARCHITECTURE.md** (~540 lines)
+   - MCP server design and component architecture
+   - Tool implementations with code examples
+   - JSON Schema definitions for MCP protocol
+   - Error handling strategy
+   - Performance optimizations and deployment guide
+
+5. **REQUIREMENTS_COMPLETE.md** (~940 lines)
+   - Consolidated requirements for all 5 features
+   - Complete test specifications (118 tests)
+   - Gap identification and risk assessment
+   - Acceptance criteria checklist
+   - Implementation priority and timeline
+
+**TOTAL DOCUMENTATION**: ~3,380 lines across 5 comprehensive files
+
+---
+
+**KEY METRICS**:
+
+**Features**: 5 total
+1. MCP Server Infrastructure
+2. Game State Query Tools (get_game_state, get_hand, get_supply, get_player_stats)
+3. Move Validation API (get_valid_moves, validate_move, get_move_history)
+4. Autonomous Play Loop (execute_move, start_game, end_game, reset_game)
+5. Reasoning/Explanation System (explain_decision, get_decision_history, analytics)
+
+**Test Coverage**: 118 total tests
+- Unit Tests: 63 (tools in isolation, mocked dependencies)
+- Integration Tests: 34 (MCP server + game engine)
+- E2E Tests: 21 (actual Claude API integration)
+
+**Effort Estimate**: 25-30 hours total
+- Test writing: 8-10 hours (test-architect)
+- Implementation: 14-19 hours (dev-agent)
+- Documentation: 1-2 hours (requirements-architect)
+- User validation: 2-3 hours (manual testing)
+
+**Risk Level**: MEDIUM (new MCP protocol, research-oriented goals)
+
+---
+
+**PHASE 2 GOALS**:
+
+**Primary Research Goal**: Enable autonomous LLM gameplay to study AI decision-making in deck-building games
+
+**Technical Goals**:
+1. ✅ Claude can query game state (hand, supply, stats)
+2. ✅ Claude can validate moves before execution
+3. ✅ Claude can execute complete turns autonomously
+4. ✅ Claude can complete full games (start → victory)
+5. ✅ Decision reasoning captured for research
+
+**Success Criteria**:
+- Claude completes ≥3 full games successfully
+- Strategic decisions make sense (not random)
+- Error recovery works (LLM learns from mistakes)
+- All 118 tests pass (95%+ coverage)
+- Performance SLAs met (state query < 100ms, validation < 50ms)
+
+---
+
+**THREE-LEVEL TEST FRAMEWORK**:
+
+Phase 2 applies the three-level validation pattern from Phase 1.6 to prevent integration gaps:
+
+**Level 1: Unit Tests (63 tests)**
+- Test tool functions in isolation
+- Mocked GameEngine, file system
+- Verify tool logic correctness
+- Coverage: 100% for simple tools
+
+**Level 2: Integration Tests (34 tests)**
+- Test MCP server + game engine together
+- Real GameEngine, mocked Claude API
+- Verify tools work in MCP context
+- Coverage: 95%+ for complex workflows
+
+**Level 3: E2E Tests (21 tests)**
+- Test actual Claude API integration
+- Compiled JavaScript, real MCP protocol
+- Validate production environment
+- Coverage: Smoke tests only (limit API costs)
+
+**Why Three Levels**: Phase 1.6 lesson learned
+- Unit tests passed (functions worked)
+- Integration tests passed (components wired)
+- But production FAILED (import paths wrong)
+- E2E tests would have caught this
+
+**Phase 2 Prevention**: E2E tests run compiled code with real Claude API, catching:
+- MCP protocol mismatches
+- Module import path errors
+- API integration issues
+- Performance problems under real conditions
+
+---
+
+**ARCHITECTURE HIGHLIGHTS**:
+
+**System Design**:
+```
+Claude (LLM)
+    ↓ MCP Protocol (JSON-RPC over stdio)
+MCP Server (packages/mcp-server/)
+    ├─ Server (tool registration, routing, error handling)
+    └─ Tools (state, validation, execution, reasoning)
+        ↓ Calls game engine methods
+GameEngine (packages/core/)
+    └─ Immutable state pattern (Phase 1.6 foundation)
+```
+
+**Package Structure**:
+- `packages/mcp-server/src/server.ts` - MCP server class
+- `packages/mcp-server/src/tools/` - Tool implementations
+- `packages/mcp-server/src/schemas/` - JSON Schema definitions
+- `packages/mcp-server/tests/` - 118 test files
+
+**Performance SLAs**:
+- get_game_state: < 100ms average
+- State queries (hand, supply, stats): < 50ms average
+- Move validation: < 30ms average
+- Execute move: < 50ms average
+- Full turn (action + buy + cleanup): < 200ms
+
+---
+
+**IMPLEMENTATION PRIORITY**:
+
+**Week 1 (12-15 hours)**:
+1. Feature 1: MCP Server Infrastructure (6-8h)
+   - Foundation for all other features
+2. Feature 2: State Query Tools (4-5h)
+   - Simple, enables Claude to inspect game
+
+**Week 2 (13-15 hours)**:
+3. Feature 3: Move Validation API (5-6h)
+   - Prevents illegal moves
+4. Feature 4: Autonomous Play Loop (6-7h)
+   - Enables complete gameplay
+5. Feature 5: Reasoning System (4-5h)
+   - Research-focused, can be simplified if needed
+
+**Dependencies**:
+- Feature 1 → Features 2, 3, 4, 5 (all depend on server)
+- Feature 2 + 3 → Feature 4 (execution needs state + validation)
+- Feature 4 → Feature 5 (reasoning logs execution)
+
+---
+
+**RISK ASSESSMENT**:
+
+**Risk 1: MCP Protocol Learning Curve** (MEDIUM - 60% probability)
+- Impact: +2-4 hours for learning and experimentation
+- Mitigation: Start with simple tool, iterate gradually
+- MCP SDK well-documented, examples available
+
+**Risk 2: Claude API Rate Limits** (MEDIUM - 70% probability)
+- Impact: E2E tests slow or throttled
+- Mitigation: Mock most tests, limit real API calls
+- Cost management: ~21 E2E tests, but only ~5 use real API
+
+**Risk 3: LLM Decision Quality** (LOW - RESEARCH RISK)
+- Impact: Claude makes poor strategic decisions
+- Mitigation: This is research! Gather data regardless of win rate
+- Not a blocker for Phase 2 completion
+
+**Risk 4: Performance Issues** (LOW - 30% probability)
+- Impact: API calls too slow
+- Mitigation: Optimize queries, cache where possible
+- +2-3 hours for optimization if needed
+
+**Risk 5: Scope Creep** (MEDIUM - 50% probability)
+- Impact: Adding features beyond 5 core tools
+- Mitigation: Strict scope adherence, defer to Phase 3
+- Clear requirements and discipline required
+
+**Overall Risk**: MEDIUM (manageable with mitigations in place)
+
+---
+
+**NEXT STEPS**:
+
+**1. User Review (IMMEDIATE)**:
+User should review and approve:
+- [ ] Feature scope (5 tools - correct?)
+- [ ] Success criteria (≥3 complete games - sufficient?)
+- [ ] Time estimates (25-30 hours - realistic?)
+- [ ] Research goals (decision quality measurement - aligned?)
+- [ ] Test coverage (118 tests - appropriate?)
+
+**2. Test Implementation (8-10 hours)**:
+**test-architect** writes all 118 tests:
+- 63 unit tests (tools isolated)
+- 34 integration tests (server + engine)
+- 21 E2E tests (real Claude API)
+- Follow TDD: Tests FIRST, then implementation
+
+**3. Feature Implementation (14-19 hours)**:
+**dev-agent** implements features to pass tests:
+- Feature 1: MCP Server (6-8h)
+- Feature 2: State Queries (4-5h)
+- Feature 3: Validation API (5-6h)
+- Feature 4: Autonomous Play (6-7h)
+- Feature 5: Reasoning (4-5h)
+
+**4. Validation (1-2 hours)**:
+**requirements-architect** documents completion:
+- Update Phase 2 status
+- Add to CLAUDE.md
+- Capture research insights
+- Prepare Phase 3 planning
+
+**5. User Acceptance (2-3 hours)**:
+User validates:
+- Run MCP server locally
+- Connect Claude Desktop app
+- Observe autonomous gameplay
+- Review logs and reasoning
+- Confirm research goals met
+
+---
+
+**DOCUMENTATION LOCATIONS**:
+
+All Phase 2 requirements in: `/docs/requirements/phase-2/`
+
+1. `OVERVIEW.md` - Executive summary, goals, roadmap
+2. `FEATURES.md` - 5 features with detailed specs
+3. `TESTING.md` - 118 test specifications, three-level framework
+4. `ARCHITECTURE.md` - MCP server design, tool implementations
+5. `REQUIREMENTS_COMPLETE.md` - Consolidated requirements, acceptance criteria
+
+**Cross-References**:
+- Phase 1.6 documentation (lessons learned)
+- CLAUDE.md (TDD workflow, development standards)
+- DEVELOPMENT_GUIDE.md (testing and performance)
+
+---
+
+**ALIGNMENT WITH PROJECT STANDARDS**:
+
+**TDD Compliance**: ✅
+- Requirements → Tests → Implementation workflow
+- 118 test specifications before any code
+- Three-level validation (unit/integration/E2E)
+- 95%+ coverage target maintained
+
+**Phase 1.6 Lessons Applied**: ✅
+- Three-level test framework prevents gaps
+- E2E tests validate compiled code + production environment
+- Module import paths verified in E2E
+- Performance targets defined upfront
+
+**Documentation Standards**: ✅
+- Metadata headers (Status, Created, Phase)
+- File size limits respected (~400-900 lines per file)
+- Proper location (docs/requirements/phase-2/)
+- Cross-referenced to existing docs
+
+**Quality Standards**: ✅
+- Clear, testable requirements
+- Complete acceptance criteria
+- Realistic time estimates
+- Risk assessment with mitigations
+- Research goals aligned with success metrics
+
+---
+
+**VALUE PROPOSITION**:
+
+**Research Value**:
+- First structured platform for studying LLM gameplay in deck-building games
+- Decision reasoning captured for analysis
+- Strategic pattern identification
+- Measure LLM planning horizon and decision quality
+
+**Technical Value**:
+- Validates MCP protocol for game integration
+- Reusable architecture for other card/board games
+- Foundation for Phase 3 multiplayer
+- Demonstrates LLM tool usage patterns
+
+**Strategic Value**:
+- Phase 3 can reuse MCP tools as REST API
+- Phase 4 web UI can leverage game state APIs
+- Phase 5+ advanced features benefit from reasoning system
+- Positions project as AI research platform
+
+---
+
+**OPEN QUESTIONS FOR USER**:
+
+Before proceeding to implementation, user should confirm:
+
+1. **Scope Confirmation**: Are 5 features (MCP server + 4 tool categories) the right scope for Phase 2?
+2. **Success Threshold**: Is ≥3 completed games sufficient for Phase 2 success, or should we aim higher?
+3. **Research Priority**: Is decision quality measurement the primary research goal, or are there other metrics to capture?
+4. **Timeline Flexibility**: Is 25-30 hours (2 weeks) acceptable, or does this need to be faster?
+5. **E2E Testing Budget**: Comfortable with ~$100/month for Claude API E2E tests (5-10 real games)?
+6. **Deployment Scope**: Confirm Phase 2 is local-only (no Azure deployment until Phase 3)?
+
+**Recommendation**: Review all 5 documents, approve scope, then proceed to test implementation.
+
+---
+
+**STATUS**: ✅ REQUIREMENTS COMPLETE - READY FOR USER APPROVAL
+
+**Confidence Level**: HIGH
+- Building on stable Phase 1.6 foundation (648 tests passing)
+- Three-level test framework prevents gaps
+- Realistic time estimates with risk buffer
+- Clear success criteria and acceptance checklist
+
+**Blockers**: None - requirements complete, awaiting user approval
+
+**Timeline**: Ready to begin test implementation immediately upon approval
+
+---
+
+**Files Created**:
+- `/docs/requirements/phase-2/OVERVIEW.md` (430 lines)
+- `/docs/requirements/phase-2/FEATURES.md` (620 lines)
+- `/docs/requirements/phase-2/TESTING.md` (850 lines)
+- `/docs/requirements/phase-2/ARCHITECTURE.md` (540 lines)
+- `/docs/requirements/phase-2/REQUIREMENTS_COMPLETE.md` (940 lines)
+
+**Total**: 3,380 lines of comprehensive Phase 2 requirements documentation
+
+**Author**: requirements-architect
+**Created**: 2025-10-21
+**Next Action**: User review and approval
+
+---
