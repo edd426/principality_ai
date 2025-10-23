@@ -1032,3 +1032,313 @@ Before proceeding to implementation, user should confirm:
 **Next Action**: User review and approval
 
 ---
+
+## [2025-10-22 15:30:00] requirements-architect → ALL
+**Subject**: Phase 2.1 E2E Automated Haiku Gameplay Tests - Requirements COMPLETE
+
+**Priority**: High
+**Requires Response**: No - Ready for test-architect and dev-agent implementation
+**Status**: ACTIVE
+
+**SUMMARY**:
+
+Added comprehensive requirements for automated E2E Haiku gameplay tests to Phase 2.1. Feature 4 documents 8-10 real Claude API tests that validate all Phase 2.1 features (Mechanics Skill, Strategy Skill, Enhanced Logging) work end-to-end with actual Claude Haiku model.
+
+**DOCUMENTATION UPDATED** (4 files):
+
+1. **TESTING.md** (+540 lines)
+   - NEW Feature 4 section: E2E Automated Haiku Gameplay Tests
+   - Existing E2E infrastructure context (Phase 2.0 17 baseline tests)
+   - 8-10 test specifications across 4 suites
+   - Test execution infrastructure and helpers
+   - Success criteria summary
+
+2. **FEATURES.md** (+210 lines)
+   - NEW Feature 4 section with complete specifications
+   - Functional requirements for skill and logging validation
+   - Acceptance criteria and edge cases
+   - Inter-feature dependencies diagram
+   - Test count summary (55-57 total tests)
+
+3. **OVERVIEW.md** (+35 lines)
+   - Updated executive summary to include Feature 4
+   - Updated estimated effort (12-16h → 15-20h)
+   - Updated success metrics for all 4 features
+   - Updated conclusion and value proposition
+
+4. **README.md** (reference only, no changes needed)
+
+**TOTAL DOCUMENTATION ADDED**: ~785 lines, structured across 4 files
+
+---
+
+**KEY METRICS FOR FEATURE 4**:
+
+**Test Suite Breakdown**:
+- E2E4.1-4.3: Mechanics Skill Validation (3 tests)
+- E2E4.4-4.6: Strategy Skill Validation (3 tests)
+- E2E4.7-4.8: Logging Infrastructure Validation (2 tests)
+- Total: 8-10 tests using real Claude Haiku API
+
+**Cost & Performance**:
+- Total suite cost: < $0.50
+- Per-test cost: ~$0.05-0.10 (Haiku model)
+- Total duration: 40-100 minutes (5-12 minutes per test)
+- Parallel execution supported (max 5 games, cost-managed)
+
+**Test Location**: `packages/mcp-server/tests/e2e/haiku-gameplay.test.ts` (NEW)
+**Helpers**: Extends existing `claude-api-helpers.ts` with gameplay-specific functions
+
+---
+
+**TEST SPECIFICATIONS** (8-10 tests total):
+
+**Suite A: Mechanics Skill Tests (3)**
+
+**E2E4.1: Mechanics Skill Auto-Invocation During Error Recovery**
+- Validates auto-invocation when Claude attempts invalid move
+- Metrics: Error recovery rate > 85%, recovery within 3 tool calls
+- Cost: ~$0.08, Duration: 5-10 min
+
+**E2E4.2: Coin Generation Understanding**
+- Validates Claude plays treasures before buying
+- Metrics: 0 coin generation errors by turn 3
+- Cost: ~$0.07, Duration: 5-8 min
+
+**E2E4.3: Phase Transitions and Move Validity**
+- Validates moves execute in correct phase (action → buy → cleanup)
+- Metrics: 0 phase errors, 100% move validity
+- Cost: ~$0.06, Duration: 4-6 min
+
+**Suite B: Strategy Skill Tests (3)**
+
+**E2E4.4: Economic Progression and Buy Decisions**
+- Validates Big Money progression (Copper → Silver → Gold)
+- Metrics: > 85% of buys match optimal progression
+- Cost: ~$0.08, Duration: 6-8 min
+
+**E2E4.5: Strategy Consistency Across Decisions**
+- Validates deterministic strategy (same seed = same decisions)
+- Metrics: > 95% move sequence similarity
+- Cost: ~$0.16 (2 games), Duration: 10-12 min
+
+**E2E4.6: Full Game Completion and Win**
+- Validates Claude wins end-to-end
+- Metrics: 100% win rate, < 30 turns
+- Cost: ~$0.10, Duration: 8-12 min
+
+**Suite C: Logging Infrastructure Tests (2)**
+
+**E2E4.7: Full Game Session Logging**
+- Validates all tool calls logged with state snapshots
+- Metrics: 100% log coverage, file < 2MB, parse < 100ms
+- Cost: ~$0.05, Duration: 8-10 min
+
+**E2E4.8: Log Analysis and Game Reconstruction**
+- Validates game state reconstructible from logs
+- Metrics: > 98% reconstruction accuracy, 100% move validity
+- Cost: ~$0.00 (local parsing only), Duration: 2-3 min
+
+---
+
+**PHASE 2.1 UPDATED TEST COUNTS**:
+
+| Level | Feature 1 | Feature 2 | Feature 3 | Feature 4 | Total |
+|-------|-----------|-----------|-----------|-----------|-------|
+| Unit | 5 | 5 | 5 | 0 | 15 |
+| Integration | 5 | 5 | 5 | 0 | 15 |
+| E2E Baseline | 0 | 0 | 0 | 17* | 17 |
+| E2E Gameplay | 3 | 3 | 2 | 0 | 8-10 |
+| **TOTAL** | **13** | **13** | **12** | **17-19** | **55-57** |
+
+*Phase 2.0 baseline tests (reference, not new)
+
+**Total Phase 2.1 New Tests**: 40-42 (excluding Phase 2.0 baseline)
+
+---
+
+**PHASE 2.1 UPDATED EFFORT ESTIMATE**:
+
+| Feature | Implementation | Testing | Documentation | Total |
+|---------|---------------|---------|---------------|-------|
+| Feature 1: Mechanics Skill | 3-4h | 1-1.5h | 1h | 5-6.5h |
+| Feature 2: Strategy Skill | 3-4h | 1-1.5h | 1h | 5-6.5h |
+| Feature 3: Enhanced Logging | 2-2.5h | 0.5-1h | 0.5h | 3-3.5h |
+| Feature 4: E2E Haiku Tests | 0.5-1h | 0.5-1h* | 0.5h | 1-2h |
+| **TOTAL** | **8.5-11.5h** | **3.5-5.5h** | **3.5h** | **15-20h** |
+
+*E2E tests run automatically via CI/CD; automation cost not included
+
+---
+
+**WHY AUTOMATED HAIKU GAMEPLAY TESTS**:
+
+1. **Validate Skills**: Mechanics and Strategy skills must work with real Claude, not just be loaded
+2. **Measure Improvements**: Quantify Phase 2.1 benefits (fewer errors, better strategy)
+3. **Cost-Efficient**: Haiku model ~$0.05/game vs Sonnet ~$0.20/game
+4. **Regression Testing**: Run before each release to catch regressions
+5. **Behavioral Validation**: Focus on actual Claude behavior, not aspirational targets
+
+**Key Difference from Phase 2.0**:
+- Phase 2.0 E2E tests (17): Tool-focused validation with Claude API
+- Phase 2.1 E2E tests (8-10 new): Gameplay-focused validation of Phase 2.1 features
+- Together: 25-27 E2E tests validating complete MCP server + skills + logging system
+
+---
+
+**TESTING INFRASTRUCTURE**:
+
+**Reuses Existing Components**:
+- `claude-api-helpers.ts` - Token tracking, cost estimation, tool invocation
+- Phase 2.0 test patterns - MCP tool invocation, response parsing
+- Deterministic seeds - Reproducible game progressions
+
+**New Gameplay-Specific Helpers** (to be added):
+```typescript
+function analyzeGameState(logEntries): GameMetrics
+function reconstructMoveSequence(logEntries): Move[]
+function validateMoveForPhase(move, phase): boolean
+function analyzeBuyDecisions(moves): StrategyMetrics
+function compareDecisionSequences(game1, game2): ComparisonResult
+```
+
+**Metrics Collection**:
+- All costs tracked and logged
+- JSON report output for CI/CD analysis
+- Metrics baseline for Phase 2.2 before/after comparison
+
+---
+
+**SUCCESS CRITERIA FOR FEATURE 4**:
+
+**Overall Suite**:
+- ✅ All 8-10 tests pass consistently (95%+ pass rate)
+- ✅ Total cost < $0.50, cost tracking accurate
+- ✅ No aspirational expectations (based on real Haiku behavior)
+- ✅ Tests measure all Phase 2.1 features end-to-end
+
+**Per-Test Metrics**:
+
+| Test | Metric | Target | Validation |
+|------|--------|--------|-----------|
+| E2E4.1 | Recovery rate | > 85% | Error recovery success |
+| E2E4.2 | Coin gen errors | = 0 | Correct treasure play |
+| E2E4.3 | Phase errors | = 0 | Correct move sequencing |
+| E2E4.4 | Buy progression | > 85% | Economic strategy |
+| E2E4.5 | Consistency | > 95% | Deterministic strategy |
+| E2E4.6 | Game wins | 100% | Complete gameplay |
+| E2E4.7 | Log coverage | 100% | Full tool tracking |
+| E2E4.8 | Reconstruction accuracy | > 98% | State reconstruction |
+
+---
+
+**PHASE 2.1 INTEGRATION**:
+
+**How Feature 4 Completes Phase 2.1**:
+
+1. Features 1-3 implement the enhancements:
+   - Mechanics Skill (reduces confusion)
+   - Strategy Skill (improves decisions)
+   - Enhanced Logging (enables debugging)
+
+2. Feature 4 validates everything works:
+   - Real Claude gameplay proves skills work
+   - Metrics show improvements
+   - Logging enables analysis
+
+3. Produces baseline for Phase 2.2:
+   - Error rates established
+   - Strategy quality measured
+   - Cost tracking for CI/CD
+
+---
+
+**NEXT STEPS FOR IMPLEMENTATION**:
+
+**For test-architect**:
+1. Write 8-10 E2E gameplay tests
+2. Implement gameplay-specific helpers
+3. Add metrics collection and reporting
+4. Validate against success criteria
+
+**For dev-agent**:
+1. Features 1-3 implementation (Mechanics Skill, Strategy Skill, Enhanced Logging)
+2. Skill integration with MCP server (auto-invocation logic)
+3. Logging middleware implementation
+4. Cost tracking infrastructure
+
+**For requirements-architect**:
+1. Monitor test specifications for gaps
+2. Update Phase 2.1 status as features complete
+3. Prepare Phase 2.2 requirements (optimization measurement)
+
+---
+
+**DOCUMENTATION LOCATIONS**:
+
+All Phase 2.1 requirements in: `/docs/requirements/phase-2.1/`
+
+1. `OVERVIEW.md` - Executive summary, goals, roadmap (updated)
+2. `FEATURES.md` - 4 features with detailed specs (updated with Feature 4)
+3. `TESTING.md` - 55-57 test specifications (updated with Feature 4 tests)
+4. `ARCHITECTURE.md` - System design (reference only)
+5. `README.md` - File index (reference only)
+
+**Cross-References**:
+- Phase 2.0 E2E tests (`packages/mcp-server/tests/e2e/claude-api.test.ts`)
+- Phase 2.0 helpers (`packages/mcp-server/tests/e2e/claude-api-helpers.ts`)
+- Phase 2.1 FEATURES.md (Feature 1-3 specs)
+
+---
+
+**QUALITY CHECKLIST**:
+
+**Requirement Specification Levels** (ALL REQUIRED):
+- ✅ Unit-level specs (Functions in isolation)
+- ✅ Integration specs (Components working together)
+- ✅ E2E specs (Complete user workflow)
+- ✅ CLI specs (Parser → Handler → Output)
+- ✅ Edge cases documented at each level
+
+**Completeness**:
+- ✅ All Phase 2.1 features have E2E tests
+- ✅ Test locations specified (new file: haiku-gameplay.test.ts)
+- ✅ Success metrics realistic (not aspirational)
+- ✅ Cost tracking enabled for CI/CD
+- ✅ Parallel execution supported
+
+**Documentation Standards**:
+- ✅ Metadata headers (Status, Created, Phase)
+- ✅ Clear structured sections
+- ✅ Cross-references to existing docs
+- ✅ Test tagging for selective execution
+- ✅ JSON metrics output documented
+
+---
+
+**STATUS**: ✅ COMPLETE - Ready for test-architect and dev-agent implementation
+
+**Confidence Level**: HIGH
+- Building on stable Phase 2.0 foundation (17 E2E tests)
+- Reusing proven test infrastructure (claude-api-helpers)
+- Clear success metrics and acceptance criteria
+- Cost-managed through Haiku model selection
+
+**Blockers**: None - requirements complete
+
+**Timeline**: Ready to begin test implementation immediately upon approval
+
+---
+
+**Files Updated**:
+- `/docs/requirements/phase-2.1/OVERVIEW.md` (+35 lines, 410 total)
+- `/docs/requirements/phase-2.1/FEATURES.md` (+210 lines, 800 total)
+- `/docs/requirements/phase-2.1/TESTING.md` (+540 lines, 1,267 total)
+
+**Total**: +785 lines of comprehensive Phase 2.1 E2E test requirements
+
+**Author**: requirements-architect
+**Created**: 2025-10-22
+**Next Action**: test-architect writes E2E tests, dev-agent implements features
+
+---

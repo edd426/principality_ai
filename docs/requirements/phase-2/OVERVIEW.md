@@ -1,10 +1,11 @@
 # Phase 2 Overview: MCP Server Integration for LLM Optimization
 
-**Status**: REVISED
+**Status**: COMPLETE
 **Created**: 2025-10-21
 **Revised**: 2025-10-22
-**Phase**: 2
-**Estimated Effort**: 12-16 hours (3 features, 3 consolidated tools)
+**Completed**: 2025-10-22
+**Phase**: 2.0
+**Actual Effort**: 2 critical bug fixes, foundation complete
 
 ---
 
@@ -28,6 +29,44 @@ Phase 2 transforms Principality AI from a human-playable CLI game into an **LLM-
 - No improvement in win rate after 20 games
 - Average turns per game increases or plateaus
 - >5 evaluation scenarios fail
+
+---
+
+## Phase 2.0 Completion Status
+
+**Status**: COMPLETE (2025-10-22)
+
+### What Was Completed
+
+Phase 2.0 established the MCP server foundation through two critical bug fixes:
+
+**Bug Fix 1: MCP Server Connection to Stdio Transport** (commit f8b6c98)
+- **Problem**: MCP server stdio transport was not properly initialized
+- **Impact**: Claude could not establish connection to MCP server via stdio
+- **Solution**: Implemented proper MCP protocol handshake and stream handling
+- **Result**: ✅ Claude Desktop now connects successfully, can invoke tools
+
+**Bug Fix 2: Treasure Move Parsing Fix** (commit 9425ad4)
+- **Problem**: Treasure card moves were not being parsed correctly in game_execute
+- **Impact**: Claude's move commands for treasures were failing silently
+- **Solution**: Enhanced move parser to handle treasure syntax variations
+- **Result**: ✅ All treasure moves now execute correctly
+
+### Deliverables Completed
+
+- ✅ MCP server infrastructure stable and functional
+- ✅ Tool registration working (3 core tools: game_observe, game_execute, game_session)
+- ✅ Tool invocation from Claude successful
+- ✅ Error handling and recovery functional
+- ✅ Initial gameplay loops working (basic autonomous play possible)
+- ✅ Foundation ready for Phase 2.1 enhancements
+
+### What's Next
+
+Phase 2.1 builds on this foundation by enhancing AI capability with:
+- **Mechanics Skill**: Context-aware help when Claude shows confusion
+- **Strategy Skill**: Decision support for optimal purchases and action sequences
+- **Tool Logging**: Comprehensive debugging and performance tracking
 
 ---
 
@@ -153,7 +192,8 @@ Phase 2 aims to answer:
 **Phase 1 (Complete)**: Core game engine + 8 kingdom cards
 **Phase 1.5 (Complete)**: CLI UX improvements (6 features)
 **Phase 1.6 (Complete)**: Card help system + comprehensive testing
-**➡️ Phase 2 (Current)**: MCP server integration for LLM optimization ⬅️
+**Phase 2.0 (Complete)**: MCP server foundation + critical bug fixes
+**➡️ Phase 2.1 (Current)**: AI Gameplay Enhancement (Mechanics Skill, Strategy Skill, Tool Logging) ⬅️
 **Phase 3 (Next)**: Multiplayer + AI opponents + cloud deployment
 **Phase 4**: Web UI with drag-and-drop interface
 **Phase 5+**: Advanced cards, tournaments, mobile apps

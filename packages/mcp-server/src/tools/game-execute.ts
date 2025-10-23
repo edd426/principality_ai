@@ -4,7 +4,7 @@
  * Atomically validates and executes a single move with actionable error messages
  */
 
-import { GameEngine, GameState, Move } from '@principality/core';
+import { GameEngine, GameState, Move, isActionCard, isTreasureCard } from '@principality/core';
 import { GameExecuteRequest, GameExecuteResponse } from '../types/tools';
 
 export class GameExecuteTool {
@@ -127,16 +127,41 @@ export class GameExecuteTool {
     const trimmed = moveStr.toLowerCase().trim();
     const player = state.players[state.currentPlayer];
 
-    // Parse "play N" or "play_action N"
+    // Parse "play N" or "play_action N" - determine actual card type
     if (trimmed.startsWith('play ')) {
       const indexStr = trimmed.substring(5).trim();
       const index = parseInt(indexStr);
 
       if (!isNaN(index) && index >= 0 && index < player.hand.length) {
         const cardName = player.hand[index];
+
+        // Determine actual move type based on card type
+        if (isActionCard(cardName)) {
+          return {
+            type: 'play_action',
+            card: cardName
+          };
+        } else if (isTreasureCard(cardName)) {
+          return {
+            type: 'play_treasure',
+            card: cardName
+          };
+        }
+        // Unknown card type - fail gracefully
+        return null;
+      }
+      return null;
+    }
+
+    // Parse "play_action CARD" syntax
+    if (trimmed.startsWith('play_action ')) {
+      const cardName = trimmed.substring('play_action '.length).trim();
+      const normalizedName = cardName.charAt(0).toUpperCase() + cardName.slice(1);
+
+      if (player.hand.includes(normalizedName) && isActionCard(normalizedName)) {
         return {
           type: 'play_action',
-          card: cardName
+          card: normalizedName
         };
       }
       return null;
