@@ -43,10 +43,10 @@ export class MCPGameServer {
     // Initialize game engine (singleton for session)
     this.gameEngine = new GameEngine('mcp-session');
 
-    // Initialize tools
-    this.observeTool = new GameObserveTool(this.gameEngine, () => this.currentState);
-    this.executeTool = new GameExecuteTool(this.gameEngine, () => this.currentState, (state) => { this.currentState = state; });
-    this.sessionTool = new GameSessionTool(this.gameEngine, this.config.defaultModel, (state) => { this.currentState = state; }, () => this.currentState);
+    // Initialize tools with logger
+    this.observeTool = new GameObserveTool(this.gameEngine, () => this.currentState, this.logger);
+    this.executeTool = new GameExecuteTool(this.gameEngine, () => this.currentState, (state) => { this.currentState = state; }, this.logger);
+    this.sessionTool = new GameSessionTool(this.gameEngine, this.config.defaultModel, (state) => { this.currentState = state; }, () => this.currentState, this.logger);
 
     // Register tool schemas
     this.tools = new Map();
@@ -78,7 +78,8 @@ export class MCPGameServer {
       'game_execute',
       GAME_EXECUTE_SCHEMA.description,
       {
-        move: z.string().describe('The move to execute (e.g., "play 0", "buy Silver", "end")')
+        move: z.string().describe('The move to execute (e.g., "play 0", "buy Silver", "end")'),
+        reasoning: z.string().optional().describe('Optional brief rationale for this move (1-2 sentences). Recommended for strategy analysis.')
       },
       async (args) => {
         const result = await this.executeTool.execute(args);

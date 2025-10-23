@@ -7,6 +7,7 @@
 import { GameEngine, GameState } from '@principality/core';
 import { calculateScore, getAllPlayerCards } from '@principality/core';
 import { GameInstance, GameSessionRequest, GameSessionResponse } from '../types/tools';
+import { Logger } from '../logger';
 
 export class GameSessionTool {
   private currentGame: GameInstance | null = null;
@@ -16,7 +17,8 @@ export class GameSessionTool {
     private gameEngine: GameEngine,
     private defaultModel: 'haiku' | 'sonnet' = 'haiku',
     private setState: (state: GameState) => void,
-    private getState: () => GameState | null
+    private getState: () => GameState | null,
+    private logger?: Logger
   ) {}
 
   async execute(request: GameSessionRequest): Promise<GameSessionResponse> {
@@ -25,6 +27,10 @@ export class GameSessionTool {
     if (command === 'new') {
       // Idempotent: end current game if active
       if (this.currentGame) {
+        this.logger?.info('Previous game ended, starting new game', {
+          previousGameId: this.currentGame.id,
+          moves: this.currentGame.moves
+        });
         this.gameHistory.push(this.currentGame);
       }
 
@@ -47,6 +53,13 @@ export class GameSessionTool {
       // Update server state
       this.setState(state);
 
+      this.logger?.info('New game started', {
+        gameId,
+        seed,
+        model,
+        players: 1
+      });
+
       return {
         success: true,
         gameId,
@@ -58,6 +71,7 @@ export class GameSessionTool {
     if (command === 'end') {
       const currentState = this.getState();
       if (!currentState) {
+        this.logger?.warn('Attempted to end game but no active game');
         return {
           success: false,
           error: 'No active game to end. Use game_session(command="new") to start a game.'
@@ -65,6 +79,11 @@ export class GameSessionTool {
       }
 
       if (this.currentGame) {
+        this.logger?.info('Game ended', {
+          gameId: this.currentGame.id,
+          moves: this.currentGame.moves,
+          duration: new Date().getTime() - new Date(this.currentGame.startTime).getTime()
+        });
         this.gameHistory.push(this.currentGame);
         this.currentGame = null;
       }

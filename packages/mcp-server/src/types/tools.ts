@@ -35,6 +35,7 @@ export interface GameObserveResponse {
 export interface GameExecuteRequest {
   move: string;
   return_detail?: 'minimal' | 'full';
+  reasoning?: string; // Optional brief rationale for the move (for strategy analysis)
 }
 
 export interface GameExecuteResponse {

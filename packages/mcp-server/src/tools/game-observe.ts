@@ -7,13 +7,15 @@
 
 import { GameEngine, GameState } from '@principality/core';
 import { GameObserveRequest, GameObserveResponse } from '../types/tools';
+import { Logger } from '../logger';
 
 export class GameObserveTool {
   private cache = new Map<string, GameObserveResponse>();
 
   constructor(
     private gameEngine: GameEngine,
-    private getState: () => GameState | null
+    private getState: () => GameState | null,
+    private logger?: Logger
   ) {}
 
   async execute(request: GameObserveRequest): Promise<GameObserveResponse> {
@@ -30,11 +32,20 @@ export class GameObserveTool {
     // Get current state
     const state = this.getState();
     if (!state) {
+      this.logger?.warn('Game state requested but no active game');
       return {
         success: false,
         error: 'No active game. Use game_session(command="new") to start.'
       };
     }
+
+    // Log observation (verbose - for strategy analysis)
+    this.logger?.info('Game state observed', {
+      detail_level,
+      turn: state.turnNumber,
+      phase: state.phase,
+      activePlayer: state.currentPlayer
+    });
 
     // Check cache
     const cacheKey = `${detail_level}-${state.turnNumber}-${state.phase}`;

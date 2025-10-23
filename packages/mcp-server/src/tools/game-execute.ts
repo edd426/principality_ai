@@ -6,6 +6,7 @@
 
 import { GameEngine, GameState, Move, isActionCard, isTreasureCard } from '@principality/core';
 import { GameExecuteRequest, GameExecuteResponse } from '../types/tools';
+import { Logger } from '../logger';
 
 export class GameExecuteTool {
   private moveHistory: Array<{
@@ -18,14 +19,16 @@ export class GameExecuteTool {
   constructor(
     private gameEngine: GameEngine,
     private getState: () => GameState | null,
-    private setState: (state: GameState) => void
+    private setState: (state: GameState) => void,
+    private logger?: Logger
   ) {}
 
   async execute(request: GameExecuteRequest): Promise<GameExecuteResponse> {
-    const { move, return_detail = 'minimal' } = request;
+    const { move, return_detail = 'minimal', reasoning } = request;
 
     const state = this.getState();
     if (!state) {
+      this.logger?.warn('Move executed without active game', { move });
       return {
         success: false,
         error: {
@@ -38,6 +41,7 @@ export class GameExecuteTool {
     // Parse move string
     const parsedMove = this.parseMove(move, state);
     if (!parsedMove) {
+      this.logger?.warn('Failed to parse move', { move, phase: state.phase });
       return {
         success: false,
         error: {
@@ -52,6 +56,7 @@ export class GameExecuteTool {
     const isValid = this.isMoveValid(parsedMove, validMoves);
 
     if (!isValid) {
+      this.logger?.warn('Invalid move attempted', { move, phase: state.phase, moveType: parsedMove.type });
       return {
         success: false,
         error: {
@@ -70,6 +75,7 @@ export class GameExecuteTool {
       const result = this.gameEngine.executeMove(state, parsedMove);
 
       if (!result.success) {
+        this.logger?.error('Move execution failed', { move, error: result.error });
         return {
           success: false,
           error: {
@@ -92,6 +98,19 @@ export class GameExecuteTool {
         timestamp: new Date().toISOString()
       });
 
+      // Log to file (include reasoning if provided)
+      const logData: any = {
+        move,
+        turn: state.turnNumber,
+        phase: state.phase,
+        moveType: parsedMove.type,
+        card: parsedMove.card
+      };
+      if (reasoning) {
+        logData.reasoning = reasoning;
+      }
+      this.logger?.info('Move executed', logData);
+
       // Return response
       const response: GameExecuteResponse = {
         success: true,
@@ -101,6 +120,11 @@ export class GameExecuteTool {
       // Check if phase changed
       if (result.newState && result.newState.phase !== state.phase) {
         response.phaseChanged = `${state.phase} → ${result.newState.phase}`;
+        this.logger?.info('Phase changed', {
+          from: state.phase,
+          to: result.newState.phase,
+          turn: state.turnNumber
+        });
       }
 
       // Include full state if requested

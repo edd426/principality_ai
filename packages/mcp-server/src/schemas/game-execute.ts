@@ -18,6 +18,10 @@ export const GAME_EXECUTE_SCHEMA = {
         type: 'string',
         enum: ['minimal', 'full'],
         description: 'Return detail: minimal (~150 tokens) returns just success/error, full (~1500 tokens) includes updated game state'
+      },
+      reasoning: {
+        type: 'string',
+        description: 'Optional brief rationale for this move (1-2 sentences). Recommended for strategy analysis and debugging. Example: "Buying Village to build engine" or "Playing Copper to maximize coins"'
       }
     },
     required: ['move']
