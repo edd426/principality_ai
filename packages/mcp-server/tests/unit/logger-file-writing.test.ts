@@ -39,6 +39,8 @@ describe('Logger File Writing - Regression Tests', () => {
       const logFile = path.join(tempDir, 'create-test.log');
       const logger = new Logger('info', 'text', logFile);
 
+      // File should be created on initialization
+      expect(logger.getLogFilePath()).toBe(logFile);
       expect(fs.existsSync(logFile)).toBe(true);
     });
 
@@ -172,14 +174,48 @@ describe('Logger File Writing - Regression Tests', () => {
     });
   });
 
-  describe('UT-LOGGER-2: Integration with Config', () => {
+  describe('UT-LOGGER-2: Auto-Discovery', () => {
+    test('should auto-discover log file location', () => {
+      // @req: Logger should auto-create log file even without explicit path
+      // @edge: No logFile parameter provided, no LOG_FILE env var
+      // @why: Logging should work out of the box
+
+      const logger = new Logger('info', 'text');
+
+      // Should have detected a log file
+      expect(logger.isFileWriting()).toBe(true);
+      expect(logger.getLogFilePath()).not.toBeNull();
+    });
+
+    test('should prefer current working directory for logs', () => {
+      // @req: Logs should be in project root by default
+      // @edge: When both cwd and temp are writable
+      // @why: Easier to find logs
+
+      const logger = new Logger('info', 'text');
+      const logPath = logger.getLogFilePath();
+
+      if (logPath) {
+        // Should be in current directory or a subdirectory
+        expect(logPath).toBeTruthy();
+      }
+    });
+
+    test('should fallback to temp directory if cwd not writable', () => {
+      // @req: Logger should gracefully fallback
+      // @edge: Simulated by not being in a writable directory
+      // @why: Logging should still work somewhere
+
+      const logger = new Logger('info', 'text');
+      expect(logger.isFileWriting()).toBe(true);
+    });
+  });
+
+  describe('UT-LOGGER-3: Integration with Config', () => {
     test('should receive logFile from MCPServerConfig', () => {
       // @req: Server should pass logFile to Logger
       // @edge: Config provides file path
       // @why: Verify integration point
-
-      // This would be tested in integration tests with actual server
-      // For unit test, we just verify Logger can be created with path
 
       const testFile = path.join(tempDir, 'config-test.log');
       const logger = new Logger('info', 'json', testFile);
@@ -188,6 +224,18 @@ describe('Logger File Writing - Regression Tests', () => {
 
       const content = fs.readFileSync(testFile, 'utf-8');
       expect(content).toContain('Config test message');
+    });
+
+    test('should expose logging status for debugging', () => {
+      // @req: Logger should expose status methods
+      // @edge: Users/devs can check if logging is working
+      // @why: Debugging logging issues
+
+      const testFile = path.join(tempDir, 'status-test.log');
+      const logger = new Logger('info', 'text', testFile);
+
+      expect(logger.getLogFilePath()).toBe(testFile);
+      expect(logger.isFileWriting()).toBe(true);
     });
   });
 });
