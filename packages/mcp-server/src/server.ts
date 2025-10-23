@@ -32,7 +32,7 @@ export class MCPGameServer {
 
   constructor(config: Partial<MCPServerConfig> = {}) {
     this.config = { ...DEFAULT_CONFIG, ...config };
-    this.logger = new Logger(this.config.logLevel, this.config.logFormat);
+    this.logger = new Logger(this.config.logLevel, this.config.logFormat, this.config.logFile);
 
     // Initialize MCP server
     this.server = new McpServer({
