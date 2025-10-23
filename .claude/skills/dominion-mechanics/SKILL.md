@@ -1,8 +1,32 @@
+---
+name: dominion-mechanics
+description: Comprehensive guide to Dominion MVP game mechanics, card syntax, phase structure, and decision frameworks. Use when learning game rules, confused about phase flow, receiving invalid move errors, or needing card information.
+---
+
 # Dominion Mechanics Guide
 
 ## Overview
 
 This skill explains the core mechanics of the Dominion card game, focusing on the MVP implementation with 8 kingdom cards and the fundamental rules that Claude must understand to play effectively.
+
+## Table of Contents
+
+1. [Game Flow: Three Phase Turn Structure](#game-flow-three-phase-turn-structure)
+2. [Core Misconception: Treasures Must Be PLAYED](#core-misconception-treasures-must-be-played)
+3. [Coin Generation](#coin-generation)
+4. [Action Economy](#action-economy)
+5. [Command Reference](#command-reference)
+6. [Phase-by-Phase Decision Making](#phase-by-phase-decision-making)
+7. [Victory Points and Scoring](#victory-points-and-scoring)
+8. [Supply Piles](#supply-piles)
+9. [Common Mistakes & Recovery](#common-mistakes--recovery)
+10. [Decision Framework](#decision-framework)
+11. [Quick Reference: All 15 Cards](#quick-reference-all-15-cards)
+12. [Auto-Invocation Triggers](#auto-invocation-triggers)
+13. [Common Syntax Errors](#common-syntax-errors)
+14. [Phase Checklist](#phase-checklist)
+15. [Detailed Card Information](#detailed-card-information)
+16. [Troubleshooting Guide](#troubleshooting-guide)
 
 ## Game Flow: Three Phase Turn Structure
 

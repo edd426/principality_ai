@@ -1,8 +1,31 @@
+---
+name: dominion-strategy
+description: Strategic gameplay guidance for Dominion using Big Money strategy and kingdom card evaluation. Use when deciding what cards to buy, planning long-term deck composition, or optimizing purchases for different game phases.
+---
+
 # Dominion Strategy Guide
 
 ## Overview
 
 Strategic guidance for Dominion. Use with Dominion Mechanics Skill for rules questions.
+
+## Table of Contents
+
+1. [Big Money: Baseline Strategy](#big-money-baseline-strategy)
+2. [Game Phases Strategy](#game-phases-strategy)
+3. [Victory Point Timing](#victory-point-timing)
+4. [Card Evaluation Matrix](#card-evaluation-matrix)
+5. [Card Synergies](#card-synergies)
+6. [Decision Templates](#decision-templates)
+7. [Early Game Buildup Turns](#early-game-buildup-turns)
+8. [Endgame Recognition and Adaptation](#endgame-recognition-and-adaptation)
+9. [Common Mistakes](#common-mistakes)
+10. [Detailed Phase Strategy](#detailed-phase-strategy)
+11. [Strategy Levels](#strategy-levels)
+12. [Common Strategy Mistakes](#common-strategy-mistakes)
+13. [Card Category Strategy](#card-category-strategy)
+14. [Quick Lookup: When to Buy Each Card](#quick-lookup-when-to-buy-each-card)
+15. [Strategy Testing Checklist](#strategy-testing-checklist)
 
 ## Big Money: Baseline Strategy
 

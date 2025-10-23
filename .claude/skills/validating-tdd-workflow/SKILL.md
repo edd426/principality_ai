@@ -1,6 +1,6 @@
 ---
-name: Validating TDD Workflow
-description: Validates TDD protocol before launching dev-agent. Checks that tests exist or will be written first for features and bugs. Use before invoking dev-agent for implementation, bug fixes, or code changes. Blocks code-without-tests requests.
+name: validating-tdd-workflow
+description: Validates that TDD protocol is followed before dev-agent invocation. Blocks implementation requests when tests don't exist or lack full coverage (unit, integration, E2E). Automatically invoked when user requests feature implementation, bug fixes, or production code changes.
 ---
 
 # Validating TDD Workflow
