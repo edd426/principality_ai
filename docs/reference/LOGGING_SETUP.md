@@ -1,101 +1,155 @@
 # Game Session Logging Setup Guide
 
 **Status**: ACTIVE
-**Created**: 2025-10-23
+**Updated**: 2025-10-23
 **Phase**: 2.1
 
-This guide explains how to enable and use game session logging with the MCP server.
+This guide explains how to use game session logging with the MCP server.
 
-## Quick Start
+## Quick Start (Zero Config!)
 
-### 1. Update `.mcp.json` Configuration
+Logging now works **automatically** with zero configuration needed!
 
-Set the `LOG_FILE` environment variable in your `.mcp.json`:
-
-```json
-{
-  "mcpServers": {
-    "principality": {
-      "command": "node",
-      "args": [
-        "packages/mcp-server/dist/index.js"
-      ],
-      "env": {
-        "LOG_LEVEL": "INFO",
-        "LOG_FORMAT": "text",
-        "LOG_FILE": "./game-session.log"
-      }
-    }
-  }
-}
-```
-
-### 2. Build the Project
+### 1. Build the Project
 
 ```bash
 npm run build
 ```
 
-### 3. Start a Game in Claude Code
+### 2. Start a Game in Claude Code
 
-Ask Claude to play a game:
+Ask Claude to play:
 ```
 Can you help me play Dominion? I want to see the logs of our game.
 ```
 
-Claude will:
-1. Call `game_session(command="new")` to start the game
-2. Each move and game state update is logged to `./game-session.log`
-3. All logs appear in real-time
+When the MCP server starts, it will:
+1. Automatically detect the best location for logs
+2. Create `dominion-game-session.log` in the project directory
+3. Print where logs are being written:
+   ```
+   ✓ Logging initialized to: /Users/you/project/dominion-game-session.log
+   ```
+4. Log each move and game state update in real-time
 
-### 4. Monitor the Logs
+### 3. Monitor the Logs
 
-In another terminal, watch the logs in real-time:
-
-```bash
-tail -f ./game-session.log
-```
-
-Or view the complete log:
+In **another terminal**, watch the logs:
 
 ```bash
-cat ./game-session.log
+tail -f ./dominion-game-session.log
 ```
 
-## Environment Variables
+**That's it!** Logs appear automatically. No configuration needed.
 
-| Variable | Values | Default | Purpose |
-|----------|--------|---------|---------|
-| `LOG_LEVEL` | `DEBUG`, `INFO`, `WARN`, `ERROR` | `INFO` | What to log |
-| `LOG_FORMAT` | `text`, `json` | `json` | Log format |
-| `LOG_FILE` | Path to file | (unset = console only) | Where to write logs |
+---
 
-## Log Formats
+## How It Works
 
-### Text Format (Recommended for Humans)
+The logging system now has **smart auto-discovery**:
+
+### Log File Priority (In Order)
+
+1. **Explicit Parameter** - If you pass a logFile to Logger constructor
+2. **Environment Variable** - If `LOG_FILE` environment variable is set
+3. **Project Directory** - Tries to create `dominion-game-session.log` in current directory
+4. **Temp Directory** - Falls back to `/tmp/dominion-game-session.log` if project dir isn't writable
+5. **Console Only** - If all file locations fail, logs still appear on console
+
+### Features
+
+✅ **Zero Configuration** - Works out of the box
+✅ **Auto-Discovery** - Finds the best location automatically
+✅ **Transparent** - Shows you where logs are written on startup
+✅ **Graceful Fallback** - Still works even if file writing fails
+✅ **Always-On** - Logging happens without any setup needed
+
+---
+
+## Viewing Logs
+
+### Real-Time Monitoring
+
+Watch logs as the game progresses:
+
+```bash
+tail -f ./dominion-game-session.log
+```
+
+Or in another common location:
+
+```bash
+tail -f /tmp/dominion-game-session.log
+```
+
+### View Entire Session
+
+```bash
+cat ./dominion-game-session.log
+```
+
+### Search for Specific Events
+
+Find all Province purchases:
+```bash
+grep "buy.*Province" ./dominion-game-session.log
+```
+
+Find all phase changes:
+```bash
+grep "Phase:" ./dominion-game-session.log
+```
+
+Find all errors:
+```bash
+grep "\[ERROR\]" ./dominion-game-session.log
+```
+
+Count total moves:
+```bash
+grep "executed move" ./dominion-game-session.log | wc -l
+```
+
+---
+
+## Log Format
+
+### Default Format (Text)
 
 ```
 [════════════════════════════════════════════════════════════]
-[Game Session Log Started: 2025-10-23T10:45:55.301Z]
+[Game Session Log Started: 2025-10-23T10:46:00.000Z]
+[Log File: /Users/you/project/dominion-game-session.log]
 [════════════════════════════════════════════════════════════]
 
-[2025-10-23T10:45:55.303Z] [INFO] Game started {"players":1,"seed":"12345"}
-[2025-10-23T10:45:55.308Z] [INFO] Player took turn {"turn":1,"phase":"action"}
-[2025-10-23T10:45:55.309Z] [WARN] Low supply {"card":"Province","remaining":2}
-[2025-10-23T10:45:55.309Z] [INFO] Game ended {"winner":"Player 1","score":42}
+[2025-10-23T10:46:00.100Z] [INFO] Game started {"players":1,"seed":"12345"}
+[2025-10-23T10:46:00.200Z] [INFO] Turn 1, Phase: action
+[2025-10-23T10:46:00.300Z] [INFO] Player executed move: play 0
+[2025-10-23T10:46:00.400Z] [INFO] Phase changed: action → buy
+...
+[2025-10-23T11:00:00.000Z] [INFO] Game ended. Winner: Claude (42 VP)
 ```
 
-### JSON Format (Recommended for Analysis)
+### JSON Format (Optional)
 
+For programmatic analysis, you can use JSON format by setting environment variable:
+
+```bash
+export LOG_FORMAT=json
+npm run build
+```
+
+Each line will be valid JSON:
 ```json
-{"timestamp":"2025-10-23T10:45:55.303Z","level":"info","message":"Game started","data":{"players":1,"seed":"12345"}}
-{"timestamp":"2025-10-23T10:45:55.308Z","level":"info","message":"Player took turn","data":{"turn":1,"phase":"action"}}
-{"timestamp":"2025-10-23T10:45:55.309Z","level":"warn","message":"Low supply","data":{"card":"Province","remaining":2}}
+{"timestamp":"2025-10-23T10:46:00.100Z","level":"info","message":"Game started","data":{"players":1}}
+{"timestamp":"2025-10-23T10:46:00.200Z","level":"info","message":"Turn 1, Phase: action"}
 ```
+
+---
 
 ## What Gets Logged
 
-The logger captures:
+The logger captures all important game events:
 
 1. **Game Lifecycle**
    - Game started
@@ -111,214 +165,230 @@ The logger captures:
 3. **Game State**
    - Current turn
    - Current phase
-   - Supply pile status
    - Hand contents
+   - Valid moves
 
 4. **Warnings and Errors**
    - Invalid moves
    - Insufficient resources
    - Game rule violations
 
-## Analyzing Logs
-
-### Search for Specific Events
-
-Find all Province purchases:
-```bash
-grep "buy.*Province" ./game-session.log
-```
-
-Find all phase changes:
-```bash
-grep "phase.*buy\|phase.*action\|phase.*cleanup" ./game-session.log
-```
-
-Find all errors:
-```bash
-grep "\[ERROR\]" ./game-session.log
-```
-
-### Extract Turn Sequence
-
-See the exact sequence of moves:
-```bash
-grep "executed\|play\|buy" ./game-session.log
-```
-
-### Get Game Statistics
-
-Find final game state:
-```bash
-grep "Game ended\|winner\|score" ./game-session.log
-```
-
-## Multiple Games
-
-Each game creates a new log entry in the same file. To separate games, use unique filenames:
-
-**For manual separation:**
-```bash
-export LOG_FILE="./games/game-$(date +%s).log"
-```
-
-**Or in `.mcp.json`, use a template:**
-```json
-{
-  "env": {
-    "LOG_FILE": "./logs/dominion-$(date +%Y-%m-%d).log"
-  }
-}
-```
+---
 
 ## Log Levels
 
+The system supports different verbosity levels. Default is `INFO`:
+
 ### INFO (Default)
-Logs all important game events. Good for gameplay analysis.
 
-```
-export LOG_LEVEL=INFO
+Logs all important game events:
+
+```bash
+# Just logs to console normally
+tail -f ./dominion-game-session.log
 ```
 
-Output:
+Output includes:
 ```
-[2025-10-23T10:45:55.303Z] [INFO] Game started
-[2025-10-23T10:45:55.308Z] [INFO] Player executed move
+[2025-10-23T10:46:00.100Z] [INFO] Game started
+[2025-10-23T10:46:00.200Z] [INFO] Player executed move
 ```
 
 ### DEBUG
-Logs everything including internal operations. Use for troubleshooting.
 
-```
+More verbose logging for troubleshooting. Set environment variable:
+
+```bash
 export LOG_LEVEL=DEBUG
+npm run build
 ```
 
 Output includes all above PLUS:
 ```
-[2025-10-23T10:45:55.299Z] [DEBUG] Initializing game engine
-[2025-10-23T10:45:55.300Z] [DEBUG] Loading card definitions
+[2025-10-23T10:46:00.050Z] [DEBUG] Initializing game engine
+[2025-10-23T10:46:00.075Z] [DEBUG] Loading card definitions
 ```
 
 ### WARN
-Logs only warnings and errors. Use for quick issue spotting.
 
-```
+Only warnings and errors:
+
+```bash
 export LOG_LEVEL=WARN
+npm run build
 ```
 
 Output:
 ```
-[2025-10-23T10:45:55.309Z] [WARN] Low supply
-[2025-10-23T10:45:55.400Z] [ERROR] Invalid move attempted
+[2025-10-23T10:46:00.300Z] [WARN] Low supply
+[2025-10-23T10:46:00.400Z] [ERROR] Invalid move attempted
 ```
+
+---
+
+## Where Logs Are Written
+
+The logging system will create logs in this order of preference:
+
+1. **Current Working Directory**
+   ```
+   ./dominion-game-session.log
+   ```
+   (Most common - works in project root)
+
+2. **Temporary Directory** (Fallback)
+   ```
+   /tmp/dominion-game-session.log        # Linux/Mac
+   %TEMP%/dominion-game-session.log      # Windows
+   ```
+
+3. **Explicit Path** (If you set it)
+   ```bash
+   export LOG_FILE="/var/log/dominion.log"
+   npm run build
+   ```
+
+The first successful location is used. The logger prints where logs are going:
+
+```
+✓ Logging initialized to: /Users/you/project/dominion-game-session.log
+```
+
+---
 
 ## Troubleshooting
 
-### Logs Not Appearing
+### I Don't See Logs
 
-**Problem**: I set LOG_FILE but no logs appear.
+**Check where they're being written:**
 
-**Solution**:
-1. Verify `npm run build` was run after updating `.mcp.json`
-2. Check that the directory exists: `mkdir -p $(dirname ./game-session.log)`
-3. Verify file permissions: `touch ./game-session.log` (should succeed)
-4. Check that Claude Code is running the latest build
+Look for this message when the server starts:
+```
+✓ Logging initialized to: [PATH]
+```
+
+Then check that file:
+```bash
+cat /Users/you/project/dominion-game-session.log
+tail -f /tmp/dominion-game-session.log
+```
+
+### Logs Are In Unexpected Location
+
+The logger prefers the project directory but falls back to `/tmp` if needed:
+
+```bash
+# Check temp directory
+ls -la /tmp/dominion-game-session.log
+
+# Or find all logs
+find ~ -name "dominion-game-session.log" 2>/dev/null
+```
 
 ### File Gets Too Large
 
-**Problem**: Log file is growing too large.
+Logs accumulate over time. Clean up old logs:
 
-**Solution**:
-1. Rotate logs by game: `LOG_FILE="./logs/game-$(date +%s).log"`
-2. Archive old logs: `gzip ./game-session.log.1`
-3. Delete old logs: `find ./logs -mtime +7 -delete` (keep 7 days)
+```bash
+# Archive old logs
+gzip ./dominion-game-session.log
+
+# Or delete
+rm ./dominion-game-session.log
+```
+
+New games will start a fresh log file.
 
 ### Permission Denied
 
-**Problem**: Cannot write to log file.
+If you get permission errors:
 
-**Solution**:
 ```bash
 # Check permissions
-ls -la ./game-session.log
+ls -la ./dominion-game-session.log
 
-# Fix permissions
-chmod 666 ./game-session.log
-
-# Or use a different directory
-export LOG_FILE="/tmp/game-session.log"
+# Make world-writable
+chmod 666 ./dominion-game-session.log
 ```
 
-## Example: Complete Game with Logging
+---
 
-### Setup
+## Examples
+
+### Example 1: Play Game and Monitor Logs
+
+Terminal 1:
+```bash
+cd /Users/you/project/principality_ai
+npm run build
+# (keep this running or Claude Code will handle it)
+```
+
+Terminal 2:
+```bash
+tail -f dominion-game-session.log
+```
+
+Terminal 3 (Claude Code):
+```
+You: "Help me play Dominion!"
+Claude: (plays game)
+```
+
+You'll see logs flowing in Terminal 2 as the game progresses!
+
+### Example 2: Analyze a Completed Game
+
+After a game finishes:
 
 ```bash
-# 1. Update .mcp.json with LOG_FILE setting (see above)
-# 2. Build
+# View entire log
+cat dominion-game-session.log
+
+# Extract just the moves
+grep "executed move" dominion-game-session.log
+
+# Count turns
+grep -c "Turn [0-9]*" dominion-game-session.log
+
+# See final winner
+tail -1 dominion-game-session.log
+```
+
+### Example 3: Use JSON Format for Parsing
+
+```bash
+# Start with JSON format
+export LOG_FORMAT=json
 npm run build
 
-# 3. Monitor logs in another terminal
-tail -f ./game-session.log
+# Play a game...
+
+# Then parse with jq (if you have it)
+cat dominion-game-session.log | jq '.message'
 ```
 
-### Play Game
+---
 
-```
-# In Claude Code / chat
-You: "Let's play Dominion! I want to see detailed logs of the game."
+## Performance
 
-Claude will:
-1. Use game_session(command="new") → Logged: "Game started"
-2. Use game_observe(detail_level="standard") → Logs game state
-3. Use game_execute(move="play 0") → Logs: "Player executed move"
-4. ... continue for each turn ...
-5. Use game_session(command="end") → Logs: "Game ended"
-```
+Logging has minimal performance impact:
 
-### Monitor Logs
+- ✅ File writes are **synchronous but fast** (< 1ms per entry)
+- ✅ Typical game: 50-200 log entries (~10KB)
+- ✅ No measurable impact on game performance
+- ✅ Disk I/O is the only limiting factor
 
-In your second terminal, you see in real-time:
-```
-[2025-10-23T10:46:00.000Z] [INFO] Game started
-[2025-10-23T10:46:00.100Z] [INFO] Turn 1, Phase: action
-[2025-10-23T10:46:00.200Z] [INFO] Player executed move: play 0 (Village)
-[2025-10-23T10:46:00.300Z] [INFO] Phase changed: action → buy
-...
-[2025-10-23T11:00:00.000Z] [INFO] Game ended. Winner: Claude (42 VP)
-```
-
-### Analyze Results
-
-```bash
-# See all purchases
-grep "buy" ./game-session.log
-
-# See all Province purchases
-grep "buy.*Province" ./game-session.log
-
-# Count moves per turn
-grep "executed move" ./game-session.log | wc -l
-
-# Extract final score
-grep "Winner" ./game-session.log
-```
-
-## Performance Impact
-
-- File writing is **asynchronous and non-blocking**
-- Each log entry appends ~100-500 bytes to disk
-- Typical game generates 50-200 log entries (~10KB)
-- No measurable impact on game performance
-- Disk I/O is the limiting factor (not CPU)
+---
 
 ## Next Steps
 
-Now that logging is enabled, you can:
+Now that logging is working:
 
-1. **Play games and capture logs** for analysis
+1. **Play games and capture logs** for later analysis
 2. **Compare different strategies** by looking at move sequences
-3. **Debug AI decision-making** by reviewing game progression
+3. **Debug decision-making** by reviewing what the AI did
 4. **Identify patterns** in successful vs. failed games
-5. **Export data** to spreadsheet/analysis tools (especially JSON format)
+5. **Export to spreadsheet** (especially with JSON format)
 
 Enjoy your logged gameplay! 🎮📊
