@@ -45,10 +45,30 @@ The "action" resource is crucial for playing multiple powerful cards.
 
 ## Command Reference
 
-### Play Command
+### Play Command - Multiple Syntaxes
+
+**Syntax Option 1: By Index (Auto-Detects Card Type)**
 - **Syntax**: `play 0` (where 0 is the index of the card in your hand)
-- **Usage**: Used in Action phase to play action cards
-- **Example**: If your hand shows "0: Village, 1: Smithy", then "play 0" plays Village
+- **Usage**: Works in any phase - automatically determines if card is action or treasure
+- **Example**:
+  - If your hand shows "[0] Village (action), [1] Copper (treasure)"
+  - `play 0` in action phase → plays action card
+  - `play 1` in buy phase → plays treasure card automatically
+- **Benefit**: Single command works everywhere; system detects card type
+
+**Syntax Option 2: Explicit Action Card**
+- **Syntax**: `play_action CardName` (explicit for action cards)
+- **Usage**: Clearer intent, explicitly plays an action card by name
+- **Example**: `play_action Village` plays the Village card from your hand
+- **Valid in**: Action phase only
+
+**Syntax Option 3: Explicit Treasure Card**
+- **Syntax**: `play_treasure CardName` (explicit for treasure cards)
+- **Usage**: Plays a treasure to generate coins
+- **Example**: `play_treasure Copper` generates 1 coin
+- **Valid in**: Buy phase only
+
+**Recommendation**: Use `play 0` for simplicity. System auto-detects the card type and handles it correctly.
 
 ### Buy Command
 - **Syntax**: `buy CardName` (card name must match exactly)
@@ -109,25 +129,37 @@ The supply displays available cards to buy. Each card type has a pile with a lim
 
 ## Common Mistakes & Recovery
 
-### Mistake 1: Trying to play in wrong phase
-- **Error**: You try "play 0" in Buy phase
-- **Recovery**: Immediately say "I should be playing treasures instead. Let me end this action phase first."
-- **Fix**: Use "end" to move to Buy phase
+### Mistake 1: Index-based plays using wrong syntax
+- **Error**: You try "play 0" but it doesn't work or returns wrong result
+- **Recovery**: Verify you're using just `play 0` (index), not the card name
+- **Fix**: The system automatically detects if card at index 0 is action or treasure
+- **Why it happened**: Old parser couldn't auto-detect card type; new parser can
 
-### Mistake 2: Playing treasures in Action phase
-- **Error**: "play Silver" when silver is in your hand
+### Mistake 2: Trying to play in wrong phase
+- **Error**: You try action card commands when in Buy phase
+- **Recovery**: Immediately say "I should be playing treasures first. Let me do that."
+- **Fix**: Use "play_treasure CardName" or "play N" to play treasures first
+
+### Mistake 3: Playing treasures in Action phase
+- **Error**: "play_treasure Copper" when you're in action phase
 - **Recovery**: Remember treasures go in Buy phase, not Action
-- **Fix**: End the action phase and play treasures in Buy phase
+- **Fix**: End the action phase first ("end"), then play treasures in Buy phase
 
-### Mistake 3: Wrong card names
+### Mistake 4: Wrong card names
 - **Error**: "buy Silvers" (plural) or "buy silver" (lowercase)
 - **Recovery**: Check exact card name - "buy Silver" (exact name, title case)
 - **Fix**: Use correct capitalization
 
-### Mistake 4: Insufficient coins
+### Mistake 5: Insufficient coins
 - **Error**: "buy Province" when you only have 5 coins (need 8)
 - **Recovery**: Count played treasures again or choose cheaper card
 - **Fix**: Buy what you can afford (e.g., "buy Silver" for 3 coins)
+
+### Mistake 6: Forgetting treasures need to be PLAYED
+- **Error**: You think "I have 2 Copper in hand, so I have 2 coins" without playing them
+- **Recovery**: In Buy phase, you must explicitly play treasures first to generate coins
+- **Fix**: Before buying, play all treasures: `play 0`, `play 1`, `play 2`, etc.
+- **Why it's easy to miss**: Unlike some games, coins don't generate automatically
 
 ## Decision Framework
 
