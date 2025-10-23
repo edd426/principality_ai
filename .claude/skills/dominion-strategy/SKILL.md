@@ -47,23 +47,23 @@ Treasures compound exponentially. Province scarcity drives VP urgency.
 
 ## Card Evaluation Matrix
 
-### Treasures (Always)
-- **Copper** (0 cost, +1 coin): Buy early
-- **Silver** (3 cost, +2 coins): Priority upgrade
-- **Gold** (6 cost, +3 coins): Second upgrade
+### Treasures (Always Priority)
+- **Copper** (0 cost, +1 coin): Buy early only if you have 7-9 coins and no better option
+- **Silver** (3 cost, +2 coins): **PRIMARY EARLY BUY** - Best ROI in early game
+- **Gold** (6 cost, +3 coins): Second upgrade after Silvers
 
-### Victory (Late Game)
-- **Estate** (2 cost, 1 VP): Only when low coins
-- **Duchy** (5 cost, 3 VP): When Province unavailable
+### Victory (Late Game Only)
+- **Estate** (2 cost, 1 VP): Only when low coins in late game
+- **Duchy** (5 cost, 3 VP): When Province unavailable in late game
 - **Province** (8 cost, 6 VP): Primary late-game buy
 
-### Action Cards (Conditional)
-- **Village** (3 cost): +1 card, +2 actions → Good if Smithy exists
-- **Smithy** (4 cost): +3 cards → Good if Village exists
-- **Market** (5 cost): +1 card, +1 action, +1 buy, +1 coin → Utility
-- **Woodcutter** (3 cost): +1 buy, +1 coin → Extra buy useful
-- **Workshop** (3 cost): Gains cards → Decent economy boost
-- **Cellar** (2 cost): +1 action → Utility
+### Action Cards (Usually Skip)
+- **Village** (3 cost): +1 card, +2 actions → **AVOID EARLY** - only useful with Smithy
+- **Smithy** (4 cost): +3 cards → Conditional, needs action cards to synergize
+- **Market** (5 cost): +1 card, +1 action, +1 buy, +1 coin → Rare good option
+- **Woodcutter** (3 cost): +1 buy, +1 coin → Situationally useful for +buy
+- **Workshop** (3 cost): Gains cards → Conditional, depends on setup
+- **Cellar** (2 cost): +1 action → Usually skip
 - **Remodel** (4 cost): Complex sifting → Skip for simplicity
 - **Militia** (4 cost): Attack card → Skip in solo play
 - **Throne Room** (4 cost): Complex card → Skip for simplicity
@@ -104,11 +104,29 @@ Woodcutter: Extra buy is powerful mid-game
 
 ## Early Game Buildup Turns
 
-**Turns 1-3**: Build Copper foundation (7→8)
-**Turns 4-6**: Silver transition (2 Silvers, ~10 coins/turn)
+**Turn 1-3 (CRITICAL)**: Buy Silver first!
+- Starting hand: 7 Copper + 3 Estate = 7 coins
+- Buy: Silver (costs 3)
+- Why: Silver immediately becomes part of your deck, giving +2 coins every turn
+- DON'T: Skip Silver to buy action cards (Village is a TRAP at this point)
+
+**Turns 4-6**: Silver transition (2 Silvers total, ~10 coins/turn)
+- Buy another Silver with your improved coins
+- You now have 2 Silvers + starting Coppers = consistent 10+ coins/turn
+
 **Turns 7-10**: Gold introduction (2-3 Golds, ~15 coins/turn)
+- Your economy is strong; now add Golds for more coin generation
+- After this phase, you'll have 15+ coins per turn
+
 **Turns 11-15**: VP introduction (Provinces when 8+ coins available)
+- Continue buying Golds if still below 15 coins per turn
+- Start buying Provinces once you reliably have 8+ coins
+
 **Turns 16+**: VP focus (Province every turn)
+- Economy is maxed; focus entirely on VP
+- Buy Province when you have 8+ coins
+- Buy Duchy when Province unavailable
+- Buy Estate when low coins
 
 ## Endgame Recognition and Adaptation
 
@@ -135,11 +153,16 @@ Game ends when Province pile empty OR any 3 piles empty.
 
 ## Common Mistakes
 
-1. Buying VP too early (dilutes deck)
-2. Not buying enough treasures (growth stalls)
-3. Overcomplicating (Big Money simple wins)
-4. Ignoring supply scarcity (game ends at 3 empty)
-5. Buying wrong action cards (most aren't worth it)
+1. **Buying action cards in early game** (Village first = TRAP)
+   - With only 4-7 Copper, Village provides +2 actions but nothing to play
+   - Silver is always better first (immediate +2 coins/turn forever)
+   - Action cards only good when you have synergies to enable
+
+2. Buying VP too early (dilutes deck)
+3. Not buying enough treasures (growth stalls)
+4. Overcomplicating (Big Money simple wins)
+5. Ignoring supply scarcity (game ends at 3 empty)
+6. Buying wrong action cards (most aren't worth it)
 
 ## Detailed Phase Strategy
 
