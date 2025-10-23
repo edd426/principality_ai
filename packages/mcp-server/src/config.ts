@@ -16,7 +16,7 @@ export interface MCPServerConfig {
 export const DEFAULT_CONFIG: MCPServerConfig = {
   name: 'principality-mcp-server',
   version: '2.0.0',
-  logLevel: (process.env.LOG_LEVEL as any) || 'info',
+  logLevel: (process.env.LOG_LEVEL as any) || 'debug',
   logFormat: (process.env.LOG_FORMAT as any) || 'json',
   logFile: process.env.LOG_FILE,
   defaultModel: (process.env.DEFAULT_MODEL as any) || 'haiku',
