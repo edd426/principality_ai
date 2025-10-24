@@ -4,8 +4,8 @@ A solo-first Dominion-inspired deck-building game designed for streamlined gamep
 
 ## Project Status
 
-**Current Phase**: Phase 1.5 Complete (CLI UX Enhancements)
-**Next Phase**: Phase 2 (MCP Integration)
+**Current Phase**: Phase 2.1 (AI Gameplay Enhancement)
+**Status**: Active development
 
 ### Completed
 - ✅ **Phase 1**: Core game engine with immutable state pattern
@@ -46,6 +46,9 @@ npm run test:coverage
 
 # Run tests in watch mode
 cd packages/core && npm run test:watch
+
+# For E2E testing with Claude API
+# See: docs/testing/E2E_TESTING_GUIDE.md
 ```
 
 ### Playing the Game

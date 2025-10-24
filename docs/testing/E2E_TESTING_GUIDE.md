@@ -1,5 +1,13 @@
 # E2E Testing with Claude API Integration
 
+**Status**: ACTIVE
+**Created**: 2025-10-22
+**Last-Updated**: 2025-10-24
+**Owner**: requirements-architect
+**Phase**: 2.1
+
+---
+
 ## Overview
 
 Real E2E tests for the Principality AI MCP Server that validate Claude API integration with MCP tools. These tests call the actual Claude API and verify that Claude can:

@@ -1,5 +1,13 @@
 # Interactive Dominion Gameplay with Claude Code & MCP Server
 
+**Status**: ACTIVE
+**Created**: 2025-10-22
+**Last-Updated**: 2025-10-24
+**Owner**: requirements-architect
+**Phase**: 2.1
+
+---
+
 **Quick Start**: Play Dominion with Haiku through Claude Code, controlling the pace and seeing Claude's reasoning at each step.
 
 ---
