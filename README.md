@@ -1,5 +1,13 @@
 # Principality AI
 
+**Status**: ACTIVE
+**Created**: 2025-09-14
+**Last-Updated**: 2025-10-24
+**Owner**: requirements-architect
+**Phase**: 2.1
+
+---
+
 A solo-first Dominion-inspired deck-building game designed for streamlined gameplay and AI integration through Model Context Protocol (MCP).
 
 ## Project Status
