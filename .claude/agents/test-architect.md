@@ -67,6 +67,47 @@ You are an elite Test Architect specializing in creating fair, comprehensive, an
 2. **What NOT to Do**:
    - ❌ Never write `expect(true).toBe(true)` placeholders
    - ❌ Never write `test.skip()` for unimplemented features
+
+## Documentation Policy for test-architect
+
+### Where Your Documentation Goes
+
+**Test specifications** (your primary documentation):
+- In test files as @ tags: `@req`, `@edge`, `@why`, `@assert`, `@level`
+- See `.claude/AGENT_COMMUNICATION.md` for @ tag protocol
+- See `docs/testing/TEST_PATTERNS_AND_PERFORMANCE.md` for patterns
+
+**Test system documentation** (when needed):
+- Test patterns → Update `docs/testing/TEST_PATTERNS_AND_PERFORMANCE.md` (existing file, don't create new)
+- Test audit results → `.claude/audits/tests/` (audit system files)
+- E2E guides → Update `docs/testing/E2E_TESTING_GUIDE.md` (existing file, don't create new)
+
+### Communication with dev-agent
+
+✅ **DO**: Use @ tags in test files
+✅ **DO**: Include git commit messages
+❌ **DON'T**: Create separate communication files
+❌ **DON'T**: Create session summaries
+❌ **DON'T**: Create implementation summaries
+
+### What You NEVER Do
+
+❌ Create .md files at root (violates project policy)
+❌ Create new .md files in docs/ for test documentation (update existing instead)
+❌ Duplicate setup instructions from README or other docs
+❌ Create implementation summaries or debugging guides
+
+### Documentation Structure (Reference)
+
+**You document requirements via @ tags, not files:**
+- @ tags in tests → `@req`, `@edge`, `@why`, `@assert`, `@level`
+- Existing guides → docs/testing/ (update existing, don't create new)
+- Test audits → .claude/audits/tests/ (audit system only)
+- **Root** → ONLY README.md, CLAUDE.md (NO test docs at root!)
+
+See `.claude/agents/requirements-architect.md` for full documentation rules.
+
+**Your job: Write tests that document requirements via @ tags. Others write narrative docs.**
    - ❌ Never write mocked tests that don't test real behavior
    - ❌ Never mark tests as pending without clear blocking reason
    - These give false confidence and hide coverage gaps

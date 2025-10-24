@@ -199,16 +199,50 @@ See [API.md](./docs/reference/API.md) for detailed API reference.
 
 ## Documentation Guidelines for Agents
 
-⚠️ **CRITICAL**: Before creating or modifying ANY .md file, follow these rules:
+⚠️ **CRITICAL ENFORCEMENT**: Root directory accepts ONLY these files:
+- `README.md` (project overview)
+- `CLAUDE.md` (developer instructions)
+- `CONTRIBUTING.md` (optional, if exists)
+
+**ANY other .md file at root violates project policy** and will be flagged for reorganization. See audit results: `.claude/audits/documentation/AUDIT_SUMMARY.md`
 
 ### Before Creating New Files
 1. **Check for existing files first**: Search docs/, .claude/, and root for similar content
 2. **Consult the system**: Read [docs/DOCUMENTATION_SYSTEM.md](./docs/DOCUMENTATION_SYSTEM.md) for structure
-3. **Use correct location**:
+3. **Verify root policy**: Will this violate the "max 3 files at root" rule?
+4. **Use correct location**:
    - Permanent docs → `docs/` (reference, guides, requirements)
    - Session notes → `.claude/sessions/{date}/`
    - Agent communication → **In code/tests via @ tags** (see `.claude/AGENT_COMMUNICATION.md`)
    - Root → **ONLY** README.md, CLAUDE.md, CONTRIBUTING.md
+
+### Correct File Placement (Examples from Recent Audit Fix)
+
+✅ **GOOD** - Correct locations:
+- E2E testing guide → `docs/testing/E2E_TESTING_GUIDE.md`
+- Quick start for tests → `docs/testing/E2E_TESTING_QUICK_START.md`
+- Session implementation notes → `.claude/sessions/YYYY-MM-DD/e2e-implementation-summary.md`
+- Interactive gameplay guide → `docs/reference/INTERACTIVE_GAMEPLAY_SETUP.md`
+- Session debugging notes → `.claude/sessions/YYYY-MM-DD/mcp-gameplay-debugging.md`
+
+❌ **BAD** - Violations (now fixed):
+- E2E_TESTING_GUIDE.md at root
+- QUICK_START.md at root
+- IMPLEMENTATION_SUMMARY.md at root
+- MCP_GAMEPLAY_DEBUGGING.md at root
+
+### Preventing Content Redundancy
+
+⚠️ **DUPLICATION CHECK** before creating setup/installation instructions:
+
+**Single source of truth for:**
+- Game installation → `README.md` (keep minimal)
+- Development setup → `docs/reference/DEVELOPMENT_GUIDE.md`
+- E2E testing setup → `docs/testing/E2E_TESTING_GUIDE.md`
+
+**Rule**: If setup instructions exist, LINK to them. Do NOT copy-paste across files.
+
+See `.claude/audits/documentation/AUDIT_SUMMARY.md` for redundancy analysis.
 
 ### File Size Limits
 - Root .md files: **< 400 lines**
@@ -230,9 +264,19 @@ Every new .md file must start with:
 - **Create new** only if genuinely new topic or existing file would exceed limit
 - **Split file** if updating would exceed size limit
 
-### Enforcement
-- Root directory accepts ONLY: README.md, CLAUDE.md, CONTRIBUTING.md
-- Any other .md file at root will be flagged for reorganization
+### Documentation Quality Standards
+
+See `.claude/audits/documentation/` for authoritative framework and audit results:
+- `DOC_QUALITY_BEST_PRACTICES.md` - Industry-standard framework (5 quality dimensions)
+- `AUDIT_SUMMARY.md` - Quick reference with anti-patterns
+- `2025-10-24-doc-quality-audit.md` - Detailed audit of project documentation
+
+**Key anti-patterns to avoid:**
+1. ❌ **Root directory clutter** - Max 3 files only
+2. ❌ **Content duplication** - Single source of truth required
+3. ❌ **Missing metadata** - All docs need Status, Created, Last-Updated, Owner, Phase
+4. ❌ **Backup folders** - Don't leave backup directories in active repo
+5. ❌ **Unclear file purposes** - Use clear names and proper locations
 
 ### Agent Communication System
 - test-architect and dev-agent communicate via **@ tags in code/tests**
