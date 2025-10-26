@@ -555,17 +555,19 @@ Total Score = (Accuracy × 25) + (Currency × 25) + (Clarity × 20) +
 
 ## References
 
-**Authoritative Sources** (Verified 2025-10-24):
+**Authoritative Sources** (Verified 2025-10-24, Full text saved 2025-10-26):
 
 1. **Google Developer Documentation Style Guide**
    - URL: https://developers.google.com/style
    - Accessed: 2025-10-24
    - Content: Documentation quality standards, clarity, consistency
+   - **Full Source**: `.claude/audits/source-documents/documentation/google-style-guide.md`
 
 2. **Google Documentation Best Practices**
    - URL: https://google.github.io/styleguide/docguide/best_practices.html
    - Accessed: 2025-10-24
    - Content: Duplication, minimum viable docs, update practices
+   - **Full Source**: `.claude/audits/source-documents/documentation/google-best-practices.md`
 
 3. **Detecting Outdated Documentation Research**
    - Source: Empirical Software Engineering (Springer)
@@ -581,9 +583,27 @@ Total Score = (Accuracy × 25) + (Currency × 25) + (Clarity × 20) +
 
 ---
 
-**Version**: 1.0
+## Appendix: Ground-Truth Source Documents
+
+All principles in this framework derive from authoritative sources. Full article text is saved in `.claude/audits/source-documents/` for verification and detailed reference.
+
+**Documentation Sources:**
+- `documentation/google-style-guide.md` - Complete Google Developer Documentation Style Guide
+- `documentation/google-best-practices.md` - Complete Google Documentation Best Practices
+
+See source documents for:
+- Complete context and original phrasing
+- Additional examples and guidelines
+- Detailed explanations not summarized here
+- Verification of framework interpretations
+
+**Use Case:** When auditing documentation or questioning framework principles, consult the full source documents to verify accuracy and find additional context.
+
+---
+
+**Version**: 1.1 (Added ground-truth sources)
 **Created**: 2025-10-24
-**Last Updated**: 2025-10-24
+**Last Updated**: 2025-10-26
 **Maintainer**: Requirements Architect
 **Next Review**: End of Phase 2
 

@@ -487,3 +487,31 @@ Action Items:
 5. **Create report** with findings and remediation priorities
 
 See `tests/2025-10-23-test-audit.md` for example audit report format.
+
+---
+
+## Appendix: Ground-Truth Source Documents
+
+All testing principles in this checklist derive from authoritative sources. Full article text is saved in `.claude/audits/` for verification and detailed reference.
+
+**Testing Sources:**
+- `best-practices/google-unit-testing-principles.md` - Complete chapter from "Software Engineering at Google"
+- `best-practices/software-testing-antipatterns.md` - Complete anti-patterns catalog by Kostis Kapelonis
+- `best-practices/anthropic-skills-guide.md` - Anthropic Skills authoring best practices
+
+See source documents for:
+- Complete context and original phrasing
+- Additional examples and guidelines
+- Detailed explanations not summarized here
+- Verification of checklist criteria
+
+**Use Case:** When conducting test audits or questioning checklist criteria, consult the full source documents to verify accuracy and find additional context.
+
+---
+
+**Version**: 1.1 (Added ground-truth sources)
+**Last Updated**: 2025-10-26
+**Based On**:
+- Google's Unit Testing Principles (Software Engineering at Google, Chapter 12)
+- Software Testing Anti-patterns (Kapelonis)
+- Full sources saved in `.claude/audits/best-practices/`

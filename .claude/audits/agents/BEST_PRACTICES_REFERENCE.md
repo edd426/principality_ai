@@ -453,14 +453,16 @@ Total Score = Sum of all dimensions (0-100)
 
 ## References
 
-**Official Anthropic Documentation** (Verified 2025-10-24):
+**Official Anthropic Documentation** (Verified 2025-10-24, Full text saved 2025-10-26):
 - Claude Code Best Practices: https://www.anthropic.com/engineering/claude-code-best-practices
   - Accessed: 2025-10-24
   - Content: Claude Code setup, workflows, multi-Claude patterns, headless mode
+  - **Full Source**: `.claude/audits/source-documents/agents/claude-code-best-practices.md`
 
 - Subagents Guide: https://docs.claude.com/en/docs/claude-code/sub-agents
   - Accessed: 2025-10-24
   - Content: When to use subagents, design principles, tool access, best practices
+  - **Full Source**: `.claude/audits/source-documents/agents/subagents-guide.md`
 
 - Building Agents with Claude Agent SDK: https://www.anthropic.com/engineering/building-agents-with-the-claude-agent-sdk
   - Accessed: 2025-10-24 (referenced in sources)
@@ -485,9 +487,32 @@ Total Score = Sum of all dimensions (0-100)
 
 ---
 
+## Appendix: Ground-Truth Source Documents
+
+All principles in this framework derive from authoritative sources. Full article text is saved in `.claude/audits/source-documents/` for verification and detailed reference.
+
+**Agent Sources:**
+- `agents/claude-code-best-practices.md` - Complete Anthropic Claude Code best practices article
+- `agents/subagents-guide.md` - Complete Anthropic subagents documentation
+
+**Testing Sources** (related best practices):
+- `../best-practices/google-unit-testing-principles.md` - Google's unit testing chapter
+- `../best-practices/software-testing-antipatterns.md` - Software testing anti-patterns catalog
+- `../best-practices/anthropic-skills-guide.md` - Anthropic Skills authoring guide
+
+See source documents for:
+- Complete context and original phrasing
+- Additional examples and guidelines
+- Detailed explanations not summarized here
+- Verification of framework interpretations
+
+**Use Case:** When auditing agent configurations or questioning framework principles, consult the full source documents to verify accuracy and find additional context.
+
+---
+
 **Citation Style**: APA with URL + Access Date
-**Version**: 1.0 (Updated with full citations)
-**Last Reviewed**: 2025-10-24
+**Version**: 1.1 (Added ground-truth sources)
+**Last Reviewed**: 2025-10-26
 **Maintainer**: Requirements Architect
 
-**Note on Sources**: All Anthropic documentation sources were directly accessed and verified. Industry standard sources represent consensus from multiple authoritative publications on agent design patterns.
+**Note on Sources**: All Anthropic documentation sources were directly accessed and verified. Full text saved for ground-truth verification. Industry standard sources represent consensus from multiple authoritative publications on agent design patterns.
