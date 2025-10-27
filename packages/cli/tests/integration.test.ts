@@ -3,6 +3,10 @@
  * Validates end-to-end functionality and ensures CLI correctly uses core engine
  */
 
+// @req: UTIL-CLI-INTEGRATION - CLI and Core Engine integration testing
+// @edge: End-to-end CLI→Core flow; parser→engine→display chain; state consistency
+// @why: Ensures CLI properly delegates game logic to core engine with correct state management
+
 import { PrincipalityCLI } from '../src/cli';
 import { Display } from '../src/display';
 import { Parser } from '../src/parser';

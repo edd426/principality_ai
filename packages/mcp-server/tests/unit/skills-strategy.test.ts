@@ -19,6 +19,10 @@
  * @req: FR2.1-2.4 (Feature 2 functional requirements)
  */
 
+// @req: R2.1-02 - Dominion strategy skill with Big Money and card evaluation
+// @edge: Strategy evaluation matrix for all 15 cards; early/mid/late game phases; baseline strategy verified
+// @why: AI agents use strategy guidance for optimal purchase decisions and board control
+
 import fs from 'fs';
 import path from 'path';
 

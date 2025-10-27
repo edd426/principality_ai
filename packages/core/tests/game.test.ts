@@ -1,6 +1,10 @@
 import { GameEngine } from '../src/game';
 import { GameState, Move } from '../src/types';
 
+// @req: UTIL-CORE-GAME - Core GameEngine functionality testing
+// @edge: Game initialization; move execution; state validity; game end conditions
+// @why: Foundation for all game logic; ensures state transitions and rules are correct
+
 describe('GameEngine', () => {
   let engine: GameEngine;
 

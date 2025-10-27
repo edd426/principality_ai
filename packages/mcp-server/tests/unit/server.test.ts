@@ -18,6 +18,11 @@
  * @level Unit
  */
 
+// @req: R2.0-01 - MCP server infrastructure with 3 core tools
+// @req: R2.0-11 - Stdio transport support for server communication
+// @edge: Tool registration; request routing; error handling; performance logging
+// @why: MCP foundation enables AI agents to interact with game via natural language interface
+
 describe('Feature 1: MCP Server Infrastructure', () => {
   let mockGameEngine: any;
   let server: any;

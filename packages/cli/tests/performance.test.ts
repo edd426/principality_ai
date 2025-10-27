@@ -3,6 +3,10 @@
  * Validates that CLI components meet performance requirements
  */
 
+// @req: UTIL-CLI-PERF - CLI performance benchmarking for display, parsing, and operations
+// @edge: Parser response <10ms; Display render <20ms; Complex moves <100ms
+// @why: Ensures CLI remains responsive during gameplay with 50+ turns and many cards
+
 import { PrincipalityCLI } from '../src/cli';
 import { Display } from '../src/display';
 import { Parser } from '../src/parser';

@@ -22,6 +22,10 @@
  * @level E2E
  */
 
+// @req: R2.0-10 - Claude API E2E tests with MCP tool integration
+// @edge: Tool formats match Claude expectations; autonomous decision-making; token efficiency; cost tracking
+// @why: Real API testing validates end-to-end integration before production deployment
+
 import {
   callClaudeWithTools,
   callClaudeWithRetry,

@@ -17,6 +17,10 @@
  * @level Integration
  */
 
+// @req: R2.0-09 - Multi-turn gameplay with state consistency and game-over detection
+// @edge: Long-term state validity; supply depletion; VP accumulation; game end conditions
+// @why: Extended gameplay requires stable game mechanics across 50+ turns
+
 describe('Integration: Multi-Turn Game Flow', () => {
   let gameEngine: any;
   let server: any;

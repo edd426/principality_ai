@@ -23,6 +23,10 @@
  * - All command parsing logic in place
  */
 
+// @req: R1.6-01 - help <card> command for card information lookup
+// @edge: Unknown card → error message; case-insensitive matching; available in any phase; performance <5ms
+// @why: Players need quick access to card rules during gameplay without interrupting flow
+
 import { ConsoleCapture, GameStateBuilder, PerformanceHelper } from './utils/test-utils';
 import { BASIC_CARDS, KINGDOM_CARDS } from '@principality/core/src/cards';
 

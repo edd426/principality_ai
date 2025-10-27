@@ -18,6 +18,10 @@
  * @level Unit
  */
 
+// @req: R2.0-02 - game_observe tool returns state with valid moves
+// @edge: Three detail levels (minimal/standard/full); token efficiency; cache invalidation
+// @why: AI needs efficient state observation to make decisions; detail levels optimize token usage
+
 describe('Feature 2: game_observe Tool', () => {
   let mockGameEngine: any;
   let gameObserveTool: any;

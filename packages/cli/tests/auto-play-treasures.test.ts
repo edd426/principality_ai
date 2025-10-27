@@ -12,6 +12,10 @@
  * - Performance: < 100ms
  */
 
+// @req: R1.5-01 - Auto-play treasures with single command
+// @edge: Empty hand → nothing to play; mixed treasures and actions → play only treasures
+// @why: Command-based approach maintains player control; faster than individual plays
+
 import { GameStateBuilder, ConsoleCapture, PerformanceHelper } from './utils/test-utils';
 import { AutoPlayTreasuresTestUtils } from './utils/phase1-5-utils';
 import { Parser } from '../src/parser';

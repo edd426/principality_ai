@@ -16,6 +16,10 @@
  * @level Integration
  */
 
+// @req: R2.0-08 - Complete turn workflow (action → buy → cleanup → next turn)
+// @edge: Card effects applied correctly; state transitions valid; turn counter increments
+// @why: End-to-end turn flow validation ensures game progresses correctly
+
 describe('Integration: Complete Turn Cycle', () => {
   let gameEngine: any;
   let server: any;

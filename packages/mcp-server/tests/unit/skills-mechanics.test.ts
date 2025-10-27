@@ -19,6 +19,10 @@
  * @req: FR1.1-1.4 (Feature 1 functional requirements)
  */
 
+// @req: R2.1-01 - Dominion mechanics skill with core concepts and card reference
+// @edge: All 15 cards documented; game rules accurate; examples comprehensive; command syntax verified
+// @why: AI agents need authoritative mechanics guide for correct gameplay decision-making
+
 import fs from 'fs';
 import path from 'path';
 

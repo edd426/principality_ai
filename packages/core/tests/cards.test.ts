@@ -20,6 +20,10 @@
  * Total: 5 tests (3 unit + 2 validation)
  */
 
+// @req: R1.6-03 - Card help text data model (description field in Card interface)
+// @edge: All 15 cards require descriptions; case-sensitive names; formatting consistency
+// @why: Foundation for help and cards commands; enables players to learn card rules in-game
+
 import { Card, BASIC_CARDS, KINGDOM_CARDS } from '../src/cards';
 
 describe('Feature 3: Card Data Model - Phase 1.6', () => {

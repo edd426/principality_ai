@@ -24,6 +24,12 @@
  * @level Unit
  */
 
+// @req: R2.0-03 - game_execute tool for atomic move validation and execution
+// @req: R2.0-05 - Move validation with helpful error messages
+// @req: R2.0-12 - Move parsing robustness for various input formats
+// @edge: Atomicity (no partial updates); invalid moves → rollback; deterministic randomness
+// @why: AI agents need reliable move execution with clear error guidance for recovery
+
 import { GameExecuteTool } from '../../src/tools/game-execute';
 import { GameState } from '@principality/core';
 

@@ -24,6 +24,10 @@
  * - Card descriptions available (Feature 3)
  */
 
+// @req: R1.6-02 - cards catalog command displays all available cards
+// @edge: Card sorting (by type/cost/name); all 15 cards present; performance <10ms; empty args
+// @why: Players need complete card reference before game starts to understand available options
+
 import { ConsoleCapture, PerformanceHelper } from './utils/test-utils';
 import { BASIC_CARDS, KINGDOM_CARDS } from '@principality/core/src/cards';
 

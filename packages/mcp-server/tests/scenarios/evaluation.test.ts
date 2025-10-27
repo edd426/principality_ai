@@ -20,6 +20,11 @@
  * @level E2E
  */
 
+// @req: R2.1-04 - E2E automated tests with 20 evaluation scenarios
+// @req: R2.1-07 - Game evaluation framework with metrics and success criteria
+// @edge: 15 training + 5 held-out test scenarios; metric tracking (tokens, tools, time); decision reasoning
+// @why: Structured evaluation enables systematic measurement of AI gameplay improvement and decision quality
+
 describe('Evaluation Scenarios: LLM Optimization', () => {
   const skipIfNoApiKey = process.env.CLAUDE_API_KEY ? describe : describe.skip;
 

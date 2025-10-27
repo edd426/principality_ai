@@ -12,6 +12,10 @@
  * - Game end conditions work identically
  */
 
+// @req: R1.5-04 - Reduced supply piles for faster testing
+// @edge: Only victory cards reduced; kingdom cards and treasures unchanged; game end still works
+// @why: Faster testing required for rapid iteration; --quick-game speeds up games 40%
+
 import { GameEngine, GameState } from '@principality/core';
 import { GameStateBuilder } from './utils/test-utils';
 import { QuickGameTestUtils } from './utils/phase1-5-utils';

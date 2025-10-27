@@ -17,6 +17,10 @@ import { GameState } from '../src/types';
  * - Statistical analysis: Mean, Median, P95, P99, Max
  */
 
+// @req: R2.1-05 - Core engine performance metrics and benchmarking
+// @edge: Move execution <10ms avg, <20ms P99; Shuffle <50ms; Init <100ms; Memory <1MB
+// @why: Performance targets ensure responsive gameplay and scalable AI interactions
+
 interface PerformanceStats {
   mean: number;
   median: number;

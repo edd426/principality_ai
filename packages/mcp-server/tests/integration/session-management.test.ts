@@ -17,6 +17,10 @@
  * @level Integration
  */
 
+// @req: R2.0-07 - Session management with game lifecycle (create, track, archive)
+// @edge: Idempotent new game; game history tracking; model selection; game archival
+// @why: MCP server needs to manage multiple concurrent games for AI agents
+
 describe('Integration: Session and Game Lifecycle', () => {
   let gameEngine: any;
   let server: any;

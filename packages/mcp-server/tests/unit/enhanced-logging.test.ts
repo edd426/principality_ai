@@ -19,6 +19,11 @@
  * @req: FR3.1-3.5 (Feature 3 functional requirements)
  */
 
+// @req: R2.1-03 - Enhanced tool logging with JSON schema and decision tracking
+// @req: R2.1-06 - Zero-config logging with environment-based configuration
+// @edge: DEBUG/TRACE levels; state snapshots; file I/O; performance <5ms; environment config
+// @why: Logging enables debugging of AI decision-making and performance analysis
+
 import fs from 'fs';
 import path from 'path';
 import os from 'os';

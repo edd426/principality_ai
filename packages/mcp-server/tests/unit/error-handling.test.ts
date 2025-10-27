@@ -16,6 +16,10 @@
  * @level Unit
  */
 
+// @req: R2.0-06 - Error handling with helpful messages and machine-readable codes
+// @edge: Invalid parameters; game not initialized; server errors; edge cases
+// @why: AI agents need clear error codes and messages to recover and continue gameplay
+
 describe('Error Handling and Edge Cases', () => {
   describe('Tool Error Responses', () => {
     test('should return error object with code and message', () => {
