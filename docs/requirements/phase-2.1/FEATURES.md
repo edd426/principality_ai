@@ -344,6 +344,195 @@ STRATEGY-6: Economic Snowball (25 lines)
 
 ---
 
+## Feature R2.0-NEW: Game End Detection and Move Blocking
+
+**Estimated Effort**: 2-3 hours (1h implementation + 1h testing + 0.5-1h documentation)
+**Test Count**: 18 tests (6 unit + 2 integration + 10 documentation)
+**Priority**: CRITICAL - Blocks critical gameplay bug
+**Root Cause**: AI didn't detect game end in Oct 27 session (17:37)
+
+### Description
+
+Fix critical bug where AI continues attempting moves after game ends (Provinces empty or 3+ piles depleted). Root cause: `gameOver` flag only available in "full" detail level, but AI used "standard" detail level during mid-game, missing win condition.
+
+This feature implements:
+1. Make `gameOver` flag available in ALL game_observe detail levels (minimal, standard, full)
+2. Block ALL moves after game ends with clear error messages
+3. Allow ONLY `game_session(command="new")` after game ends
+4. Provide actionable error guidance for players
+
+**Files Modified**:
+- `packages/mcp-server/src/tools/game-observe.ts` - Include gameOver in all detail levels
+- `packages/mcp-server/src/tools/game-execute.ts` - Block moves when game over
+
+**Files Created**:
+- `packages/mcp-server/tests/unit/game-observe.test.ts` (UT2.16-UT2.19 sections added)
+- `packages/mcp-server/tests/unit/game-end-blocking.test.ts` (NEW comprehensive test suite)
+
+### Functional Requirements
+
+**FR-GE.1: Detect Win When Province Depleted**
+- When Province pile quantity = 0, game is over
+- Applies regardless of number of other empty piles
+- Primary game-end condition (takes precedence)
+
+**FR-GE.2: Detect End with Multiple Pile Depletion**
+- When 3+ supply piles reach quantity = 0, game is over
+- Applies regardless of Province pile status (unless Province also empty)
+- Secondary game-end condition
+
+**FR-GE.3: Block All Moves After Game Ends**
+- ALL move types blocked: play_action, play_treasure, buy, end_phase
+- Response: {success: false, error: {...}}
+- Game-over check is FIRST check in validation pipeline (before parsing)
+
+**FR-GE.4: Provide Clear Error Messages**
+- Message: "Game is over. Use game_session(command=\"new\") to start a new game."
+- Suggestion: Include guidance on how to restart
+- Details: Include gameOverReason (why game ended - Province empty or N piles empty)
+
+### Non-Functional Requirements
+
+**NFR-GE.1: Consistency Across Detail Levels**
+- gameOver flag present in minimal, standard, and full detail responses
+- gameOver = true/false ALWAYS has same value across all detail levels for same game state
+- Critical because AI switches detail levels mid-game; consistency ensures reliable decision-making
+
+**NFR-GE.2: Zero False Positives**
+- Game continues if < 3 piles empty AND Province > 0
+- Boundary: 2 empty piles = game continues, 3 empty piles = game over
+- Ensures players aren't wrongly blocked from continuing valid games
+
+### Game Over Detection Logic
+
+**Province Depletion** (Primary Condition):
+- Check: `supply.get('Province') === 0`
+- When: Any time Province pile is completely depleted
+- Precedence: Takes precedence over pile-depletion count
+
+**Pile Depletion** (Secondary Condition):
+- Check: Count all supply quantities = 0
+- When: 3 or more piles are completely depleted
+- Applies only if Province not empty (Province check first)
+
+**Implementation** (Pseudocode):
+```
+function isGameOver(state: GameState): boolean {
+  // Check Province first (primary condition)
+  if (state.supply.get('Province') === 0) {
+    return true;
+  }
+
+  // Check multiple piles (secondary condition)
+  let emptyPiles = 0;
+  state.supply.forEach(quantity => {
+    if (quantity === 0) emptyPiles++;
+  });
+
+  return emptyPiles >= 3;
+}
+```
+
+### Error Response Structure
+
+**Success Case** (during game):
+```json
+{
+  "success": true,
+  "message": "Executed: play 0",
+  "phaseChanged": null
+}
+```
+
+**Game Over Error** (after game ends):
+```json
+{
+  "success": false,
+  "error": {
+    "message": "Game is over. Use game_session(command=\"new\") to start a new game.",
+    "suggestion": "The game has ended due to Province pile empty or 3+ piles depleted. Start a fresh game with game_session(command=\"new\").",
+    "details": {
+      "gameOverReason": "Province pile is empty"
+    }
+  }
+}
+```
+
+### Acceptance Criteria
+
+**AC-GE.1: gameOver Flag Placement**
+- gameOver present at top level of response (for minimal detail)
+- gameOver present in state object (for standard detail)
+- gameOver present in stats object (for full detail, backward compatibility)
+- Single source of truth: calculated once before building response
+
+**AC-GE.2: Move Blocking Behavior**
+- All 4 move types (play_action, play_treasure, buy, end_phase) rejected
+- Error occurs BEFORE move parsing (game-over check is first validation step)
+- Same error message for all move types (not specific to move type)
+
+**AC-GE.3: Logging and Debugging**
+- Game-over blocks logged with move and turn information
+- gameOverReason included in logs
+- Move attempts recorded for post-game analysis
+
+**AC-GE.4: Edge Cases**
+- Game continues with 2 empty piles (boundary test)
+- Game continues if Province > 0 and < 3 piles empty (both conditions checked)
+- Game ends at exactly 3 piles (not 2, not 4+)
+- Works across all detail levels (minimal, standard, full)
+
+### Edge Cases
+
+**EC-GE.1: Boundary Conditions**
+- 2 empty piles, Province > 0: Game continues ✓
+- 3 empty piles, Province > 0: Game ends ✓
+- 1 empty piles, Province = 0: Game ends ✓
+- 0 empty piles, Province = 0: Game ends ✓
+
+**EC-GE.2: AI Behavior During Win**
+- Oct 27 session bug: AI bought all 8 Provinces by turn 23
+- Game should end (Province = 0)
+- Without fix: AI continued playing through turn 43
+- With fix: AI sees gameOver = true, next move blocked, receives clear error
+
+**EC-GE.3: Multiple Piles Depletion**
+- Village, Smithy, Copper all reach 0 (3 action + treasure piles)
+- Province still > 0
+- Game over? YES (3-pile rule)
+- Error reason: "3 supply piles are empty: Village, Smithy, Copper"
+
+**EC-GE.4: Late-Game Transitions**
+- Turn 20+: Provinces remaining = 2
+- AI buys last Provinces, Province = 0
+- Game over triggered
+- Next AI move blocked with error
+- AI calls game_session(command="new") to restart
+
+### Root Cause Analysis
+
+**Oct 27 Session Bug**:
+1. AI used detail_level = "standard" (turns 12-29, 35, 42-43)
+2. gameOver only in detail_level = "full" response
+3. AI never saw gameOver flag at standard detail
+4. Bought all 8 Provinces by turn 23 (game should end)
+5. Continued playing invalid moves through turn 43
+6. No error block prevented post-game moves
+
+**Solution**:
+- gameOver flag moved to base response (available at ALL detail levels)
+- Move-blocking check added before move parsing
+- Clear error message guides player to restart
+
+### Implementation Notes
+
+- gameOverFlag calculated once per observe/execute call (efficiency)
+- Use same detection logic in game-observe.ts and game-execute.ts (consistency)
+- Error message includes actionable next step (user guidance)
+- Logging captures game-over blocks for debugging
+
+---
+
 ## Feature 3: Enhanced Tool Logging
 
 **Estimated Effort**: 3-3.5 hours (2-2.5h implementation + 0.5-1h testing + 0.5h documentation)

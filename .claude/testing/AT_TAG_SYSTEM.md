@@ -313,6 +313,164 @@ describe('game_execute tool', () => {
 });
 ```
 
+### Phase 2.0-NEW Example: Game End Detection and Move Blocking
+
+**Context**: Critical bug fix for Oct 27 game session where AI continued playing after game should end.
+- Root cause: `gameOver` flag only in "full" detail level; AI used "standard" detail
+- Solution: gameOver in ALL detail levels + move blocking
+- Tests: 18 tests (UT-GE.1 through UT-GE.6, IT-GE.1 through IT-GE.2, plus UT2.16-UT2.19)
+
+```typescript
+// @req: R2.0-NEW - Game end detection and move blocking
+// @edge: Province pile = 0 → game ends
+// @edge: 3+ supply piles = 0 → game ends
+// @edge: 2 supply piles = 0, Province > 0 → game continues (boundary)
+// @edge: Game-over check happens BEFORE move parsing
+// @why: AI must detect game end to avoid stuck loops
+// @why: Consistency across detail levels critical; AI switches mid-game
+// @why: gameOver calculated once per call (efficiency)
+
+describe('Feature R2.0-NEW: Game End Detection and Move Blocking', () => {
+  describe('UT-GE.1: Move Blocking - All Move Types', () => {
+    // @edge: play_action blocked after game ends
+    it('should block play_action moves after game ends', () => { ... });
+
+    // @edge: play_treasure blocked after game ends
+    it('should block play_treasure moves after game ends', () => { ... });
+
+    // @edge: buy blocked after game ends (was the bug in Oct 27 session)
+    it('should block buy moves after game ends', () => { ... });
+
+    // @edge: end_phase blocked after game ends
+    it('should block end_phase moves after game ends', () => { ... });
+  });
+
+  describe('UT-GE.2: Error Messages - Clarity and Guidance', () => {
+    // @why: Users need to know WHY moves are rejected and HOW to proceed
+    it('should provide clear error message when game is over', () => { ... });
+
+    // @why: Without suggestion, AI might loop forever trying invalid moves
+    it('should include suggestion to restart via game_session', () => { ... });
+
+    it('should include reason why game ended in error details', () => { ... });
+
+    // @edge: Different reasons require different messages
+    it('should distinguish Province-empty from pile-depletion endings', () => { ... });
+  });
+
+  describe('UT-GE.3: Game Over Detection - Province Depletion', () => {
+    // @edge: Exactly Province = 0, not Province < 0 or Province = 1
+    it('should detect game over when Province quantity = 0', () => { ... });
+
+    // @edge: Boundary: Province = 1 should NOT trigger game over
+    it('should not detect game over when Province quantity = 1', () => { ... });
+
+    // @why: Province is unique; its depletion signals game end regardless
+    it('should be the primary game-end condition', () => { ... });
+  });
+
+  describe('UT-GE.4: Game Over Detection - Pile Depletion', () => {
+    // @edge: Exactly 3 piles empty, not 2 or 4
+    it('should detect game over when exactly 3 piles are empty', () => { ... });
+
+    // @edge: 4+ piles also means game over (>= 3, not exact)
+    it('should detect game over when 4+ piles are empty', () => { ... });
+
+    // @edge: Boundary: 2 empty piles is NOT game-ending
+    it('should NOT detect game over when only 2 piles are empty', () => { ... });
+  });
+
+  describe('UT-GE.5: Move Parsing Happens After Game-Over Check', () => {
+    // @why: Game-over is first check; parsing happens only if game active
+    it('should reject move before parsing if game is over', () => { ... });
+
+    // @edge: Malformed + game over → error is "game over", not "parse error"
+    it('should return game-over error consistently', () => { ... });
+  });
+
+  describe('UT-GE.6: Only game_session Allowed After Game Ends', () => {
+    // @why: Prevents AI from being stuck in move-execution loop
+    it('should reject any move-based command after game ends', () => { ... });
+
+    // @why: Only way to continue after game ends
+    it('game_session(command="new") should work post-game', () => { ... });
+
+    // @edge: Observing state should still work (needed for error understanding)
+    it('game_observe should still work after game ends', () => { ... });
+  });
+
+  describe('IT-GE.1: Integration - Full Game-End Sequence', () => {
+    // @why: Reproduces exact Oct 27 bug scenario
+    // @req: R2.0-NEW - Complete flow from active game to blocked state
+    it('should follow complete game-end sequence', () => {
+      // 1. game_observe() → gameOver: false
+      // 2. game_execute("buy Province") → succeeds, Province = 0
+      // 3. game_observe() → gameOver: true
+      // 4. game_execute("play Copper") → blocked with error
+      // 5. game_session(command="new") → restart
+    });
+  });
+
+  describe('IT-GE.2: Integration - Multi-Turn Game Ending', () => {
+    // @why: Verify detection works mid-game, not just early
+    // @edge: Oct 27 session lasted 43 turns; game should end at turn 23
+    it('should correctly identify game-end across multiple turns', () => { ... });
+  });
+
+  describe('UT2.16-UT2.19: Observe Detail Levels with gameOver', () => {
+    // @req: R2.0-NEW - gameOver in ALL detail levels
+    // @edge: Minimal detail (60 tokens) includes gameOver
+    // @edge: Standard detail (270 tokens) includes gameOver
+    // @edge: Full detail (1050 tokens) includes gameOver
+    // @why: AI may use different detail levels mid-game; consistency required
+
+    describe('UT2.16: Game Over Detection - Minimal Detail', () => {
+      // @req: R2.0-NEW - gameOver available in minimal detail
+      it('should include gameOver flag in minimal detail level', () => { ... });
+
+      // @edge: Minimal still fits token budget with gameOver
+      it('minimal detail gameOver should be token-efficient', () => { ... });
+    });
+
+    describe('UT2.17: Game Over Detection - Standard Detail', () => {
+      // @req: R2.0-NEW - gameOver available in standard detail
+      // @why: Fixes Oct 27 bug where standard detail lacked gameOver
+      it('should include gameOver flag in standard detail level', () => { ... });
+
+      // @edge: Standard still fits token budget (200-300 tokens)
+      it('standard detail should keep response under 300 tokens', () => { ... });
+    });
+
+    describe('UT2.18: Game Over Detection - Full Detail', () => {
+      // @req: R2.0-NEW - gameOver available in full detail
+      // @edge: Backward compatibility with existing full detail
+      it('should include gameOver flag in full detail level', () => { ... });
+
+      // @edge: Full still fits token budget (< 1200 tokens)
+      it('full detail should keep response under 1200 tokens', () => { ... });
+    });
+
+    describe('UT2.19: Game Over Detection Logic', () => {
+      // @req: R2.0-NEW - Consistent detection across all detail levels
+      // @why: Single source of truth for game-over status
+      it('game over detection should be consistent across all detail levels', () => { ... });
+
+      // @edge: Boundary: exactly 3 piles (not 2, not 4)
+      it('should NOT detect game over with 2 empty piles', () => { ... });
+
+      // @edge: Both conditions must be checked (OR relationship)
+      it('should NOT detect game over if Province > 0 and < 3 piles empty', () => { ... });
+    });
+  });
+});
+```
+
+**Key Insights from @ Tags**:
+1. `@req: R2.0-NEW` - Single source of truth requirement ID
+2. `@edge` tags document boundary conditions: Province = 0, exactly 3 piles, sequence of events
+3. `@why` tags explain non-obvious: "Why consistency?", "Why game-over before parsing?", "Why this bug?"
+4. Tags enable finding all tests for a requirement: `grep -r "R2.0-NEW" packages/*/tests/`
+
 ---
 
 ## Validation

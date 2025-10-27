@@ -53,6 +53,9 @@ export class GameObserveTool {
       return this.cache.get(cacheKey)!;
     }
 
+    // Check game end condition (needed for all detail levels)
+    const gameOverFlag = this.isGameOver(state);
+
     // Build response based on detail level
     const response: GameObserveResponse = {
       success: true,
@@ -60,12 +63,13 @@ export class GameObserveTool {
       phase: state.phase,
       turnNumber: state.turnNumber,
       activePlayer: state.currentPlayer,
-      playerCount: state.players.length
+      playerCount: state.players.length,
+      gameOver: gameOverFlag
     };
 
     if (detail_level === 'minimal') {
       // Just essentials - no hand, supply, moves
-      // Will add validMoves below
+      // gameOver is included above for all detail levels
     } else if (detail_level === 'standard' || detail_level === 'full') {
       // Add hand summary
       const activePlayer = state.players[state.currentPlayer];
@@ -75,7 +79,8 @@ export class GameObserveTool {
       response.state = {
         currentCoins: activePlayer.coins || 0,
         currentActions: activePlayer.actions || 0,
-        currentBuys: activePlayer.buys || 0
+        currentBuys: activePlayer.buys || 0,
+        gameOver: gameOverFlag
       };
     }
 
@@ -91,7 +96,7 @@ export class GameObserveTool {
           deckCount: activePlayer.drawPile.length,
           discardCount: activePlayer.discardPile.length,
           victoryPoints: this.calculateVP(activePlayer),
-          gameOver: this.isGameOver(state)
+          gameOver: gameOverFlag
         }
       };
     }

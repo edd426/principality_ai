@@ -19,6 +19,7 @@ export interface GameObserveResponse {
   turnNumber?: number;
   activePlayer?: number;
   playerCount?: number;
+  gameOver?: boolean; // R2.0-NEW: Game end status (available in all detail levels)
   hand?: any;
   validMoves?: any[];
   moveSummary?: {

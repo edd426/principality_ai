@@ -38,6 +38,21 @@ export class GameExecuteTool {
       };
     }
 
+    // Check if game is over (before parsing move)
+    if (this.isGameOver(state)) {
+      this.logger?.warn('Move attempted after game end', { move, turn: state.turnNumber });
+      return {
+        success: false,
+        error: {
+          message: 'Game is over. Use game_session(command="new") to start a new game.',
+          suggestion: 'The game has ended due to Province pile empty or 3+ piles depleted. Start a fresh game with game_session(command="new").',
+          details: {
+            gameOverReason: this.getGameOverReason(state)
+          }
+        }
+      };
+    }
+
     // Parse move string
     const parsedMove = this.parseMove(move, state);
     if (!parsedMove) {
@@ -309,5 +324,42 @@ export class GameExecuteTool {
   getMoveHistory(lastN?: number): typeof this.moveHistory {
     if (!lastN) return this.moveHistory;
     return this.moveHistory.slice(-lastN);
+  }
+
+  /**
+   * Check if game is over (same logic as game-observe isGameOver)
+   */
+  private isGameOver(state: GameState): boolean {
+    let emptyPiles = 0;
+
+    state.supply.forEach(quantity => {
+      if (quantity === 0) emptyPiles++;
+    });
+
+    const provincesEmpty = state.supply.get('Province') === 0;
+    return provincesEmpty || emptyPiles >= 3;
+  }
+
+  /**
+   * Get human-readable reason why game ended
+   */
+  private getGameOverReason(state: GameState): string {
+    const provincesEmpty = state.supply.get('Province') === 0;
+    if (provincesEmpty) {
+      return 'Province pile is empty';
+    }
+
+    let emptyPiles: string[] = [];
+    state.supply.forEach((quantity, cardName) => {
+      if (quantity === 0) {
+        emptyPiles.push(cardName);
+      }
+    });
+
+    if (emptyPiles.length >= 3) {
+      return `${emptyPiles.length} supply piles are empty: ${emptyPiles.slice(0, 3).join(', ')}${emptyPiles.length > 3 ? ' and more' : ''}`;
+    }
+
+    return 'Unknown game end condition';
   }
 }
