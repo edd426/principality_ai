@@ -75,6 +75,12 @@ export class GameExecuteTool {
       };
     }
 
+    // Handle batch treasure playing specially (before standard validation)
+    // Batch moves bypass validation since they're not in standard validMoves list
+    if (parsedMove.type === 'play_all_treasures') {
+      return this.executeBatchTreasures(move, state, reasoning);
+    }
+
     // Validate move before executing
     const validMoves = this.gameEngine.getValidMoves(state);
     const isValid = this.isMoveValid(parsedMove, validMoves);
@@ -101,11 +107,6 @@ export class GameExecuteTool {
           }
         }
       };
-    }
-
-    // Handle batch treasure playing specially
-    if (parsedMove.type === 'play_all_treasures') {
-      return this.executeBatchTreasures(move, state, reasoning);
     }
 
     // Execute move
