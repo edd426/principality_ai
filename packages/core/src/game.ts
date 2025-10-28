@@ -72,7 +72,7 @@ export class GameEngine {
 
       case 'play_treasure':
         if (state.phase !== 'buy') {
-          throw new Error('Can only play treasures during buy phase');
+          throw new Error('Cannot play treasures outside buy phase');
         }
         if (!move.card) {
           throw new Error('Must specify card to play');

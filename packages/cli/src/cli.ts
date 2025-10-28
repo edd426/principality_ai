@@ -325,7 +325,7 @@ export class PrincipalityCLI {
    */
   private autoPlayTreasures(): void {
     if (this.gameState.phase !== 'buy') {
-      this.display.displayError('Can only play treasures during buy phase');
+      this.display.displayError('Cannot play treasures outside buy phase');
       return;
     }
 
