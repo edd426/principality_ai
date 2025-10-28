@@ -197,11 +197,11 @@ export class Display {
   /**
    * Display welcome message
    */
-  displayWelcome(seed: string, quickGame?: boolean): void {
+  displayWelcome(seed: string, victoryPileSize?: number): void {
     console.log('\n' + '='.repeat(60));
     console.log('PRINCIPALITY AI - Deck Building Game');
-    if (quickGame) {
-      console.log('Quick Game Mode: Victory piles reduced to 8');
+    if (victoryPileSize && victoryPileSize !== 4) {
+      console.log(`Victory Piles: ${victoryPileSize} cards each`);
     }
     console.log('='.repeat(60));
     console.log(`Game Seed: ${seed}`);

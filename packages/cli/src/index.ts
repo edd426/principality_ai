@@ -1,16 +1,35 @@
 #!/usr/bin/env node
 
 import { PrincipalityCLI } from './cli';
+import * as fs from 'fs';
+import * as path from 'path';
+
+/**
+ * Load game configuration from game-config.json
+ */
+function loadGameConfig(): { game?: { victoryPileSize?: number } } {
+  try {
+    const configPath = path.join(__dirname, '..', 'game-config.json');
+    const configContent = fs.readFileSync(configPath, 'utf-8');
+    return JSON.parse(configContent);
+  } catch (error) {
+    // If config file doesn't exist or is invalid, use defaults
+    return { game: { victoryPileSize: 4 } };
+  }
+}
 
 /**
  * Main entry point for the CLI
  */
 async function main(): Promise<void> {
+  // Load configuration
+  const config = loadGameConfig();
+  const victoryPileSize = config.game?.victoryPileSize ?? 4;
+
   // Parse command line arguments
   const args = process.argv.slice(2);
   let seed: string | undefined;
   let players = 1;
-  let quickGame = false;
   let stableNumbers = false;
   let manualCleanup = false;
 
@@ -30,8 +49,6 @@ async function main(): Promise<void> {
       if (!isNaN(playerCount) && playerCount >= 1 && playerCount <= 4) {
         players = playerCount;
       }
-    } else if (args[i] === '--quick-game') {
-      quickGame = true;
     } else if (args[i] === '--stable-numbers') {
       stableNumbers = true;
     } else if (args[i] === '--manual-cleanup') {
@@ -40,7 +57,7 @@ async function main(): Promise<void> {
   }
 
   // Create and start the CLI with options
-  const cli = new PrincipalityCLI(seed, players, { quickGame, stableNumbers, manualCleanup });
+  const cli = new PrincipalityCLI(seed, players, { victoryPileSize, stableNumbers, manualCleanup });
   await cli.start();
 }
 

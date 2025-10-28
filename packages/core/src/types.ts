@@ -60,5 +60,5 @@ export interface Victory {
 }
 
 export interface GameOptions {
-  quickGame?: boolean;
+  victoryPileSize?: number; // Number of Estate/Duchy/Province cards (default: 4)
 }

@@ -40,8 +40,8 @@ export function createStartingDeck(): ReadonlyArray<CardName> {
   ];
 }
 
-export function createDefaultSupply(options?: { quickGame?: boolean }): ReadonlyMap<CardName, number> {
-  const victoryPileSize = options?.quickGame ? 8 : 12;
+export function createDefaultSupply(options?: { victoryPileSize?: number }): ReadonlyMap<CardName, number> {
+  const victoryPileSize = options?.victoryPileSize ?? 4;
 
   return new Map([
     // Basic cards (always available)

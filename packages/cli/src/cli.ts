@@ -11,7 +11,7 @@ import { handleCardsCommand } from './commands/cards';
  * CLI options configuration
  */
 export interface CLIOptions {
-  quickGame?: boolean;
+  victoryPileSize?: number;
   stableNumbers?: boolean;
   autoPlayTreasures?: boolean;
   manualCleanup?: boolean;
@@ -34,7 +34,7 @@ export class PrincipalityCLI {
     this.options = options;
 
     // Initialize engine with options
-    this.engine = new GameEngine(gameSeed, { quickGame: options.quickGame });
+    this.engine = new GameEngine(gameSeed, { victoryPileSize: options.victoryPileSize });
     this.gameState = this.engine.initializeGame(players);
 
     // Initialize display and parser with stable numbers option
@@ -54,7 +54,7 @@ export class PrincipalityCLI {
    */
   async start(): Promise<void> {
     this.isRunning = true;
-    this.display.displayWelcome(this.gameState.seed, this.options.quickGame);
+    this.display.displayWelcome(this.gameState.seed, this.options.victoryPileSize);
 
     // Start the game loop
     await this.gameLoop();
