@@ -52,15 +52,9 @@ export function createDefaultSupply(options?: { victoryPileSize?: number }): Rea
     ['Duchy', victoryPileSize],
     ['Province', victoryPileSize],
 
-    // Kingdom cards (MVP set - all 8 available)
+    // Kingdom cards (MVP set - 2 action cards only)
     ['Village', 10],
-    ['Smithy', 10],
-    ['Laboratory', 10],
-    ['Market', 10],
-    ['Woodcutter', 10],
-    ['Festival', 10],
-    ['Council Room', 10],
-    ['Cellar', 10]
+    ['Smithy', 10]
   ]);
 }
 
