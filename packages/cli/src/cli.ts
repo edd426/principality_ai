@@ -324,8 +324,8 @@ export class PrincipalityCLI {
    * Auto-play all treasure cards in hand
    */
   private autoPlayTreasures(): void {
-    if (this.gameState.phase !== 'buy') {
-      this.display.displayError('Can only play treasures during buy phase');
+    if (this.gameState.phase !== 'action' && this.gameState.phase !== 'buy') {
+      this.display.displayError('Can only play treasures during action or buy phase');
       return;
     }
 
