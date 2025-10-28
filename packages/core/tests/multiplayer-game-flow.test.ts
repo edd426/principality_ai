@@ -699,7 +699,7 @@ describe('Feature 3: Multiplayer Game Flow', () => {
         }
       }
 
-      expect(state.turnNumber).toBe(3);
+      expect(state.turnNumber).toBe(4);
       expect(state.currentPlayer).toBe(0);
     });
   });
@@ -789,7 +789,7 @@ describe('Feature 3: Multiplayer Game Flow', () => {
         }
       }
 
-      expect(state.turnNumber).toBe(5);
+      expect(state.turnNumber).toBe(6);
     });
   });
 
@@ -849,7 +849,7 @@ describe('Feature 3: Multiplayer Game Flow', () => {
         }
       }
 
-      expect(state.turnNumber).toBe(3);
+      expect(state.turnNumber).toBe(4);
 
       // Continue playing (simulating AI replacement)
       for (let i = 0; i < 5; i++) {

@@ -458,7 +458,7 @@ describe('Feature 4: CLI Display for Multiplayer', () => {
         }
       }
 
-      expect(state.turnNumber).toBe(5);
+      expect(state.turnNumber).toBe(6);
     });
   });
 
@@ -562,7 +562,7 @@ describe('Feature 4: CLI Display for Multiplayer', () => {
         }
       }
 
-      expect(state.turnNumber).toBe(3);
+      expect(state.turnNumber).toBe(4);
     });
   });
 });

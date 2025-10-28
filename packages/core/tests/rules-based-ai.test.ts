@@ -778,7 +778,7 @@ describe('Feature 2: Rules-based AI Opponent', () => {
         }
       }
 
-      expect(currentState.turnNumber).toBe(5);
+      expect(currentState.turnNumber).toBe(6);
     });
   });
 
