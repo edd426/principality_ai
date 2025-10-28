@@ -664,7 +664,7 @@ describe('CLI + Core Engine Integration', () => {
       test('should show correct VP in quick game mode', async () => {
         // Arrange
         const cli = new PrincipalityCLI('quickgame-vp-seed', 1, {
-          quickGame: true
+          victoryPileSize: 4
         });
 
         mockReadline.setInputs(['quit']);
@@ -673,15 +673,13 @@ describe('CLI + Core Engine Integration', () => {
         await cli.start();
 
         // Assert
-        // VP display should work in quick game
+        // VP display should work with victoryPileSize config
         expect(consoleCapture.contains('VP:')).toBe(true);
-        // Quick game message
-        expect(consoleCapture.contains('Quick Game')).toBe(true);
       });
 
       test('should update VP after buying in quick game', async () => {
         const cli = new PrincipalityCLI('quickgame-buy-seed', 1, {
-          quickGame: true
+          victoryPileSize: 4
         });
 
         // Buy a victory card
@@ -697,14 +695,14 @@ describe('CLI + Core Engine Integration', () => {
         expect(consoleCapture.contains('VP:')).toBe(true);
       });
 
-      test('quick game should end faster with reduced piles', async () => {
+      test('game should end faster with reduced victory piles', async () => {
         const quickCli = new PrincipalityCLI('quick-end-seed', 1, {
-          quickGame: true
+          victoryPileSize: 4
         });
 
-        // Simulate depleting 8 Provinces
+        // Verify that the game uses reduced victory piles (4 by default)
         const quickSupply = quickCli['gameState'].supply;
-        expect(quickSupply.get('Province')).toBe(8); // Reduced from 12
+        expect(quickSupply.get('Province')).toBe(4); // New default
       });
     });
 
@@ -713,7 +711,7 @@ describe('CLI + Core Engine Integration', () => {
       test.skip('should work with all features enabled simultaneously', async () => {
         // Arrange
         const cli = new PrincipalityCLI('all-features-seed', 1, {
-          quickGame: true,
+          victoryPileSize: 4,
           stableNumbers: true,
           autoPlayTreasures: true
         });
@@ -735,7 +733,7 @@ describe('CLI + Core Engine Integration', () => {
 
       test('should maintain performance with all features enabled', async () => {
         const cli = new PrincipalityCLI('all-features-perf-seed', 1, {
-          quickGame: true,
+          victoryPileSize: 4,
           stableNumbers: true,
           autoPlayTreasures: true
         });
@@ -752,7 +750,7 @@ describe('CLI + Core Engine Integration', () => {
 
       test('VP updates correctly when chaining buy moves', async () => {
         const cli = new PrincipalityCLI('chain-buy-vp-seed', 1, {
-          quickGame: true,
+          victoryPileSize: 4,
           stableNumbers: true
         });
 
@@ -801,7 +799,7 @@ describe('CLI + Core Engine Integration', () => {
       // NOTE: Test disabled - requires specific moves not available in starting state
       test.skip('should show stable numbers for reduced supply', async () => {
         const cli = new PrincipalityCLI('stable-reduced-seed', 1, {
-          quickGame: true,
+          victoryPileSize: 4,
           stableNumbers: true
         });
 
@@ -819,7 +817,7 @@ describe('CLI + Core Engine Integration', () => {
       // NOTE: Tests disabled - require specific game states
       test.skip('should handle invalid chain with all features enabled', async () => {
         const cli = new PrincipalityCLI('error-all-features-seed', 1, {
-          quickGame: true,
+          victoryPileSize: 4,
           stableNumbers: true,
           autoPlayTreasures: true
         });
@@ -897,7 +895,7 @@ describe('CLI + Core Engine Integration', () => {
     describe('Display Consistency', () => {
       test('should show all feature indicators when enabled', async () => {
         const cli = new PrincipalityCLI('display-all-seed', 1, {
-          quickGame: true,
+          victoryPileSize: 4,
           stableNumbers: true,
           autoPlayTreasures: true
         });
@@ -905,9 +903,6 @@ describe('CLI + Core Engine Integration', () => {
         mockReadline.setInputs(['quit']);
 
         await cli.start();
-
-        // Should show quick game indicator
-        expect(consoleCapture.contains('Quick Game')).toBe(true);
 
         // Should show stable numbers in move list
         expect(consoleCapture.contains('[')).toBe(true);
@@ -918,7 +913,7 @@ describe('CLI + Core Engine Integration', () => {
 
       test('should maintain clean output with features', async () => {
         const cli = new PrincipalityCLI('clean-output-seed', 1, {
-          quickGame: true,
+          victoryPileSize: 4,
           stableNumbers: true
         });
 

@@ -668,13 +668,13 @@ describe('PrincipalityCLI', () => {
       });
     });
 
-    describe('Quick game mode', () => {
-      test('should support quick game flag', () => {
-        // Phase 1.5: Quick game implemented via CLI options
-        cli = new PrincipalityCLI('seed', 1, { quickGame: true });
+    describe('Configurable victory pile size', () => {
+      test('should support configurable victory pile size', () => {
+        // Phase 2.0: Configurable victory piles via victoryPileSize option
+        cli = new PrincipalityCLI('seed', 1, { victoryPileSize: 4 });
 
         expect(cli).toBeDefined();
-        expect(cli['options'].quickGame).toBe(true);
+        expect(cli['options'].victoryPileSize).toBe(4);
       });
     });
 
