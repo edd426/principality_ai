@@ -163,8 +163,8 @@ See [API.md](./docs/reference/API.md) for detailed API reference.
 **Phase 1.5 (Complete)**: CLI UX improvements - All 6 features implemented and tested
 **Phase 1.6 (Complete)**: Card help system + comprehensive testing framework
 **Phase 2.0 (Complete)**: MCP server foundation - Critical bug fixes (stdio transport, move parsing)
-**Phase 2.1 (Current)**: AI Gameplay Enhancement - Mechanics Skill, Strategy Skill, Enhanced Logging
-**Phase 3**: Multiplayer with simple AI opponents
+**Phase 2.1 (Current)**: AI Gameplay Enhancement - Mechanics Skill, Strategy Skill, Enhanced Logging (5 features)
+**Phase 3**: Multiplayer with 2 players - Human vs Rules-based AI, Claude AI vs Rules-based AI
 **Phase 4**: Web UI with drag-and-drop interface
 **Phase 5+**: Advanced cards, tournaments, mobile apps
 

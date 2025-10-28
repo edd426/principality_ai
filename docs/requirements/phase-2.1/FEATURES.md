@@ -15,9 +15,10 @@ Phase 2.1 implements 5 focused features to enhance Claude's Dominion gameplay:
 3. **Feature R2.0-NEW**: Game End Detection (2-3 hours) - Critical bug fix for game-over detection
 4. **Feature R2.1-ACC**: AI Gameplay Acceleration (6 hours) - Batch commands and auto-return state
 5. **Feature 3**: Enhanced Tool Logging (3-3.5 hours) - Comprehensive debugging and performance tracking
-6. **Feature 4**: E2E Automated Haiku Gameplay Tests (1-2 hours) - Real Claude gameplay validation
 
-**Total Effort**: 23-29 hours (6 features, integrated testing and documentation)
+**Total Effort**: 21-27 hours (5 features, integrated testing and documentation)
+
+**Note**: Feature 4 (E2E Haiku Gameplay Tests) was removed per testing audit best practices - E2E tests with external APIs are non-deterministic, slow, and expensive. See `.claude/audits/tests/E2E_TEST_REMEDIATION.md` for details.
 
 ---
 
@@ -1162,19 +1163,114 @@ Feature 4 (E2E Gameplay Tests)
 
 ---
 
+## Feature 5: Cleanup Phase Auto-Skip (R2.1-CLEANUP)
+
+**Estimated Effort**: 2-3 hours
+**Test Count**: 3 tests (3 unit)
+**Priority**: MEDIUM - Improves UX by reducing manual moves
+
+### Description
+
+Automatically advance cleanup phase without requiring player interaction, since MVP has no cleanup-phase decisions.
+
+### Functional Requirements
+
+**FR5.1: Auto-Skip Logic**
+- Detect when cleanup phase is entered (previous move ended buy phase)
+- Automatically execute `end_phase` move
+- Transition directly to next turn's action phase
+- Log cleanup skip event
+
+**FR5.2: State Consistency**
+- Ensure auto-skip doesn't affect game state validity
+- Verify next turn state correctly shows action phase with 1 action
+- Confirm cleanup logic (discard + draw) still executes
+
+### Acceptance Criteria
+
+**AC5.1: Auto-Skip Execution**
+- Cleanup phase automatically advances (no manual "end" needed)
+- Response includes final state at action phase (not cleanup)
+- Valid moves returned for action phase (not cleanup)
+
+**AC5.2: Logging**
+- "Cleanup auto-skipped" logged with turn number and reason
+- Phase transitions logged correctly (buy → cleanup → action)
+
+### Edge Cases
+
+**EC5.1: Game End During Cleanup**
+- If game ends during cleanup auto-skip, correctly detect and report
+
+---
+
+## Feature 6: Economic Tracking Logging (R2.1-ECONOMIC-LOGGING)
+
+**Estimated Effort**: 2-3 hours
+**Test Count**: 3 tests (3 unit)
+**Priority**: MEDIUM - Enables gameplay analysis and debugging
+
+### Description
+
+Log economic metrics (coins, buys, hand composition, deck size) at turn boundaries for post-game analysis.
+
+### Functional Requirements
+
+**FR6.1: Turn Start Economy**
+- Log when entering action phase (turn start)
+- Capture: hand composition, hand size, treasures available, actions available, deck size, economy trajectory
+
+**FR6.2: Turn Buy Phase Summary**
+- Log when exiting buy phase (turn end)
+- Capture: coins available, coins spent, buys used, cards bought, hand before/after, deck size
+
+**FR6.3: Economic Trajectory**
+- Classify economy as "building" (< 5 coins), "stable" (5-8), or "strong" (8+)
+- Enable analysis of deck-building progression over game
+
+### Acceptance Criteria
+
+**AC6.1: Data Captured**
+- All economic metrics logged in structured JSON format
+- Turn number, phase, timestamp included
+- Hand composition shows card counts (e.g., {Copper: 3, Silver: 2})
+
+**AC6.2: Log File Format**
+- Entries parseable from game session log
+- Each metric clearly labeled and typed
+- No sensitive data logged
+
+**AC6.3: Performance**
+- Logging adds < 5ms per turn
+- No perceptible impact on gameplay
+
+### Edge Cases
+
+**EC6.1: Hand Composition Edge Cases**
+- Multiple copies of same card counted correctly
+- Mixed action + treasure hands logged accurately
+
+**EC6.2: Empty Phases**
+- Cleanup auto-skip doesn't generate duplicate economic logs
+- Only action/buy phases generate economic summaries
+
+---
+
 ## Conclusion
 
-Phase 2.1's four features work together to significantly improve Claude's Dominion gameplay:
+Phase 2.1's six features work together to significantly improve Claude's Dominion gameplay:
 
 1. **Mechanics Skill**: Eliminates confusion, enables self-recovery
 2. **Strategy Skill**: Improves decision quality, enables learning
-3. **Enhanced Logging**: Enables debugging and progress measurement
-4. **E2E Automated Tests**: Validates all features work in production
+3. **Cleanup Auto-Skip**: Reduces manual moves, improves UX
+4. **Economic Tracking**: Enables analysis of strategy effectiveness
+5. **Enhanced Tool Logging**: Enables debugging and performance tracking
+6. **E2E Automated Tests**: Validates all features work in production
 
 Together, these features transform Claude from a "functional but confused" player to a "competent and improving" player, setting the stage for Phase 2.2's optimization measurement and Phase 3's multiplayer integration.
 
-**Total Effort**: 15-20 hours (integrated across 4 features)
-**Test Coverage**: 55-57 tests total (unit + integration + E2E baseline + E2E gameplay)
+**Total Effort**: 20-25 hours (integrated across 6 features)
+**Test Coverage**: 61-63 tests total (unit + integration + E2E baseline + E2E gameplay)
 **Risk Level**: Low (well-defined features, clear acceptance criteria)
 **Value**: High (directly improves gameplay, enables measurement, provides regression testing)
 

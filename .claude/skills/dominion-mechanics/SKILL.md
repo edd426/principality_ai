@@ -18,15 +18,16 @@ This skill explains the core mechanics of the Dominion card game, focusing on th
 5. [Command Reference](#command-reference)
 6. [Phase-by-Phase Decision Making](#phase-by-phase-decision-making)
 7. [Victory Points and Scoring](#victory-points-and-scoring)
-8. [Supply Piles](#supply-piles)
-9. [Common Mistakes & Recovery](#common-mistakes--recovery)
-10. [Decision Framework](#decision-framework)
-11. [Quick Reference: All 15 Cards](#quick-reference-all-15-cards)
-12. [Auto-Invocation Triggers](#auto-invocation-triggers)
-13. [Common Syntax Errors](#common-syntax-errors)
-14. [Phase Checklist](#phase-checklist)
-15. [Detailed Card Information](#detailed-card-information)
-16. [Troubleshooting Guide](#troubleshooting-guide)
+8. [Game End Conditions](#game-end-conditions)
+9. [Supply Piles](#supply-piles)
+10. [Common Mistakes & Recovery](#common-mistakes--recovery)
+11. [Decision Framework](#decision-framework)
+12. [Quick Reference: All 15 Cards](#quick-reference-all-15-cards)
+13. [Auto-Invocation Triggers](#auto-invocation-triggers)
+14. [Common Syntax Errors](#common-syntax-errors)
+15. [Phase Checklist](#phase-checklist)
+16. [Detailed Card Information](#detailed-card-information)
+17. [Troubleshooting Guide](#troubleshooting-guide)
 
 ## Game Flow: Three Phase Turn Structure
 
@@ -66,6 +67,49 @@ Some action cards provide "+1 action", meaning you can play another action card:
 - Market (+1 card, +1 action, +1 buy, +1 coin): Utility card
 
 The "action" resource is crucial for playing multiple powerful cards.
+
+## Phase-Specific Moves (CRITICAL RULES)
+
+**⚠️ Each phase allows ONLY certain moves. Violating this causes "Invalid move" errors.**
+
+### Action Phase
+**What you CAN do**:
+- Play action cards (if you have actions available)
+- End phase to move to Buy phase
+
+**What you CANNOT do**:
+- ❌ Play treasures (wrong phase - they go in Buy phase)
+- ❌ Buy cards (wrong phase - buying happens in Buy phase)
+
+**Example commands**:
+- `play_action Village` (correct in action phase)
+- `end` (ends action phase, moves to buy phase)
+
+### Buy Phase
+**What you CAN do**:
+- Play treasure cards to generate coins
+- Buy cards from supply (costs coins you generated)
+- End phase to move to Cleanup phase
+
+**What you CANNOT do**:
+- ❌ Play action cards (wrong phase - they go in Action phase)
+- ❌ Attempt buys without enough coins
+
+**Example commands**:
+- `play_treasure all` (fastest - plays all treasures)
+- `play_treasure Copper` (plays specific treasure)
+- `buy Silver` (purchases from supply)
+- `end` (ends buy phase, moves to cleanup)
+
+### Cleanup Phase
+**What you CAN do**:
+- This phase auto-advances - no moves needed
+
+**Why no moves**: Cleanup automatically discards all cards and draws 5 new ones. No player choices in MVP.
+
+**Key Point**: If you see "Invalid move in cleanup phase", you sent a move when the phase auto-skipped. Just proceed with your next action on the new turn.
+
+---
 
 ## Command Reference
 
@@ -170,6 +214,39 @@ At game end, count all VP cards in your entire deck (hand + discard + deck). Hig
 
 **Strategy**: Early game you buy treasures (Copper, Silver, Gold) to increase buying power. Late game you buy VP cards (Estates, Duchies, Provinces).
 
+## Game End Conditions
+
+**⚠️ CRITICAL: The game ends IMMEDIATELY when either condition is met:**
+
+### Condition 1: Province Pile Empty
+- When the last Province card is bought, **the game ends instantly**
+- No more turns are played
+- Final scoring happens immediately
+- Province is the primary target for winning, so this is the most common end condition
+
+### Condition 2: Three Empty Piles
+- When **any 3 supply piles** reach 0 cards, **the game ends instantly**
+- This includes ALL card types: treasures, actions, and victory cards
+- Examples of 3-pile endings:
+  - Village pile empty + Smithy pile empty + Copper pile empty = GAME OVER
+  - Estate pile empty + Duchy pile empty + Silver pile empty = GAME OVER
+  - Copper pile empty + Silver pile empty + Gold pile empty = GAME OVER
+
+### Tracking Empty Piles
+- Count how many piles have 0 cards remaining
+- When you see "emptyPiles: 2" in logs, be aware the game is one empty pile away from ending
+- When you see "emptyPiles: 3" or "Province: 0", the game is over
+
+### Timing
+- The game check happens AFTER each move
+- If your buy depletes the 3rd pile or Province pile, the game ends immediately
+- No cleanup phase occurs on the final turn - scoring happens instantly
+
+### Strategy Implications
+- Late game: prioritize buying Provinces before they run out
+- Watch empty pile count - if at 2, avoid depleting another pile unless you're winning
+- "3-pile ending" can be used strategically to end game early when you're ahead
+
 ## Supply Piles
 
 The supply displays available cards to buy. Each card type has a pile with a limited number of cards (depends on game setup). When a pile reaches 0, it's empty.
@@ -254,6 +331,7 @@ This skill should be automatically injected when:
 2. **Phase confusion**: You ask "What phase am I in?" or try to do something in the wrong phase
 3. **Coin generation question**: You ask "How many coins do I have?" or seem confused about treasure mechanics
 4. **Card reference questions**: You ask "Can I play this?" or "What does this card do?"
+5. **Game end confusion**: You're unsure why the game ended, ask "Is the game over?", or don't understand win conditions
 
 When these triggers occur, review the relevant section above to reorient yourself.
 

@@ -155,6 +155,28 @@ export class GameExecuteTool {
       };
       if (reasoning) {
         logData.reasoning = reasoning;
+
+        // Validate reasoning accuracy for treasure plays (optional warning)
+        // Note: play_all_treasures is not a standard move type, so we check via the move string instead
+        if (move.toLowerCase().includes('play') && move.toLowerCase().includes('treasure') && reasoning.toLowerCase().includes('coin')) {
+          // Extract stated coin amount from reasoning (e.g., "= 9 coins")
+          const reasoningMatch = reasoning.match(/=\s*(\d+)\s*coins/i);
+          if (reasoningMatch) {
+            const statedCoins = parseInt(reasoningMatch[1]);
+            const player = result.newState?.players[result.newState.currentPlayer] || state.players[state.currentPlayer];
+            const actualCoins = player.coins || 0;
+
+            if (statedCoins !== actualCoins) {
+              this.logger?.warn('Reasoning mismatch - coin calculation', {
+                move,
+                turn: state.turnNumber,
+                statedCoins: statedCoins,
+                actualCoins: actualCoins,
+                reasoning: reasoning
+              });
+            }
+          }
+        }
       }
       this.logger?.info('Move executed', logData);
 
@@ -182,9 +204,96 @@ export class GameExecuteTool {
         });
       }
 
+      // Auto-skip cleanup phase (no player choices in MVP)
+      let finalStateAfterAutoSkip = result.newState || state;
+      if (finalStateAfterAutoSkip.phase === 'cleanup') {
+        const cleanupResult = this.gameEngine.executeMove(finalStateAfterAutoSkip, {
+          type: 'end_phase'
+        });
+
+        if (cleanupResult.success && cleanupResult.newState) {
+          finalStateAfterAutoSkip = cleanupResult.newState;
+
+          // Log cleanup auto-skip
+          this.logger?.info('Cleanup auto-skipped', {
+            turn: state.turnNumber,
+            reason: 'no_player_choices',
+            newPhase: finalStateAfterAutoSkip.phase,
+            newTurn: finalStateAfterAutoSkip.turnNumber
+          });
+
+          // Update response with final state (after cleanup auto-skip)
+          response.gameState = this.formatStateForAutoReturn(finalStateAfterAutoSkip);
+          response.validMoves = this.formatValidMovesForAutoReturn(finalStateAfterAutoSkip);
+          response.message = `${move} → Cleanup auto-skipped → ${finalStateAfterAutoSkip.phase} phase`;
+
+          // Log the cleanup-to-next-phase transition
+          this.logger?.info('Phase changed', {
+            from: 'cleanup',
+            to: finalStateAfterAutoSkip.phase,
+            turn: finalStateAfterAutoSkip.turnNumber,
+            autoSkipped: true
+          });
+
+          // Update server state with final state
+          this.setState(finalStateAfterAutoSkip);
+        }
+      }
+
+      // Log comprehensive turn state and economic tracking AFTER auto-skip
+      if (finalStateAfterAutoSkip.phase === 'action' && state.phase !== 'action') {
+        // Log full turn state snapshot at turn start
+        this.logTurnStartState(finalStateAfterAutoSkip);
+
+        // Logging turn start economy when entering action phase
+        const metrics = this.calculateEconomicMetrics(finalStateAfterAutoSkip);
+        this.logger?.info('Turn start economy', {
+          turn: finalStateAfterAutoSkip.turnNumber,
+          phase: 'action',
+          handComposition: metrics.handComposition,
+          handSize: metrics.handSize,
+          treasuresAvailable: metrics.treasuresInHand,
+          actionsAvailable: metrics.actionsInHand,
+          deckSize: metrics.deckSize
+        });
+      } else if (state.phase === 'buy' && (result.newState?.phase === 'cleanup' || finalStateAfterAutoSkip.phase === 'action')) {
+        // Logging turn end economy when buy phase ends (even if auto-skipped to action)
+        const beforeMetrics = this.calculateEconomicMetrics(state);
+        this.logger?.info('Turn buy phase summary', {
+          turn: state.turnNumber,
+          phase: 'buy',
+          buysAvailable: beforeMetrics.availableBuys,
+          coinsAvailable: beforeMetrics.availableCoins,
+          cardsBought: parsedMove.type === 'buy' ? [parsedMove.card] : [],
+          deckSize: beforeMetrics.deckSize
+        });
+      }
+
+      // Log game-end event if game is over
+      if (this.isGameOver(finalStateAfterAutoSkip)) {
+        const emptyPiles: string[] = [];
+        finalStateAfterAutoSkip.supply.forEach((quantity, cardName) => {
+          if (quantity === 0) {
+            emptyPiles.push(cardName);
+          }
+        });
+
+        const gameOverReason = finalStateAfterAutoSkip.supply.get('Province') === 0
+          ? 'Province pile empty'
+          : `${emptyPiles.length} supply piles empty`;
+
+        this.logger?.info('Game ended', {
+          turn: finalStateAfterAutoSkip.turnNumber,
+          phase: finalStateAfterAutoSkip.phase,
+          reason: gameOverReason,
+          emptyPiles: emptyPiles,
+          totalEmptyPileCount: emptyPiles.length
+        });
+      }
+
       // Include full state if requested (backward compatibility)
-      if (return_detail === 'full' && result.newState) {
-        response.state = result.newState;
+      if (return_detail === 'full') {
+        response.state = finalStateAfterAutoSkip;
       }
 
       return response;
@@ -594,6 +703,89 @@ export class GameExecuteTool {
   getMoveHistory(lastN?: number): typeof this.moveHistory {
     if (!lastN) return this.moveHistory;
     return this.moveHistory.slice(-lastN);
+  }
+
+  /**
+   * Log comprehensive turn state snapshot at turn start
+   */
+  private logTurnStartState(state: GameState) {
+    const player = state.players[state.currentPlayer];
+
+    // Collect supply pile counts
+    const supplyPiles: Record<string, number> = {};
+    state.supply.forEach((quantity, cardName) => {
+      supplyPiles[cardName] = quantity;
+    });
+
+    // Count empty piles (for win condition tracking)
+    const emptyPileCount = this.countEmptyPiles(state);
+
+    // Deck zone breakdown
+    const deckZones = {
+      drawPile: player.drawPile?.length || 0,
+      hand: player.hand?.length || 0,
+      inPlay: player.inPlay?.length || 0,
+      discardPile: player.discardPile?.length || 0,
+      total: (player.drawPile?.length || 0) +
+             (player.hand?.length || 0) +
+             (player.inPlay?.length || 0) +
+             (player.discardPile?.length || 0)
+    };
+
+    // Hand composition
+    const handComposition: Record<string, number> = {};
+    player.hand.forEach(card => {
+      handComposition[card] = (handComposition[card] || 0) + 1;
+    });
+
+    // Log comprehensive state
+    this.logger?.info('Turn start state', {
+      turn: state.turnNumber,
+      phase: state.phase,
+      supply: supplyPiles,
+      emptyPiles: emptyPileCount,
+      deck: deckZones,
+      hand: handComposition,
+      resources: {
+        actions: player.actions || 0,
+        buys: player.buys || 0,
+        coins: player.coins || 0
+      }
+    });
+  }
+
+  /**
+   * Calculate economic metrics for a game state
+   */
+  private calculateEconomicMetrics(state: GameState) {
+    const player = state.players[state.currentPlayer];
+
+    // Hand composition count (e.g., {Copper: 3, Silver: 2, Village: 1})
+    const handComposition: Record<string, number> = {};
+    player.hand.forEach(card => {
+      handComposition[card] = (handComposition[card] || 0) + 1;
+    });
+
+    // Count treasures and actions available
+    const treasuresInHand = player.hand.filter(card => isTreasureCard(card)).length;
+    const actionsInHand = player.hand.filter(card => isActionCard(card)).length;
+
+    // Deck size = drawPile + hand + inPlay + discardPile
+    const deckSize = (player.drawPile?.length || 0) +
+                     (player.hand?.length || 0) +
+                     (player.inPlay?.length || 0) +
+                     (player.discardPile?.length || 0);
+
+    return {
+      handComposition,
+      handSize: player.hand?.length || 0,
+      treasuresInHand,
+      actionsInHand,
+      deckSize,
+      availableActions: player.actions || 0,
+      availableBuys: player.buys || 0,
+      availableCoins: player.coins || 0
+    };
   }
 
   /**

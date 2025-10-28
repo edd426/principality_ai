@@ -10,12 +10,13 @@
 
 ## Executive Summary
 
-Phase 2.1 enhances Claude's Dominion gameplay capability by reducing confusion and improving decision quality through four focused features:
+Phase 2.1 enhances Claude's Dominion gameplay capability by reducing confusion and improving decision quality through three focused features:
 
 1. **Mechanics Skill**: Context-aware help documentation for game rules and command syntax
 2. **Strategy Skill**: Decision guidance and strategic frameworks for optimal play
 3. **Enhanced Tool Logging**: Comprehensive logging for debugging and performance analysis
-4. **E2E Automated Haiku Gameplay Tests**: Real Claude gameplay validation and regression testing
+
+*Note: E2E Haiku gameplay tests were initially planned but removed per testing audit best practices (non-deterministic, slow, expensive)*
 
 **Primary Goal**: Improve Claude's gameplay consistency and reduce mechanical errors through auto-invoked skills and detailed debugging support. Validate all features work end-to-end with real Claude API.
 
@@ -96,24 +97,6 @@ Phase 2.1 enhances Claude's Dominion gameplay capability by reducing confusion a
 
 **Success**: Any gameplay issue diagnosable from logs alone
 
-### Feature 4: E2E Automated Haiku Gameplay Tests
-
-**What**: Automated end-to-end tests using real Claude Haiku API to validate Phase 2.1 features:
-- 8-10 gameplay tests measuring skill effectiveness
-- Mechanics Skill validation (error recovery, coin generation, phase transitions)
-- Strategy Skill validation (economic progression, consistency, game wins)
-- Logging Infrastructure validation (completeness, reconstruction accuracy)
-
-**How**: Run via `npm test` with CLAUDE_API_KEY environment variable
-
-**Tests**:
-- E2E4.1-4.3: Mechanics Skill tests (3 tests)
-- E2E4.4-4.6: Strategy Skill tests (3 tests)
-- E2E4.7-4.8: Logging Infrastructure tests (2 tests)
-
-**Success**: All tests pass with real Claude, cost < $0.50, no aspirational expectations
-
----
 
 ## Feature Details
 
@@ -294,14 +277,6 @@ LOG_FORMAT=json|text                # Default: json
 - Unit tests validate log schema and formatting
 - Integration tests validate logging middleware integration
 
-**Feature 4: E2E Automated Haiku Gameplay Tests**
-- All 8-10 tests pass consistently (95%+ pass rate)
-- Total suite cost < $0.50, cost tracking accurate
-- No aspirational expectations (based on real Haiku behavior)
-- Tests measure all Phase 2.1 features end-to-end
-- Regression testing validates no feature breakage
-- Metrics baseline established for Phase 2.2 comparison
-
 ---
 
 ## Relationship to Roadmap
@@ -312,14 +287,11 @@ LOG_FORMAT=json|text                # Default: json
 - Phase 2.0: "Claude can play games" (basic functionality)
 - Phase 2.1: "Claude plays well" (improved capability)
 
-**Phase 2.1 → 2.2**: Enhancement to Measurement (Future)
-- Phase 2.1: Skills + logging (supports improvement)
-- Phase 2.2: Session recorder + analytics (measures improvement)
-
-**Phase 2.1 → Phase 3**: Foundation for Multiplayer
+**Phase 2.1 → Phase 3**: Enhancement to Multiplayer
 - Skills improve Claude's autonomous play (reusable in Phase 3)
 - Logging infrastructure supports AI opponent benchmarking
 - Strategy framework scales to multiple players
+- Comprehensive logs enable gameplay analysis without separate analytics phase
 
 ---
 
@@ -330,12 +302,9 @@ LOG_FORMAT=json|text                # Default: json
 | Feature 1: Mechanics Skill | 3-4h | 1-1.5h | 1h | 5-6.5h |
 | Feature 2: Strategy Skill | 3-4h | 1-1.5h | 1h | 5-6.5h |
 | Feature 3: Enhanced Logging | 2-2.5h | 0.5-1h | 0.5h | 3-3.5h |
-| Feature 4: E2E Haiku Tests | 0.5-1h | 0.5-1h* | 0.5h | 1-2h |
-| **Total** | **8.5-11.5h** | **3.5-5.5h** | **3.5h** | **15-20h** |
+| **Total** | **8-10.5h** | **3-4h** | **2.5h** | **21-27h** |
 
-*E2E tests run automatically via CI/CD; automation cost not included in time estimate (automation runs parallel to other work)
-
-**Adjustment from previous 13-17h estimate**: +2-3h for Feature 4 E2E tests and integration
+**Note**: Feature 4 (E2E Haiku Tests) removed per testing audit best practices
 
 ---
 
