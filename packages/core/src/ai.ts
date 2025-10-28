@@ -1,6 +1,5 @@
 import { GameState, Move, CardName } from './types';
-import { getCard, isActionCard, isTreasureCard, isVictoryCard } from './cards';
-import { SeededRandom } from './utils';
+import { getCard, isActionCard, isTreasureCard } from './cards';
 
 export interface AIDecision {
   move: Move;
@@ -8,12 +7,8 @@ export interface AIDecision {
 }
 
 export class RulesBasedAI {
-  private random: SeededRandom;
-  private seed: string;
-
-  constructor(seed: string) {
-    this.seed = seed;
-    this.random = new SeededRandom(seed);
+  constructor(_seed: string) {
+    // Seed parameter reserved for future use (deterministic decisions)
   }
 
   /**
@@ -43,7 +38,7 @@ export class RulesBasedAI {
     }
   }
 
-  private decideActionPhase(gameState: GameState, playerIndex: number, player: any): AIDecision {
+  private decideActionPhase(_gameState: GameState, _playerIndex: number, player: any): AIDecision {
     // Strategy: Village > Smithy > other actions > end_phase
     const actionCards = player.hand.filter((card: CardName) => isActionCard(card));
 
@@ -78,7 +73,7 @@ export class RulesBasedAI {
     };
   }
 
-  private decideBuyPhase(gameState: GameState, playerIndex: number, player: any): AIDecision {
+  private decideBuyPhase(gameState: GameState, playerIndex: number, _player: any): AIDecision {
     const player_state = gameState.players[playerIndex];
 
     // First, check if we should play treasures to increase coins
