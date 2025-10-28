@@ -94,6 +94,31 @@ The "action" resource is crucial for playing multiple powerful cards.
 
 **Recommendation**: Use `play 0` for simplicity. System auto-detects the card type and handles it correctly.
 
+### Batch Commands (Acceleration) - ⚡ Fastest Approach
+
+**Batch Treasure Command (R2.1-ACC Feature)**
+- **Syntax**: `play_treasure all` (plays ALL treasures in hand at once)
+- **Usage**: Ultra-efficient way to play treasures in Buy phase
+- **Example**: Hand = [Copper, Copper, Silver, Silver, Gold] → `play_treasure all` → 10 coins instantly
+- **Valid in**: Buy phase ONLY (error in Action phase)
+- **Performance**: 5 treasures play in <2 seconds (vs 30-40 seconds if played individually)
+- **Why use it**: Dramatically faster gameplay, automatic correct coin calculation
+
+**When to Use Batch Commands**:
+- ✅ Buy phase treasures - **ALWAYS use `play_treasure all`** (fastest & easiest)
+- ✅ All treasures in hand get played together (no need to select individually)
+- ✅ Automatic coin calculation (no mental math required)
+
+**Example Turn Flow (Fastest)**:
+```
+1. game_observe → see initial state
+2. play_treasure all → all treasures played, coins calculated
+3. buy Province → your purchase executed
+4. end → turn complete
+```
+
+**Important**: Do NOT use `play_action all` - actions must be played individually in strategic order (e.g., Village before Smithy).
+
 ### Buy Command
 - **Syntax**: `buy CardName` (card name must match exactly)
 - **Usage**: Used in Buy phase to buy cards from supply

@@ -42,7 +42,7 @@ export interface GameState {
 }
 
 export interface Move {
-  type: 'play_action' | 'play_treasure' | 'buy' | 'end_phase' | 'discard_for_cellar';
+  type: 'play_action' | 'play_treasure' | 'play_all_treasures' | 'buy' | 'end_phase' | 'discard_for_cellar';
   card?: CardName;
   cards?: ReadonlyArray<CardName>;
 }

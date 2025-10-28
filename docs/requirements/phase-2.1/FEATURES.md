@@ -8,14 +8,16 @@
 
 ## Feature Overview
 
-Phase 2.1 implements 4 focused features to enhance Claude's Dominion gameplay:
+Phase 2.1 implements 5 focused features to enhance Claude's Dominion gameplay:
 
 1. **Feature 1**: Dominion Mechanics Skill (5-6.5 hours) - Rules reference and syntax help
 2. **Feature 2**: Dominion Strategy Skill (5-6.5 hours) - Decision guidance and strategy frameworks
-3. **Feature 3**: Enhanced Tool Logging (3-3.5 hours) - Comprehensive debugging and performance tracking
-4. **Feature 4**: E2E Automated Haiku Gameplay Tests (1-2 hours) - Real Claude gameplay validation
+3. **Feature R2.0-NEW**: Game End Detection (2-3 hours) - Critical bug fix for game-over detection
+4. **Feature R2.1-ACC**: AI Gameplay Acceleration (6 hours) - Batch commands and auto-return state
+5. **Feature 3**: Enhanced Tool Logging (3-3.5 hours) - Comprehensive debugging and performance tracking
+6. **Feature 4**: E2E Automated Haiku Gameplay Tests (1-2 hours) - Real Claude gameplay validation
 
-**Total Effort**: 15-20 hours (4 features, integrated testing and documentation)
+**Total Effort**: 23-29 hours (6 features, integrated testing and documentation)
 
 ---
 
@@ -530,6 +532,203 @@ function isGameOver(state: GameState): boolean {
 - Use same detection logic in game-observe.ts and game-execute.ts (consistency)
 - Error message includes actionable next step (user guidance)
 - Logging captures game-over blocks for debugging
+
+---
+
+## Feature R2.1-ACC: AI Gameplay Acceleration
+
+**Estimated Effort**: 6 hours (3h implementation + 2h testing + 1h documentation)
+**Test Count**: 20 tests (10 unit + 6 integration + 4 E2E)
+**Priority**: HIGH - Critical for AI gameplay performance
+
+### Description
+
+Fix critical AI gameplay inefficiencies identified in October 28, 2025 session analysis:
+- AI wastes 60-90 seconds in turns 5-6 (vs 15-20s normal) making 20+ redundant treasure-playing attempts
+- Buy phase takes 30-40 seconds for 5 treasures (5-8s per card)
+- AI makes redundant moves due to stale state (no awareness of what was already played)
+- Manual `game_observe` calls between every move waste time and tokens
+
+**Solution**: Implement batch treasure command + auto-return state system.
+
+**Files Modified**:
+- `packages/mcp-server/src/tools/game-execute.ts` - Add batch parsing, auto-return state
+- `.claude/skills/dominion-mechanics/SKILL.md` - Document batch syntax and efficiency
+- `.claude/skills/dominion-strategy/SKILL.md` - Add action card strategy and speed tips
+
+**Files Created**:
+- Updated test files with batch command and auto-return coverage
+
+### Problem Statement (From October 28 Session)
+
+**Observed Issues**:
+1. **Treasure Playing Confusion** (Turn 5-6):
+   - AI played 5 treasures successfully
+   - Then tried to replay same 5 treasures → all failed
+   - Then tried AGAIN → all failed again
+   - 20+ redundant move attempts in 2 turns
+
+2. **Slow Buy Phase**:
+   - 5 treasures = 30-40 seconds total
+   - Each treasure: observe (2-3s) + decide (3-5s) + execute (1-2s) = 6-10s
+   - Sequential play wastes time
+
+3. **Manual Observe Calls**:
+   - AI called `game_observe` after each move
+   - 10-15 extra API calls per game
+   - State already available in move response
+
+**Root Cause**: AI doesn't track which cards were already played within turn, and lacks batch operations for common patterns.
+
+### Functional Requirements
+
+**FR-ACC.1: Batch Treasure Command**
+- Command: `play_treasure all`
+- Plays ALL treasure cards in hand at once
+- Only works in Buy phase (error in Action phase)
+- Returns total coins generated in response
+- Example: Hand [Copper, Copper, Silver, Silver, Gold] → `play_treasure all` → 10 coins
+
+**FR-ACC.2: Auto-Return State After Moves**
+- Every `game_execute` call returns updated game state automatically
+- Response includes: `{success, message, gameState, validMoves, gameOver}`
+- gameState uses "standard" detail level (balance of info/tokens)
+- Failed moves also return current state (enables recovery)
+
+**FR-ACC.3: Skills Documentation**
+- Mechanics Skill: Document `play_treasure all` syntax and when to use
+- Mechanics Skill: Explain auto-returned state pattern
+- Strategy Skill: Encourage action card purchase AND play (for testing coverage)
+- Strategy Skill: Add efficiency tips (batch commands, no redundant observes)
+
+**FR-ACC.4: No Action Card Batching**
+- Explicitly NO `play_action all` command
+- Reason: Action order matters (Village before Smithy vs after)
+- AI must play actions individually in strategic order
+
+### Technical Specification
+
+**Batch Command Parsing** (game-execute.ts):
+```typescript
+// Pattern: play_treasure all
+if (lowerInput.match(/^play_treasure\s+all$/)) {
+  return {
+    type: 'play_all_treasures',
+    original: input
+  };
+}
+```
+
+**Batch Execution**:
+1. Filter hand for all treasure cards
+2. Validate current phase is Buy (error if Action)
+3. Play each treasure sequentially
+4. Return total coins generated
+
+**Auto-Return State**:
+- After successful move: Call internal observe logic, return gameState
+- After failed move: Return current gameState for recovery
+- Include validMoves array (what AI can do next)
+- Include gameOver flag (already implemented in R2.0-NEW)
+
+**Response Schema**:
+```json
+{
+  "success": true,
+  "message": "Played 5 treasure(s) → 8 coins",
+  "gameState": {
+    "currentPhase": "buy",
+    "players": [...],
+    "supply": {...}
+    // ... (standard detail level)
+  },
+  "validMoves": ["buy Silver", "buy Gold", "buy Province", "end"],
+  "gameOver": false
+}
+```
+
+### Acceptance Criteria
+
+**AC-ACC.1: Batch Command Functionality**
+- `play_treasure all` plays all treasures in hand correctly
+- Coins calculated accurately (sum of all treasure values)
+- Hand reduced by number of treasures played
+- Phase validation prevents use in Action phase
+- Error when no treasures in hand
+
+**AC-ACC.2: Auto-Return State Accuracy**
+- gameState in response matches `game_observe("standard")` output
+- State updates reflect the move just executed
+- Failed moves return current state (not stale)
+- validMoves array is accurate for current state
+
+**AC-ACC.3: Performance Improvements**
+- Buy phase with 5 treasures: <2 seconds (vs 30-40s baseline)
+- Full AI game: ≤3 minutes (vs 5 min baseline)
+- Zero redundant treasure-playing attempts (vs 20+ baseline)
+- 50% reduction in API calls (no manual observes)
+
+**AC-ACC.4: Skills Quality**
+- Mechanics Skill documents `play_treasure all` with examples
+- Mechanics Skill explains auto-returned state pattern
+- Strategy Skill encourages action card play (50%+ of games)
+- Strategy Skill includes efficiency tips
+
+**AC-ACC.5: Action Card Strategy**
+- Strategy Skill recommends buying Village/Smithy early (turns 2-4)
+- Clear guidance on when to buy vs skip actions
+- Action cards tested via AI gameplay (50%+ of E2E games)
+
+### Edge Cases
+
+**EC-ACC.1: No Treasures in Hand**
+- Command: `play_treasure all`
+- Hand: [Village, Smithy, Estate]
+- Response: `{success: false, message: "No treasures in hand to play"}`
+
+**EC-ACC.2: Batch in Wrong Phase**
+- Command: `play_treasure all` in Action phase
+- Response: `{success: false, message: "Cannot play treasures in Action phase (use 'end' to move to Buy phase)"}`
+
+**EC-ACC.3: Mixed Hand**
+- Hand: [Village, Copper, Copper, Silver, Estate]
+- Command: `play_treasure all`
+- Result: Plays only Copper + Copper + Silver (3 cards) → 5 coins
+
+**EC-ACC.4: State After Failed Move**
+- Command: Invalid move (e.g., "buy Province" with 3 coins)
+- Response includes current gameState for recovery
+- AI can use returned state to make corrected decision
+
+### Expected Impact
+
+**Performance Gains**:
+- Buy phase: 30-40s → 3-5s (87% reduction)
+- Full game: 5 min → 2-3 min (50% reduction)
+- Failed moves: 20+ → 0 (100% reduction)
+- API calls: 40-50 → 20-25 (50% reduction)
+
+**Token Efficiency**:
+- Eliminated manual observe calls save ~30-40% tokens
+- Larger execute responses offset by fewer total API calls
+- Net token savings: ~30% per game
+
+**AI Behavior**:
+- Confusion eliminated (always sees current state)
+- Decision speed faster (batch reduces decision fatigue)
+- Strategic quality maintained (skills still guide decisions)
+
+**Testing Benefits**:
+- Action cards tested in 50%+ of games (via strategy updates)
+- Multi-action chains validated (Village → Smithy)
+- Better coverage of game mechanics
+
+### Implementation Notes
+
+- Batch command reuses existing `play_treasure` parsing logic
+- Auto-return state calls internal `formatGameStateForObserve()` function
+- Response size increase: ~200-300 tokens per move (offset by fewer calls)
+- No breaking changes to existing commands (backward compatible)
 
 ---
 

@@ -40,14 +40,23 @@ export class GameExecuteTool {
 
     // Check if game is over (before parsing move)
     if (this.isGameOver(state)) {
-      this.logger?.warn('Move attempted after game end', { move, turn: state.turnNumber });
+      const gameOverReason = this.getGameOverReason(state);
+      this.logger?.warn('Move blocked - game over', {
+        move,
+        turn: state.turnNumber,
+        phase: state.phase,
+        gameOverReason: gameOverReason,
+        attemptedAfterGameEnd: true,
+        provinceCount: state.supply.get('Province') || 0,
+        emptyPilesCount: this.countEmptyPiles(state)
+      });
       return {
         success: false,
         error: {
           message: 'Game is over. Use game_session(command="new") to start a new game.',
           suggestion: 'The game has ended due to Province pile empty or 3+ piles depleted. Start a fresh game with game_session(command="new").',
           details: {
-            gameOverReason: this.getGameOverReason(state)
+            gameOverReason: gameOverReason
           }
         }
       };
@@ -71,7 +80,16 @@ export class GameExecuteTool {
     const isValid = this.isMoveValid(parsedMove, validMoves);
 
     if (!isValid) {
-      this.logger?.warn('Invalid move attempted', { move, phase: state.phase, moveType: parsedMove.type });
+      // Determine reason for rejection (for logging)
+      const rejection = this.analyzeRejectionReason(parsedMove, validMoves, state);
+
+      this.logger?.warn('Invalid move attempted', {
+        move,
+        phase: state.phase,
+        moveType: parsedMove.type,
+        reason: rejection.reason,
+        details: rejection.details
+      });
       return {
         success: false,
         error: {
@@ -85,18 +103,31 @@ export class GameExecuteTool {
       };
     }
 
+    // Handle batch treasure playing specially
+    if (parsedMove.type === 'play_all_treasures') {
+      return this.executeBatchTreasures(move, state, reasoning);
+    }
+
     // Execute move
     try {
       const result = this.gameEngine.executeMove(state, parsedMove);
 
       if (!result.success) {
         this.logger?.error('Move execution failed', { move, error: result.error });
+
+        // Auto-return current state even on failure (for recovery)
+        const gameState = this.formatStateForAutoReturn(state);
+        const validMoves = this.formatValidMovesForAutoReturn(state);
+
         return {
           success: false,
           error: {
             message: result.error || 'Move execution failed.',
             suggestion: 'Try using game_observe() to see valid moves.'
-          }
+          },
+          gameState: gameState,
+          validMoves: validMoves,
+          gameOver: gameState.gameOver
         };
       }
 
@@ -126,10 +157,18 @@ export class GameExecuteTool {
       }
       this.logger?.info('Move executed', logData);
 
-      // Return response
+      // Auto-return game state and valid moves
+      const finalState = result.newState || state;
+      const gameState = this.formatStateForAutoReturn(finalState);
+      const validMoves = this.formatValidMovesForAutoReturn(finalState);
+
+      // Return response with auto-returned state
       const response: GameExecuteResponse = {
         success: true,
-        message: `Executed: ${move}`
+        message: `Executed: ${move}`,
+        gameState: gameState,
+        validMoves: validMoves,
+        gameOver: gameState.gameOver
       };
 
       // Check if phase changed
@@ -142,7 +181,7 @@ export class GameExecuteTool {
         });
       }
 
-      // Include full state if requested
+      // Include full state if requested (backward compatibility)
       if (return_detail === 'full' && result.newState) {
         response.state = result.newState;
       }
@@ -160,6 +199,118 @@ export class GameExecuteTool {
         }
       };
     }
+  }
+
+  /**
+   * Execute batch treasure playing - play all treasures in hand at once
+   */
+  private async executeBatchTreasures(
+    originalMove: string,
+    state: GameState,
+    reasoning?: string
+  ): Promise<GameExecuteResponse> {
+    const player = state.players[state.currentPlayer];
+
+    // Validate phase
+    if (state.phase !== 'buy') {
+      const gameState = this.formatStateForAutoReturn(state);
+      const validMoves = this.formatValidMovesForAutoReturn(state);
+
+      return {
+        success: false,
+        error: {
+          message: 'Cannot play treasures in Action phase.',
+          suggestion: 'Use "end" to move to Buy phase first, then play treasures.'
+        },
+        gameState: gameState,
+        validMoves: validMoves,
+        gameOver: gameState.gameOver
+      };
+    }
+
+    // Get all treasure cards from hand
+    const treasures = player.hand.filter(card => isTreasureCard(card));
+
+    if (treasures.length === 0) {
+      const gameState = this.formatStateForAutoReturn(state);
+      const validMoves = this.formatValidMovesForAutoReturn(state);
+
+      return {
+        success: false,
+        error: {
+          message: 'No treasures in hand to play.',
+          suggestion: 'Use "buy CARD" to make a purchase or "end" to move to cleanup phase.'
+        },
+        gameState: gameState,
+        validMoves: validMoves,
+        gameOver: gameState.gameOver
+      };
+    }
+
+    // Execute each treasure sequentially
+    let currentState = state;
+    let successCount = 0;
+    const treasuresPlayed: string[] = [];
+
+    for (const treasure of treasures) {
+      const treasureMove: Move = {
+        type: 'play_treasure',
+        card: treasure
+      };
+
+      const result = this.gameEngine.executeMove(currentState, treasureMove);
+
+      if (result.success && result.newState) {
+        currentState = result.newState;
+        successCount++;
+        treasuresPlayed.push(treasure);
+      } else {
+        this.logger?.warn('Batch treasure play: individual treasure failed', {
+          treasure,
+          error: result.error
+        });
+      }
+    }
+
+    // Update server state with final state
+    this.setState(currentState);
+
+    // Log successful batch move
+    this.moveHistory.push({
+      turn: state.turnNumber,
+      move: originalMove,
+      success: true,
+      timestamp: new Date().toISOString()
+    });
+
+    // Log to file
+    const logData: any = {
+      move: originalMove,
+      turn: state.turnNumber,
+      phase: state.phase,
+      moveType: 'play_all_treasures',
+      treasuresPlayed: treasuresPlayed,
+      treasureCount: successCount,
+      coinsGenerated: currentState.players[currentState.currentPlayer].coins
+    };
+    if (reasoning) {
+      logData.reasoning = reasoning;
+    }
+    this.logger?.info('Batch treasures executed', logData);
+
+    // Auto-return game state and valid moves
+    const gameState = this.formatStateForAutoReturn(currentState);
+    const validMoves = this.formatValidMovesForAutoReturn(currentState);
+
+    // Return success response with auto-returned state
+    const coins = currentState.players[currentState.currentPlayer].coins;
+    return {
+      success: true,
+      message: `Played ${successCount} treasure(s) → ${coins} coins`,
+      gameState: gameState,
+      validMoves: validMoves,
+      gameOver: gameState.gameOver
+    };
   }
 
   private parseMove(moveStr: string, state: GameState): Move | null {
@@ -204,6 +355,13 @@ export class GameExecuteTool {
         };
       }
       return null;
+    }
+
+    // Parse "play_treasure all" - batch play all treasures
+    if (trimmed === 'play_treasure all' || trimmed === 'play treasure all') {
+      return {
+        type: 'play_all_treasures'
+      };
     }
 
     // Parse "play_treasure CARD" or "play treasure CARD"
@@ -253,6 +411,117 @@ export class GameExecuteTool {
     return validMoves.some(vm =>
       vm.type === move.type && vm.card === move.card
     );
+  }
+
+  /**
+   * Analyze why a move was rejected (for detailed logging)
+   * Returns reason and details for diagnostics
+   */
+  private analyzeRejectionReason(
+    move: Move,
+    validMoves: Move[],
+    state: GameState
+  ): { reason: string; details: any } {
+    const moveType = move.type;
+    const validOfType = validMoves.filter(m => m.type === moveType);
+
+    // Check if there are NO valid moves of this type
+    if (validOfType.length === 0) {
+      if (moveType === 'buy') {
+        const player = state.players[state.currentPlayer];
+        return {
+          reason: 'No valid purchases available',
+          details: {
+            playerCoins: player.coins || 0,
+            cardCost: move.card ? this.getCardCost(move.card) : null,
+            availableCards: Array.from(state.supply.keys()).slice(0, 5)
+          }
+        };
+      }
+      if (moveType === 'play_action') {
+        return {
+          reason: 'No valid action plays available',
+          details: { wrongPhase: state.phase !== 'action' }
+        };
+      }
+      if (moveType === 'play_treasure') {
+        return {
+          reason: 'No valid treasure plays available',
+          details: { phase: state.phase }
+        };
+      }
+    }
+
+    // Move type has valid options but this specific card/move is not valid
+    if (moveType === 'buy' && move.card) {
+      const player = state.players[state.currentPlayer];
+      const cardCost = this.getCardCost(move.card);
+      if (cardCost && player.coins! < cardCost) {
+        return {
+          reason: 'Insufficient coins',
+          details: {
+            playerCoins: player.coins,
+            cardCost: cardCost,
+            deficit: cardCost - (player.coins || 0)
+          }
+        };
+      }
+      if (!state.supply.has(move.card)) {
+        return {
+          reason: 'Card not in supply',
+          details: { card: move.card }
+        };
+      }
+      if (state.supply.get(move.card) === 0) {
+        return {
+          reason: 'Card pile empty',
+          details: { card: move.card }
+        };
+      }
+    }
+
+    if ((moveType === 'play_action' || moveType === 'play_treasure') && move.card) {
+      const player = state.players[state.currentPlayer];
+      if (!player.hand.includes(move.card)) {
+        return {
+          reason: 'Card not in hand',
+          details: { card: move.card, handSize: player.hand.length }
+        };
+      }
+    }
+
+    return {
+      reason: 'Unknown rejection reason',
+      details: { moveType, card: move.card }
+    };
+  }
+
+  /**
+   * Get cost of a card (simplified - real implementation would use card definitions)
+   */
+  private getCardCost(cardName: string | undefined): number | null {
+    if (!cardName) return null;
+
+    const cardCosts: { [key: string]: number } = {
+      'Copper': 0,
+      'Silver': 3,
+      'Gold': 6,
+      'Estate': 2,
+      'Duchy': 5,
+      'Province': 8,
+      'Village': 3,
+      'Smithy': 4,
+      'Market': 5,
+      'Militia': 4,
+      'Cellar': 2,
+      'Workshop': 3,
+      'Remodel': 4,
+      'Chapel': 2,
+      'Throne Room': 4,
+      'Woodcutter': 3
+    };
+
+    return cardCosts[cardName] || null;
   }
 
   private generateSuggestion(move: Move, validMoves: Move[], state: GameState): string {
@@ -361,5 +630,60 @@ export class GameExecuteTool {
     }
 
     return 'Unknown game end condition';
+  }
+
+  /**
+   * Count empty piles in supply
+   */
+  private countEmptyPiles(state: GameState): number {
+    let emptyPiles = 0;
+    state.supply.forEach(quantity => {
+      if (quantity === 0) emptyPiles++;
+    });
+    return emptyPiles;
+  }
+
+  /**
+   * Format state for auto-return (similar to "standard" detail level in game_observe)
+   */
+  private formatStateForAutoReturn(state: GameState): any {
+    const activePlayer = state.players[state.currentPlayer];
+    const gameOverFlag = this.isGameOver(state);
+
+    // Group hand by card name
+    const groupedHand: Record<string, number> = {};
+    activePlayer.hand.forEach(cardName => {
+      groupedHand[cardName] = (groupedHand[cardName] || 0) + 1;
+    });
+
+    return {
+      phase: state.phase,
+      turnNumber: state.turnNumber,
+      activePlayer: state.currentPlayer,
+      hand: groupedHand,
+      currentCoins: activePlayer.coins || 0,
+      currentActions: activePlayer.actions || 0,
+      currentBuys: activePlayer.buys || 0,
+      gameOver: gameOverFlag
+    };
+  }
+
+  /**
+   * Format valid moves for auto-return
+   */
+  private formatValidMovesForAutoReturn(state: GameState): string[] {
+    const validMoves = this.gameEngine.getValidMoves(state);
+    return validMoves.map(move => {
+      if (move.type === 'play_action') {
+        return `play_action ${move.card}`;
+      } else if (move.type === 'play_treasure') {
+        return `play_treasure ${move.card}`;
+      } else if (move.type === 'buy') {
+        return `buy ${move.card}`;
+      } else if (move.type === 'end_phase') {
+        return 'end';
+      }
+      return move.type;
+    });
   }
 }

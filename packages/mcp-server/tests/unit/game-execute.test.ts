@@ -524,4 +524,300 @@ describe('Feature 3: game_execute and game_session Tools', () => {
       expect(true).toBe(true);
     });
   });
+
+  describe('UT-ACC: AI Gameplay Acceleration (R2.1-ACC)', () => {
+    let buyPhaseState: any;
+
+    beforeEach(() => {
+      // Setup Buy phase state with mixed treasures
+      buyPhaseState = {
+        phase: 'buy' as const,
+        turnNumber: 5,
+        currentPlayer: 0,
+        players: [{
+          hand: ['Copper', 'Copper', 'Silver', 'Silver', 'Gold'],
+          inPlay: [],
+          discardPile: [],
+          drawPile: [],
+          actions: 0,
+          buys: 1,
+          coins: 0
+        }],
+        supply: new Map([
+          ['Copper', 46],
+          ['Silver', 30],
+          ['Gold', 30],
+          ['Province', 8]
+        ]),
+        seed: 'test-seed',
+        gameLog: []
+      };
+    });
+
+    // UT-ACC.1: Batch command parsing
+    test('UT-ACC.1: Parse "play_treasure all" correctly', async () => {
+      // @req: Parse batch treasure command
+      // @input: Command "play_treasure all"
+      // @output: Move type = 'play_all_treasures'
+      // @assert: Command parsed successfully
+      // @level: Unit
+
+      mockGetState.mockReturnValue(buyPhaseState);
+      mockGameEngine.getValidMoves.mockReturnValue([
+        { type: 'play_treasure', card: 'Copper' },
+        { type: 'play_treasure', card: 'Silver' },
+        { type: 'buy', card: 'Province' }
+      ]);
+      mockGameEngine.executeMove.mockReturnValue({
+        success: true,
+        newState: { ...buyPhaseState, players: [{ ...buyPhaseState.players[0], coins: 10 }] }
+      });
+
+      const response = await tool.execute({ move: 'play_treasure all' });
+
+      expect(response.success).toBe(true);
+      expect(response.message).toContain('treasure(s)');
+      expect(response.gameState).toBeDefined();
+      expect(response.validMoves).toBeDefined();
+    });
+
+    // UT-ACC.2: Case insensitive parsing
+    test('UT-ACC.2: Parse batch command with various cases', async () => {
+      // @req: Case insensitive batch command
+      // @input: "PLAY_TREASURE ALL", "Play_Treasure All"
+      // @output: All parse correctly
+      // @assert: Case variations all work
+      // @level: Unit
+
+      mockGetState.mockReturnValue(buyPhaseState);
+      mockGameEngine.getValidMoves.mockReturnValue([]);
+      mockGameEngine.executeMove.mockReturnValue({
+        success: true,
+        newState: buyPhaseState
+      });
+
+      const response1 = await tool.execute({ move: 'PLAY_TREASURE ALL' });
+      const response2 = await tool.execute({ move: 'Play_Treasure All' });
+
+      expect(response1.success).toBe(true);
+      expect(response2.success).toBe(true);
+    });
+
+    // UT-ACC.3: Batch execution - all treasures played
+    test('UT-ACC.3: Play all treasures in hand correctly', async () => {
+      // @req: Batch command plays all treasures
+      // @input: Hand = [Copper, Copper, Silver, Silver, Gold]
+      // @output: All 5 treasures played, coins = 10
+      // @assert: Success message, correct coin count
+      // @level: Unit
+
+      mockGetState.mockReturnValue(buyPhaseState);
+      mockGameEngine.getValidMoves.mockReturnValue([]);
+
+      const finalState = {
+        ...buyPhaseState,
+        players: [{
+          ...buyPhaseState.players[0],
+          hand: [],
+          coins: 10
+        }]
+      };
+
+      mockGameEngine.executeMove.mockReturnValue({
+        success: true,
+        newState: finalState
+      });
+
+      const response = await tool.execute({ move: 'play_treasure all' });
+
+      expect(response.success).toBe(true);
+      expect(response.message).toContain('5 treasure(s)');
+      expect(response.message).toContain('10 coins');
+      expect(response.gameState.currentCoins).toBe(10);
+    });
+
+    // UT-ACC.4: Error when no treasures in hand
+    test('UT-ACC.4: Error when no treasures in hand', async () => {
+      // @req: Error message when batch play has no treasures
+      // @input: Hand = [Village, Estate] (no treasures)
+      // @output: Error returned
+      // @assert: success = false, helpful error message
+      // @level: Unit
+
+      const noTreasureState = {
+        ...buyPhaseState,
+        players: [{
+          hand: ['Village', 'Estate'],
+          inPlay: [],
+          discardPile: [],
+          drawPile: [],
+          actions: 0,
+          buys: 1,
+          coins: 0
+        }]
+      };
+
+      mockGetState.mockReturnValue(noTreasureState);
+      mockGameEngine.getValidMoves.mockReturnValue([]);
+
+      const response = await tool.execute({ move: 'play_treasure all' });
+
+      expect(response.success).toBe(false);
+      expect(response.error?.message).toContain('No treasures');
+      expect(response.gameState).toBeDefined();
+      expect(response.validMoves).toBeDefined();
+    });
+
+    // UT-ACC.5: Error when wrong phase
+    test('UT-ACC.5: Error when batch play in wrong phase', async () => {
+      // @req: Cannot play treasures in Action phase
+      // @input: "play_treasure all" in Action phase
+      // @output: Error returned
+      // @assert: success = false, suggestion to move to Buy phase
+      // @level: Unit
+
+      const actionPhaseState = {
+        ...buyPhaseState,
+        phase: 'action' as const
+      };
+
+      mockGetState.mockReturnValue(actionPhaseState);
+      mockGameEngine.getValidMoves.mockReturnValue([]);
+
+      const response = await tool.execute({ move: 'play_treasure all' });
+
+      expect(response.success).toBe(false);
+      expect(response.error?.message).toContain('Action phase');
+      expect(response.error?.suggestion).toContain('end');
+      expect(response.gameState).toBeDefined();
+    });
+
+    // UT-ACC.6: Batch with mixed hand
+    test('UT-ACC.6: Only treasures played, other cards remain', async () => {
+      // @req: Batch play filters only treasures
+      // @input: Hand = [Village, Copper, Silver, Estate, Gold]
+      // @output: 3 treasures played (Copper, Silver, Gold)
+      // @assert: Non-treasures stay in hand
+      // @level: Unit
+
+      const mixedHand = {
+        ...buyPhaseState,
+        players: [{
+          ...buyPhaseState.players[0],
+          hand: ['Village', 'Copper', 'Silver', 'Estate', 'Gold']
+        }]
+      };
+
+      mockGetState.mockReturnValue(mixedHand);
+      mockGameEngine.getValidMoves.mockReturnValue([]);
+
+      const finalState = {
+        ...mixedHand,
+        players: [{
+          ...mixedHand.players[0],
+          hand: ['Village', 'Estate'],
+          coins: 6
+        }]
+      };
+
+      mockGameEngine.executeMove.mockReturnValue({
+        success: true,
+        newState: finalState
+      });
+
+      const response = await tool.execute({ move: 'play_treasure all' });
+
+      expect(response.success).toBe(true);
+      expect(response.message).toContain('3 treasure(s)');
+      expect(response.message).toContain('6 coins');
+    });
+
+    // UT-ACC.7: Auto-return state on success
+    test('UT-ACC.7: Successful move returns gameState', async () => {
+      // @req: Auto-return state in response
+      // @input: Valid move execution
+      // @output: Response includes gameState + validMoves + gameOver
+      // @assert: All fields present and correctly formatted
+      // @level: Unit
+
+      mockGetState.mockReturnValue(buyPhaseState);
+      mockGameEngine.getValidMoves.mockReturnValue([
+        { type: 'buy', card: 'Province' },
+        { type: 'end_phase', card: undefined }
+      ]);
+
+      const newState = {
+        ...buyPhaseState,
+        players: [{
+          ...buyPhaseState.players[0],
+          coins: 3
+        }]
+      };
+
+      mockGameEngine.executeMove.mockReturnValue({
+        success: true,
+        newState
+      });
+
+      const response = await tool.execute({ move: 'buy Copper' });
+
+      expect(response.success).toBe(true);
+      expect(response.gameState).toBeDefined();
+      expect(response.gameState.phase).toBe('buy');
+      expect(response.gameState.currentCoins).toBe(3);
+      expect(response.validMoves).toBeInstanceOf(Array);
+      expect(response.gameOver).toBe(false);
+    });
+
+    // UT-ACC.8: Auto-return state on failure
+    test('UT-ACC.8: Failed move returns current state for recovery', async () => {
+      // @req: Even failed moves return state
+      // @input: Invalid move attempt
+      // @output: Response includes state despite failure
+      // @assert: success = false, gameState present
+      // @level: Unit
+
+      mockGetState.mockReturnValue(buyPhaseState);
+      mockGameEngine.getValidMoves.mockReturnValue([]);
+
+      const response = await tool.execute({ move: 'buy Province', reasoning: 'I have coins' });
+
+      expect(response.success).toBe(false);
+      expect(response.error).toBeDefined();
+      expect(response.gameState).toBeDefined();
+      expect(response.validMoves).toBeDefined();
+      expect(response.gameState.currentCoins).toBe(0);
+    });
+
+    // UT-ACC.9: Response schema validation
+    test('UT-ACC.10: Response includes all required fields', async () => {
+      // @req: Consistent response schema
+      // @input: Execute any move
+      // @output: Response with all required fields
+      // @assert: success, message, gameState, validMoves, gameOver present
+      // @level: Unit
+
+      mockGetState.mockReturnValue(buyPhaseState);
+      mockGameEngine.getValidMoves.mockReturnValue([
+        { type: 'end_phase', card: undefined }
+      ]);
+      mockGameEngine.executeMove.mockReturnValue({
+        success: true,
+        newState: buyPhaseState
+      });
+
+      const response = await tool.execute({ move: 'end' });
+
+      expect(response.success).toBeDefined();
+      expect(typeof response.success).toBe('boolean');
+      expect(response.message).toBeDefined();
+      expect(typeof response.message).toBe('string');
+      expect(response.gameState).toBeDefined();
+      expect(typeof response.gameState).toBe('object');
+      expect(response.validMoves).toBeDefined();
+      expect(Array.isArray(response.validMoves)).toBe(true);
+      expect(response.gameOver).toBeDefined();
+      expect(typeof response.gameOver).toBe('boolean');
+    });
+  });
 });

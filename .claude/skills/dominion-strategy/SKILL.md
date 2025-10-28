@@ -80,13 +80,30 @@ Treasures compound exponentially. Province scarcity drives VP urgency.
 - **Duchy** (5 cost, 3 VP): When Province unavailable in late game
 - **Province** (8 cost, 6 VP): Primary late-game buy
 
-### Action Cards (Usually Skip)
-- **Village** (3 cost): +1 card, +2 actions → **AVOID EARLY** - only useful with Smithy
-- **Smithy** (4 cost): +3 cards → Conditional, needs action cards to synergize
-- **Market** (5 cost): +1 card, +1 action, +1 buy, +1 coin → Rare good option
-- **Woodcutter** (3 cost): +1 buy, +1 coin → Situationally useful for +buy
-- **Workshop** (3 cost): Gains cards → Conditional, depends on setup
-- **Cellar** (2 cost): +1 action → Usually skip
+### Action Cards (Optional But Encouraged for Testing)
+
+**Important**: Pure Big Money (ignoring actions) is a valid winning strategy. However, buying and playing action cards creates variety and tests game mechanics.
+
+**Recommended Action Cards to Try**:
+- **Village** (3 cost): +1 card, +2 actions → **BUY EARLY** (turns 2-4) when available
+  - Why: Enables playing Smithy + other actions in same turn
+  - Play before: Always play Village FIRST, then Smithy (Village gives actions to play Smithy)
+  - Testing value: Tests action chaining and multi-action turns
+
+- **Smithy** (4 cost): +3 cards → **EXCELLENT with Village**
+  - Why: Draw 3 extra cards means more coins + treasures for that turn
+  - Synergy: Village → Smithy creates powerful turns
+  - Testing value: Tests card draw mechanics and multi-card interactions
+
+- **Market** (5 cost): +1 card, +1 action, +1 buy, +1 coin → **STRONG mid-game**
+  - Why: All stats useful (+buy means 2 purchases in one turn)
+  - Can replace treasures: Better long-term than Silver
+  - Testing value: Tests +buy mechanic
+
+**Skip (Too Complex for MVP)**:
+- **Woodcutter** (3 cost): +1 buy, +1 coin → Similar to Market but worse
+- **Workshop** (3 cost): Gains cards → Conditional, complex decision
+- **Cellar** (2 cost): +1 action → Weak alone
 - **Remodel** (4 cost): Complex sifting → Skip for simplicity
 - **Militia** (4 cost): Attack card → Skip in solo play
 - **Throne Room** (4 cost): Complex card → Skip for simplicity
@@ -302,3 +319,82 @@ Decision depends on game state and your economy. Master the fundamentals first!
 - Endgame signals? Buy VP only
 
 This mental checklist helps you make consistent strategic decisions that win games.
+
+## Action Card Strategy & Testing (R2.1-ACC)
+
+**Goal**: Develop diverse gameplay while testing action mechanics
+
+### When to Buy Action Cards
+
+**Turn 2-4: Early Action Buying (Optional)**
+- If you have 3+ coins available
+- Buy Village to enable future action chains
+- Don't skip Silver entirely - balance is key
+
+**Turn 5-8: Compound with Smithy**
+- Now buy Smithy if you have Village
+- Village → Smithy combo in same turn = powerful engine
+- This tests multi-action turn mechanics
+
+**Turn 9+: Market Consideration**
+- Market (+1 buy) is worth buying late game
+- Enables buying 2 cards per turn
+- Tests +buy mechanic
+
+### Action Card Play Order (IMPORTANT)
+
+**When you have multiple actions**:
+1. **Play Village FIRST** (gives +2 actions)
+2. **Then play Smithy** (use the actions from Village)
+3. **Then any Market** (uses remaining action)
+
+Example: Village → Smithy → Market = 4 extra cards drawn + all benefits
+
+**Why order matters**: Village must be played first to generate actions for other cards.
+
+### Testing Coverage Goals
+
+**Aim for action card play in ≥50% of games**:
+- Tests Village mechanics (action generation)
+- Tests Smithy mechanics (card draw)
+- Tests Market mechanics (+buy)
+- Tests multi-action turn handling
+
+### Pure Big Money Still Wins
+
+Important note: You can win WITHOUT buying any action cards. Big Money (treasures + VP only) is a valid strategy. Action cards are for:
+- Gaining variety
+- Testing game mechanics
+- Exploring deck-building
+- Learning card synergies
+
+## Efficiency Tips (Batch Commands & State Management)
+
+**Buy Phase Acceleration** (R2.1-ACC Feature):
+- Use `play_treasure all` to play all treasures at once
+- Automatically calculates coins
+- 5 treasures: <2 seconds (vs 30-40 seconds individually)
+- Makes gameplay 40-50% faster
+
+**Trust Auto-Returned State**:
+- After every move, the game returns updated state
+- No need to call `game_observe` between moves
+- Always know: phase, hand, coins, actions, buys, valid moves
+- More efficient decision-making
+
+**Efficient Turn Flow**:
+```
+1. game_observe → see initial turn
+2. play_action Village (if available)
+3. play_action Smithy (if available + have actions)
+4. end → move to Buy phase (auto-return shows coins available)
+5. play_treasure all → plays all treasures instantly
+6. buy Province (if coins ≥ 8) or Silver (early) or VP (late)
+7. end → turn complete (auto-return shows next turn state)
+```
+
+**Speed Tips**:
+- Use batch commands when available
+- Trust the auto-returned state
+- Don't hesitate with decisions - just execute
+- The system will show valid moves to guide your next action

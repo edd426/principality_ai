@@ -383,6 +383,290 @@ All tests include structured tags:
 
 ---
 
+## Feature R2.1-ACC: AI Gameplay Acceleration (20 tests)
+
+### Unit Tests (10 tests)
+
+**UT-ACC.1: Batch Command Parsing - play_treasure all**
+```typescript
+// @req: Parse "play_treasure all" correctly
+// @input: Command string "play_treasure all"
+// @output: Parsed move type = 'play_all_treasures'
+// @assert: type === 'play_all_treasures'
+// @assert: original command preserved
+// @level: Unit
+```
+
+**UT-ACC.2: Batch Command Parsing - Case Insensitive**
+```typescript
+// @req: Batch command works regardless of case
+// @input: "play_treasure ALL", "PLAY_TREASURE all", "Play_Treasure All"
+// @output: All parse to type = 'play_all_treasures'
+// @assert: Case variations all parsed correctly
+// @level: Unit
+```
+
+**UT-ACC.3: Batch Execution - All Treasures Played**
+```typescript
+// @req: Batch command plays all treasures in hand
+// @input: Hand = [Copper, Copper, Silver, Silver, Gold]
+// @output: All 5 treasures played, coins = 10
+// @assert: Hand reduced by 5 cards
+// @assert: Coins = 10 (1+1+2+2+3+1)
+// @assert: Success message includes "5 treasure(s) → 10 coins"
+// @level: Unit
+```
+
+**UT-ACC.4: Batch Execution - No Treasures Error**
+```typescript
+// @req: Error when no treasures in hand
+// @input: Hand = [Village, Smithy, Estate]
+// @output: Error: "No treasures in hand to play"
+// @assert: success = false
+// @assert: Error message clear and actionable
+// @level: Unit
+```
+
+**UT-ACC.5: Batch Execution - Wrong Phase Error**
+```typescript
+// @req: Cannot play treasures in Action phase
+// @input: Command "play_treasure all" in Action phase
+// @output: Error: "Cannot play treasures in Action phase"
+// @assert: success = false
+// @assert: Suggestion to use "end" to move to Buy phase
+// @level: Unit
+```
+
+**UT-ACC.6: Batch Execution - Mixed Hand**
+```typescript
+// @req: Only treasures played, other cards remain
+// @input: Hand = [Village, Copper, Silver, Estate, Gold]
+// @output: 3 treasures played (Copper, Silver, Gold), 2 cards remain
+// @assert: Hand = [Village, Estate] after execution
+// @assert: Coins = 6 (1+2+3)
+// @level: Unit
+```
+
+**UT-ACC.7: Auto-Return State - Successful Move**
+```typescript
+// @req: Successful move returns game state
+// @input: Execute valid move "play_treasure Copper"
+// @output: Response includes gameState object
+// @assert: gameState.currentPhase defined
+// @assert: gameState.players array present
+// @assert: validMoves array present
+// @assert: gameOver boolean present
+// @level: Unit
+```
+
+**UT-ACC.8: Auto-Return State - Failed Move**
+```typescript
+// @req: Failed move returns current state for recovery
+// @input: Execute invalid move "buy Province" with 3 coins
+// @output: Response includes current gameState despite failure
+// @assert: success = false
+// @assert: gameState present and accurate
+// @assert: validMoves shows correct options
+// @level: Unit
+```
+
+**UT-ACC.9: Auto-Return State Matches observe()**
+```typescript
+// @req: Auto-returned state matches game_observe("standard")
+// @input: Execute move, capture auto-returned state
+// @output: Call game_observe("standard"), compare states
+// @assert: Both states are deeply equal
+// @assert: No fields missing or different
+// @level: Unit
+```
+
+**UT-ACC.10: Response Schema Validation**
+```typescript
+// @req: Response includes all required fields
+// @input: Execute any valid move
+// @output: Response object with success, message, gameState, validMoves, gameOver
+// @assert: success is boolean
+// @assert: message is non-empty string
+// @assert: gameState is object with required fields
+// @assert: validMoves is array
+// @assert: gameOver is boolean
+// @level: Unit
+```
+
+### Integration Tests (6 tests)
+
+**IT-ACC.1: Full Turn with Batch Treasures**
+```typescript
+// @req: Complete Buy phase using batch treasure command
+// @input: Action phase → "end" → Buy phase → "play_treasure all" → buy → "end"
+// @output: Turn completes successfully
+// @assert: All treasures played in single command
+// @assert: Buy executes with correct coin count
+// @assert: Turn transitions to next turn correctly
+// @level: Integration
+```
+
+**IT-ACC.2: No Manual game_observe Needed**
+```typescript
+// @req: AI can play full turn without calling game_observe between moves
+// @input: Sequence of moves using only auto-returned state
+// @output: All moves execute successfully
+// @assert: Zero explicit game_observe calls
+// @assert: AI has sufficient state information from execute responses
+// @assert: Move validity 100%
+// @level: Integration
+```
+
+**IT-ACC.3: Batch Performance < 2 Seconds**
+```typescript
+// @req: Batch treasure play completes quickly
+// @input: Hand with 5 treasures, execute "play_treasure all"
+// @output: Command completes in < 2 seconds
+// @assert: Duration < 2000ms
+// @assert: All treasures processed correctly
+// @assert: No performance degradation vs individual plays
+// @level: Integration
+```
+
+**IT-ACC.4: State Consistency Across Moves**
+```typescript
+// @req: Auto-returned state stays consistent across multiple moves
+// @input: Execute 5 moves in sequence, track state changes
+// @output: State updates correctly after each move
+// @assert: Turn number increments appropriately
+// @assert: Phase transitions accurate
+// @assert: Hand/deck changes reflected correctly
+// @level: Integration
+```
+
+**IT-ACC.5: Action Card Integration**
+```typescript
+// @req: Action cards play individually (no batch), work with auto-return state
+// @input: Turn with Village → Smithy sequence
+// @output: Both actions execute correctly using auto-returned state
+// @assert: Village played first (+2 actions)
+// @assert: Smithy played second using remaining action
+// @assert: Cards drawn correctly
+// @level: Integration
+```
+
+**IT-ACC.6: Recovery from Failed Move**
+```typescript
+// @req: AI recovers from failed move using auto-returned state
+// @input: Attempt invalid move, receive error + state
+// @output: AI uses returned state to correct and retry
+// @assert: Failed move returns current state
+// @assert: Next move attempt is valid
+// @assert: Recovery within 2 moves
+// @level: Integration
+```
+
+### E2E Tests (4 tests)
+
+**E2E-ACC.1: Full AI Game with Batch Commands ≤ 3 Minutes**
+```typescript
+// @req: AI completes game using batch commands in ≤ 3 minutes
+// @input: Full game from start to finish
+// @output: Game completes successfully
+// @assert: Game duration ≤ 180 seconds
+// @assert: AI uses "play_treasure all" in 80%+ of Buy phases
+// @assert: Zero redundant move attempts
+// @assert: Game reaches win condition
+// @level: E2E
+// @cost: $0.08-0.10 (Haiku model)
+// @duration: ≤ 3 minutes target
+```
+
+**E2E-ACC.2: Zero Redundant Moves**
+```typescript
+// @req: AI makes no redundant treasure-playing attempts
+// @input: Full game session with move logging
+// @output: Log analysis shows zero "already played" errors
+// @assert: Redundant move count = 0 (baseline was 20+)
+// @assert: No "card not in hand" errors for recently played cards
+// @assert: Confusion rate = 0%
+// @level: E2E
+// @cost: $0.08-0.10
+// @duration: 2-3 minutes
+```
+
+**E2E-ACC.3: Action Card Play Rate ≥ 50%**
+```typescript
+// @req: AI plays action cards in ≥ 50% of games (testing coverage)
+// @input: Run 4 games with kingdom cards [Village, Smithy, Market]
+// @output: Action card play statistics
+// @assert: Action cards purchased in ≥ 50% of games
+// @assert: Action cards played (not just bought)
+// @assert: Multi-action chains demonstrated (Village → Smithy)
+// @level: E2E
+// @cost: $0.32-0.40 (4 games)
+// @duration: 10-15 minutes total
+```
+
+**E2E-ACC.4: API Call Reduction 50%**
+```typescript
+// @req: Auto-return state reduces API calls by ~50%
+// @input: Full game with move counting
+// @output: API call statistics
+// @assert: Total API calls ≤ 25 (baseline was 40-50)
+// @assert: Zero explicit game_observe calls between moves
+// @assert: Token efficiency improved (fewer calls despite larger responses)
+// @level: E2E
+// @cost: $0.08-0.10
+// @duration: 2-3 minutes
+```
+
+### Performance Benchmarks
+
+| Metric | Baseline (Oct 28) | Target (R2.1-ACC) | Measurement |
+|--------|-------------------|-------------------|-------------|
+| Buy phase (5 treasures) | 30-40 seconds | < 2 seconds | IT-ACC.3 |
+| Full game duration | 5 minutes | ≤ 3 minutes | E2E-ACC.1 |
+| Redundant moves | 20+ per game | 0 per game | E2E-ACC.2 |
+| API calls per game | 40-50 | ≤ 25 | E2E-ACC.4 |
+| Turn 5-6 duration | 60-90 seconds | 15-25 seconds | E2E-ACC.1 analysis |
+
+### Edge Case Coverage
+
+**Tested Edge Cases**:
+- EC-ACC.1: No treasures in hand (UT-ACC.4)
+- EC-ACC.2: Batch in wrong phase (UT-ACC.5)
+- EC-ACC.3: Mixed hand (actions + treasures) (UT-ACC.6)
+- EC-ACC.4: Failed move recovery (UT-ACC.8, IT-ACC.6)
+- EC-ACC.5: State consistency across phase transitions (IT-ACC.4)
+- EC-ACC.6: Action card individual play (IT-ACC.5)
+
+### Test Tags for R2.1-ACC
+
+All R2.1-ACC tests include:
+```typescript
+// @feature: R2.1-ACC
+// @category: Acceleration | Performance | State-Management
+// @req: FR-ACC.1 | FR-ACC.2 | FR-ACC.3 | FR-ACC.4
+// @edge: EC-ACC.1 through EC-ACC.6
+// @baseline: October 28, 2025 session analysis
+```
+
+### Success Criteria
+
+**Functional**:
+✅ `play_treasure all` plays all treasures correctly (UT-ACC.1-6)
+✅ Auto-returned state matches observe output (UT-ACC.9)
+✅ Failed moves return recovery state (UT-ACC.8)
+✅ No explicit observe calls needed (IT-ACC.2)
+
+**Performance**:
+✅ Buy phase < 2 seconds for 5 treasures (IT-ACC.3)
+✅ Full game ≤ 3 minutes (E2E-ACC.1)
+✅ Zero redundant moves (E2E-ACC.2)
+✅ 50% API call reduction (E2E-ACC.4)
+
+**Testing Coverage**:
+✅ Action cards played in 50%+ of games (E2E-ACC.3)
+✅ Multi-action chains validated (IT-ACC.5)
+
+---
+
 ## Feature 3: Enhanced Tool Logging (15 tests)
 
 ### Unit Tests (5 tests)

@@ -56,6 +56,18 @@ export class GameObserveTool {
     // Check game end condition (needed for all detail levels)
     const gameOverFlag = this.isGameOver(state);
 
+    // Log game-over detection for diagnostics
+    if (gameOverFlag) {
+      this.logger?.warn('Game over detected', {
+        turn: state.turnNumber,
+        phase: state.phase,
+        gameOverReason: this.getGameOverReason(state),
+        provinceCount: state.supply.get('Province') || 0,
+        emptyPilesCount: this.countEmptyPiles(state),
+        victoryPoints: this.calculateVP(state.players[state.currentPlayer])
+      });
+    }
+
     // Build response based on detail level
     const response: GameObserveResponse = {
       success: true,
@@ -218,6 +230,37 @@ export class GameObserveTool {
 
     const provincesEmpty = state.supply.get('Province') === 0;
     return provincesEmpty || emptyPiles >= 3;
+  }
+
+  private countEmptyPiles(state: GameState): number {
+    let emptyPiles = 0;
+    state.supply.forEach(quantity => {
+      if (quantity === 0) emptyPiles++;
+    });
+    return emptyPiles;
+  }
+
+  /**
+   * Get human-readable reason why game ended
+   */
+  private getGameOverReason(state: GameState): string {
+    const provincesEmpty = state.supply.get('Province') === 0;
+    if (provincesEmpty) {
+      return 'Province pile is empty';
+    }
+
+    let emptyPiles: string[] = [];
+    state.supply.forEach((quantity, cardName) => {
+      if (quantity === 0) {
+        emptyPiles.push(cardName);
+      }
+    });
+
+    if (emptyPiles.length >= 3) {
+      return `${emptyPiles.length} supply piles are empty: ${emptyPiles.slice(0, 3).join(', ')}${emptyPiles.length > 3 ? ' and more' : ''}`;
+    }
+
+    return 'Unknown game end condition';
   }
 
   clearCache(): void {

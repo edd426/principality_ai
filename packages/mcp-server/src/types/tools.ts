@@ -44,6 +44,10 @@ export interface GameExecuteResponse {
   phaseChanged?: string;
   message?: string;
   state?: any;
+  // R2.1-ACC: Auto-return state fields (always included)
+  gameState?: any; // Current game state (standard detail level)
+  validMoves?: string[]; // Available move commands for next action
+  gameOver?: boolean; // Game end status flag
   error?: {
     message: string;
     suggestion?: string;
