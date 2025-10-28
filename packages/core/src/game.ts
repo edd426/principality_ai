@@ -71,8 +71,8 @@ export class GameEngine {
         return this.playActionCard(state, move.card);
 
       case 'play_treasure':
-        if (state.phase !== 'action' && state.phase !== 'buy') {
-          throw new Error('Cannot play treasures outside action or buy phase');
+        if (state.phase !== 'buy') {
+          throw new Error('Can only play treasures during buy phase');
         }
         if (!move.card) {
           throw new Error('Must specify card to play');
@@ -427,12 +427,6 @@ export class GameEngine {
             moves.push({ type: 'play_action', card });
           });
         }
-
-        // Can play treasure cards anytime (even in action phase)
-        const treasureCards = player.hand.filter(card => isTreasureCard(card));
-        treasureCards.forEach(card => {
-          moves.push({ type: 'play_treasure', card });
-        });
 
         // Can always end action phase
         moves.push({ type: 'end_phase' });
