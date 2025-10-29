@@ -38,7 +38,7 @@ describe('GameEngine', () => {
 
   test('should play action cards correctly', () => {
     const state = engine.initializeGame(1);
-    
+
     // Manually set hand to include Village
     const modifiedState: GameState = {
       ...state,
@@ -50,22 +50,25 @@ describe('GameEngine', () => {
     };
 
     const result = engine.executeMove(modifiedState, { type: 'play_action', card: 'Village' });
-    
+
+    // STRENGTHENED: Move the assertion outside the if - result must succeed
     expect(result.success).toBe(true);
     expect(result.newState).toBeDefined();
-    
-    if (result.newState) {
-      const player = result.newState.players[0];
-      expect(player.actions).toBe(2); // Started with 1, spent 1, gained 2 = 2
-      expect(player.hand).toHaveLength(5); // Removed Village, drew 1 card
-      expect(player.inPlay).toContain('Village');
-      expect(player.hand).not.toContain('Village');
-    }
+    expect(result.error).toBeUndefined(); // No errors on success
+
+    // Must have a new state for all assertions
+    const newState = result.newState!;
+    const player = newState.players[0];
+
+    expect(player.actions).toBe(2); // Started with 1, spent 1, gained 2 = 2
+    expect(player.hand).toHaveLength(5); // Removed Village, drew 1 card
+    expect(player.inPlay).toContain('Village');
+    expect(player.hand).not.toContain('Village');
   });
 
   test('should handle treasure playing in buy phase', () => {
     const state = engine.initializeGame(1);
-    
+
     // Move to buy phase with copper in hand
     const buyPhaseState: GameState = {
       ...state,
@@ -79,19 +82,24 @@ describe('GameEngine', () => {
     };
 
     const result = engine.executeMove(buyPhaseState, { type: 'play_treasure', card: 'Silver' });
-    
+
+    // STRENGTHENED: Success must be guaranteed for test to proceed
     expect(result.success).toBe(true);
-    if (result.newState) {
-      const player = result.newState.players[0];
-      expect(player.coins).toBe(2);
-      expect(player.inPlay).toContain('Silver');
-      expect(player.hand).not.toContain('Silver');
-    }
+    expect(result.newState).toBeDefined();
+    expect(result.error).toBeUndefined();
+
+    const newState = result.newState!;
+    const player = newState.players[0];
+
+    expect(player.coins).toBe(2); // Silver gives +2 coins
+    expect(player.inPlay).toContain('Silver');
+    expect(player.hand).not.toContain('Silver');
+    expect(player.hand).toHaveLength(4); // 5 - 1 (Silver played)
   });
 
   test('should handle card purchases', () => {
     const state = engine.initializeGame(1);
-    
+
     // Set up buy phase with enough coins
     const buyPhaseState: GameState = {
       ...state,
@@ -105,17 +113,19 @@ describe('GameEngine', () => {
     };
 
     const result = engine.executeMove(buyPhaseState, { type: 'buy', card: 'Smithy' });
-    
+
+    // STRENGTHENED: Verify purchase succeeded with specific assertions
     expect(result.success).toBe(true);
-    if (result.newState) {
-      const player = result.newState.players[0];
-      expect(player.coins).toBe(0); // 4 - 4 = 0
-      expect(player.buys).toBe(0);
-      expect(player.discardPile).toContain('Smithy');
-      
-      // Check supply decreased
-      expect(result.newState.supply.get('Smithy')).toBe(9);
-    }
+    expect(result.newState).toBeDefined();
+
+    const newState = result.newState!;
+    const player = newState.players[0];
+
+    expect(player.coins).toBe(0); // 4 - 4 = 0 (Smithy costs 4)
+    expect(player.buys).toBe(0); // 1 - 1 = 0
+    expect(player.discardPile).toContain('Smithy'); // Card goes to discard
+    expect(newState.supply.get('Smithy')).toBe(9); // Supply decreased from 10
+    expect(buyPhaseState.supply.get('Smithy')).toBe(10); // Original unchanged
   });
 
   test('should handle phase transitions', () => {
@@ -204,7 +214,11 @@ describe('GameEngine', () => {
 
     const buyMoves = engine.getValidMoves(buyPhaseState);
     expect(buyMoves).toContainEqual({ type: 'end_phase' });
-    expect(buyMoves.some(move => move.type === 'buy')).toBe(true);
+
+    // STRENGTHENED: Be explicit about buy moves available
+    const buyMovesAvailable = buyMoves.filter(move => move.type === 'buy');
+    expect(buyMovesAvailable.length).toBeGreaterThan(0);
+    expect(buyMovesAvailable.some(move => move.card)).toBe(true);
   });
 
   test('should handle Cellar card discard and draw', () => {
@@ -224,27 +238,28 @@ describe('GameEngine', () => {
     // Play Cellar card first
     const cellarResult = engine.executeMove(modifiedState, { type: 'play_action', card: 'Cellar' });
     expect(cellarResult.success).toBe(true);
+    expect(cellarResult.newState).toBeDefined();
 
-    if (cellarResult.newState) {
-      const afterCellar = cellarResult.newState;
+    const afterCellar = cellarResult.newState!;
 
-      // Now discard 2 Estate cards
-      const discardResult = engine.executeMove(afterCellar, {
-        type: 'discard_for_cellar',
-        cards: ['Estate', 'Estate']
-      });
+    // Now discard 2 Estate cards
+    const discardResult = engine.executeMove(afterCellar, {
+      type: 'discard_for_cellar',
+      cards: ['Estate', 'Estate']
+    });
 
-      expect(discardResult.success).toBe(true);
-      if (discardResult.newState) {
-        const player = discardResult.newState.players[0];
+    // STRENGTHENED: Both moves must succeed
+    expect(discardResult.success).toBe(true);
+    expect(discardResult.newState).toBeDefined();
 
-        // Should have drawn 2 cards (same as discarded count)
-        expect(player.hand).toHaveLength(4); // Started with 4 after Cellar, discarded 2, drew 2
-        expect(player.hand).not.toContain('Estate'); // Estates should be discarded
-        expect(player.discardPile).toHaveLength(2); // 2 Estates discarded
-        expect(player.discardPile.filter(c => c === 'Estate')).toHaveLength(2);
-      }
-    }
+    const finalState = discardResult.newState!;
+    const player = finalState.players[0];
+
+    // Should have drawn 2 cards (same as discarded count)
+    expect(player.hand).toHaveLength(4); // Started with 4 after Cellar, discarded 2, drew 2
+    expect(player.hand).not.toContain('Estate'); // Estates should be discarded
+    expect(player.discardPile).toHaveLength(2); // 2 Estates discarded
+    expect(player.discardPile.filter(c => c === 'Estate')).toHaveLength(2);
   });
 
   test('should handle deck exhaustion and shuffle discard pile', () => {
@@ -264,22 +279,26 @@ describe('GameEngine', () => {
     // Play Smithy (draws 3 cards)
     const result = engine.executeMove(modifiedState, { type: 'play_action', card: 'Smithy' });
 
+    // STRENGTHENED: Verify successful execution
     expect(result.success).toBe(true);
-    if (result.newState) {
-      const player = result.newState.players[0];
+    expect(result.newState).toBeDefined();
 
-      // Should have drawn 3 cards total
-      expect(player.hand).toHaveLength(4); // Started with 2, removed Smithy, drew 3 = 4
+    const newState = result.newState!;
+    const player = newState.players[0];
 
-      // Deck should have remaining cards after shuffle
-      // Total: 2 starting hand + 2 deck + 4 discard = 8 cards
-      // After: 4 in hand, 1 in play area (Smithy), 3 remaining in deck/discard
-      const totalCards = player.drawPile.length + player.discardPile.length + player.hand.length + player.inPlay.length;
-      expect(totalCards).toBe(8); // All cards accounted for
+    // Should have drawn 3 cards total
+    expect(player.hand).toHaveLength(4); // Started with 2, removed Smithy, drew 3 = 4
 
-      // Discard should be empty or deck should have cards (shuffle occurred)
-      expect(player.drawPile.length + player.discardPile.length).toBeGreaterThan(0);
-    }
+    // Deck should have remaining cards after shuffle
+    // Total: 2 starting hand + 2 deck + 4 discard = 8 cards
+    // After: 4 in hand, 1 in play area (Smithy), 3 remaining in deck/discard
+    const totalCards = player.drawPile.length + player.discardPile.length + player.hand.length + player.inPlay.length;
+    expect(totalCards).toBe(8); // All cards accounted for
+
+    // Discard should be empty or deck should have cards (shuffle occurred)
+    expect(player.drawPile.length + player.discardPile.length).toBeGreaterThan(0);
+    expect(player.inPlay).toContain('Smithy'); // Smithy in play
+    expect(player.inPlay).toHaveLength(1);
   });
 
   test('should handle drawing more cards than available', () => {
@@ -299,15 +318,19 @@ describe('GameEngine', () => {
     // Play Council Room (tries to draw 4 cards, only 2 available)
     const result = engine.executeMove(modifiedState, { type: 'play_action', card: 'Council Room' });
 
+    // STRENGTHENED: Verify execution and card draw limits
     expect(result.success).toBe(true);
-    if (result.newState) {
-      const player = result.newState.players[0];
+    expect(result.newState).toBeDefined();
 
-      // Should draw all available cards (2) even though card says draw 4
-      expect(player.hand).toHaveLength(2); // Drew all available cards
-      expect(player.drawPile).toHaveLength(0);
-      expect(player.discardPile).toHaveLength(0);
-    }
+    const newState = result.newState!;
+    const player = newState.players[0];
+
+    // Should draw all available cards (2) even though card says draw 4
+    expect(player.hand).toHaveLength(2); // Drew all available cards
+    expect(player.drawPile).toHaveLength(0); // Deck exhausted
+    expect(player.discardPile).toHaveLength(0); // All cards in hand or play
+    expect(player.inPlay).toContain('Council Room');
+    expect(player.inPlay.filter(c => c === 'Council Room')).toHaveLength(1);
   });
 
   test('should validate playing treasures only in buy phase', () => {

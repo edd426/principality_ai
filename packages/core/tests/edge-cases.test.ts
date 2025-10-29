@@ -44,13 +44,18 @@ describe('Edge Cases and Boundary Conditions', () => {
       const supply = state.supply;
       const pileToTest = Array.from(supply.entries()).find(([name, count]) => count > 0);
 
+      // STRENGTHENED: Verify we have a test pile and check its state
+      expect(pileToTest).toBeDefined();
+
       if (pileToTest) {
         const [cardName, count] = pileToTest;
         expect(count).toBeGreaterThan(0);
 
-        // Supply should have at least the card
+        // Supply should have the card with its count
         const remaining = supply.get(cardName);
         expect(remaining).toBeDefined();
+        expect(remaining).toBeGreaterThan(0); // Explicitly verify count > 0
+        expect(remaining).toBeLessThanOrEqual(count); // Verify supply consistency
       }
     });
 
@@ -75,13 +80,18 @@ describe('Edge Cases and Boundary Conditions', () => {
         supply: newSupply
       };
 
-      // Verify pile is actually zero
+      // STRENGTHENED: Verify state and specific move availability
       expect(emptyState.supply.get('Province')).toBe(0);
 
       // Game should handle this gracefully
       const moves = engine.getValidMoves(emptyState);
       expect(moves).toBeDefined();
       expect(Array.isArray(moves)).toBe(true);
+      expect(moves.length).toBeGreaterThan(0); // Must have at least one valid move
+
+      // Verify Province is not available in moves
+      const provinceMove = moves.find(m => m.type === 'buy' && m.card === 'Province');
+      expect(provinceMove).toBeUndefined(); // Cannot buy from empty pile
     });
 
     /**
@@ -162,20 +172,31 @@ describe('Edge Cases and Boundary Conditions', () => {
       expect(state.phase).toBe('action');
 
       const moves = engine.getValidMoves(state);
-      const hasEndPhase = moves.some(m => m.type === 'end_phase');
+
+      // STRENGTHENED: Verify moves and explicit end_phase requirement
+      expect(moves.length).toBeGreaterThan(0);
 
       // Should always have end_phase option
-      expect(hasEndPhase).toBe(true);
+      const endPhaseMove = moves.find(m => m.type === 'end_phase');
+      expect(endPhaseMove).toBeDefined();
+      expect(endPhaseMove?.type).toBe('end_phase');
 
-      // Attempting random move shouldn't change phase
+      // Attempting random move shouldn't change phase implicitly
       if (moves.length > 0) {
         const move = moves[0];
         const result = engine.executeMove(state, move);
 
+        expect(result.success).toBe(true);
+        expect(result.newState).toBeDefined();
+
+        // Verify phase change is intentional
         if (result.success && result.newState) {
-          // If move succeeded, phase might change only via explicit end_phase
-          // Verify phase change is intentional (connected to that move)
           expect(result.newState.phase).toBeDefined();
+          // If not end_phase, should still be in action phase
+          if (move.type !== 'end_phase') {
+            // Phase might stay same or change based on move type
+            expect(['action', 'buy', 'cleanup']).toContain(result.newState.phase);
+          }
         }
       }
     });
@@ -271,10 +292,17 @@ describe('Edge Cases and Boundary Conditions', () => {
 
       const result = engine.executeMove(state, impossibleMove);
 
+      // STRENGTHENED: Verify both move result and state immutability
+      expect(result.success).toBe(false); // Invalid move should fail
+      expect(result.error).toBeDefined(); // Should have error message
+
       // Even if move executes, original state unchanged
       const afterSnapshot = JSON.stringify(state);
+      expect(afterSnapshot).toBe(stateSnapshot); // State must be immutable
 
-      expect(afterSnapshot).toBe(stateSnapshot);
+      // Verify state properties unchanged
+      expect(state.phase).toBe('action');
+      expect(state.players[0].hand).toBeDefined();
     });
 
     /**
@@ -293,20 +321,23 @@ describe('Edge Cases and Boundary Conditions', () => {
 
       const invalidResult = engine.executeMove(state, invalidMove);
 
-      // Original state should be unchanged
-      if (!invalidResult.success) {
-        state = state; // State unchanged
-      }
+      // STRENGTHENED: Verify invalid move fails properly
+      expect(invalidResult.success).toBe(false); // Invalid move should fail
+      expect(invalidResult.error).toBeDefined(); // Should have error
 
       // Should still be able to get valid moves
       const validMoves = engine.getValidMoves(state);
       expect(validMoves.length).toBeGreaterThan(0);
+      expect(Array.isArray(validMoves)).toBe(true);
 
       // Should be able to execute a valid move
-      if (validMoves.length > 0) {
-        const result = engine.executeMove(state, validMoves[0]);
-        expect(result.success || !result.success).toBe(true); // Either succeeds or fails gracefully
-      }
+      const move = validMoves[0];
+      const result = engine.executeMove(state, move);
+
+      // STRENGTHENED: Valid move must succeed
+      expect(result.success).toBe(true);
+      expect(result.newState).toBeDefined();
+      expect(result.newState?.players).toHaveLength(state.players.length);
     });
 
     /**
@@ -321,23 +352,35 @@ describe('Edge Cases and Boundary Conditions', () => {
       const initialMoveCount = engine.getValidMoves(state).length;
       expect(initialMoveCount).toBeGreaterThan(0);
 
+      const initialPhase = state.phase;
+      const initialTurnNumber = state.turnNumber;
+
       // Attempt multiple invalid moves
       const invalidMoves = [
         { type: 'buy', card: 'FakeCard' } as any,
-        { type: 'play_action', card: 'UnknownCard' } as any,
-        { type: 'end_phase' }
+        { type: 'play_action', card: 'UnknownCard' } as any
       ];
 
       invalidMoves.forEach(move => {
         const result = engine.executeMove(state, move);
         // Result can be success or failure, but shouldn't crash
         expect(result).toBeDefined();
+        // Invalid moves should fail
+        if (!['end_phase'].includes(move.type)) {
+          expect(result.success).toBe(false);
+        }
       });
 
-      // State should still be valid
+      // STRENGTHENED: Verify state consistency after all attempts
       const finalMoveCount = engine.getValidMoves(state).length;
       expect(finalMoveCount).toBeGreaterThan(0);
       expect(finalMoveCount).toBe(initialMoveCount); // Still same moves available
+
+      // Verify state integrity preserved
+      expect(state.phase).toBe(initialPhase); // Phase unchanged
+      expect(state.turnNumber).toBe(initialTurnNumber); // Turn unchanged
+      expect(state.players[0].hand).toBeDefined();
+      expect(state.players[0].actions).toBeGreaterThanOrEqual(0);
     });
   });
 
@@ -426,11 +469,18 @@ describe('Edge Cases and Boundary Conditions', () => {
 
       const validMoves = engine.getValidMoves(state);
 
-      // Should not have any play moves (no actions to spend)
-      const playMoves = validMoves.filter(m => m.type === 'play_action' || m.type === 'play_treasure');
+      // STRENGTHENED: Verify state and move constraints
+      expect(state.players[0].actions).toBe(0); // Verify zero actions
+      expect(validMoves.length).toBeGreaterThan(0); // Must have some valid move
+      expect(Array.isArray(validMoves)).toBe(true);
 
-      // With zero actions and standard hand, play moves should be unavailable
-      expect(Array.isArray(playMoves)).toBe(true);
+      // Should not have any action card plays (no actions to spend)
+      const actionPlayMoves = validMoves.filter(m => m.type === 'play_action');
+      expect(actionPlayMoves).toHaveLength(0); // No action plays allowed with 0 actions
+
+      // Should have end_phase available
+      const endPhaseMove = validMoves.find(m => m.type === 'end_phase');
+      expect(endPhaseMove).toBeDefined();
     });
 
     /**
@@ -489,14 +539,23 @@ describe('Edge Cases and Boundary Conditions', () => {
         ]
       };
 
+      // STRENGTHENED: Verify large hand state and game behavior
+      expect(state.players[0].hand).toHaveLength(50); // Verify hand size
+      expect(state.players[0].hand.every(c => c === 'Copper')).toBe(true); // All Copper
+
       // Should still be able to get valid moves
       const moves = engine.getValidMoves(state);
       expect(Array.isArray(moves)).toBe(true);
+      expect(moves.length).toBeGreaterThan(0); // Must have valid moves
 
-      // Game should not crash
+      // Game should not crash and should function properly
       expect(() => {
         engine.checkGameOver(state);
       }).not.toThrow();
+
+      // Should be able to execute moves even with large hand
+      const result = engine.executeMove(state, moves[0]);
+      expect(result).toBeDefined();
     });
   });
 });
