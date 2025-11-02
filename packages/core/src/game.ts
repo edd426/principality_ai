@@ -1435,6 +1435,14 @@ export class GameEngine {
     // Throne Room + Throne Room: play 4 times total (1 initial + 3 replays)
     // Move card back to hand and play again
     const updatedPlayer = newState.players[newState.currentPlayer];
+    if (!updatedPlayer) {
+      // This shouldn't happen, but return the state as-is if it does
+      return {
+        ...newState,
+        pendingEffect: newState.pendingEffect
+      };
+    }
+
     if (updatedPlayer.inPlay.includes(actionCard)) {
       // Determine how many times to replay the card (not counting initial play)
       const replayCount = isThroneRoomDouble ? 3 : 1;
