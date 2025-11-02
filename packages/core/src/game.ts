@@ -1443,9 +1443,12 @@ export class GameEngine {
         const currentPlayer = newState.players[newState.currentPlayer];
         const newInPlay = [...currentPlayer.inPlay];
         const inPlayIndex = newInPlay.lastIndexOf(actionCard);
-        if (inPlayIndex !== -1) {
-          newInPlay.splice(inPlayIndex, 1);
+        if (inPlayIndex === -1) {
+          // Card is no longer in inPlay, cannot continue replay
+          break;
         }
+
+        newInPlay.splice(inPlayIndex, 1);
 
         const newHand = [...currentPlayer.hand, actionCard];
 
