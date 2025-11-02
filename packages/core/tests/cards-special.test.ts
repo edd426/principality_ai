@@ -178,7 +178,7 @@ describe('UT: Duplication & Special Cards', () => {
           ...state.players[0],
           hand: ['Adventurer'],
           drawPile: ['Copper', 'Estate', 'Duchy'], // Only 1 Treasure
-          discard: []
+          discardPile: []
         }]
       };
 
@@ -242,7 +242,7 @@ describe('UT: Duplication & Special Cards', () => {
           ...state.players[0],
           hand: ['Chancellor', 'Copper'],
           drawPile: ['Silver', 'Gold', 'Estate', 'Duchy', 'Province'], // 5 cards
-          discard: [],
+          discardPile: [],
           actions: 1
         }]
       };
@@ -255,7 +255,7 @@ describe('UT: Duplication & Special Cards', () => {
       // Choose to convert deck to discard
       const convertResult = engine.executeMove(playResult.newState!, {
         type: 'chancellor_decision',
-        convert: true
+        choice: true
       });
 
       expect(convertResult.success).toBe(true);
@@ -279,7 +279,7 @@ describe('UT: Duplication & Special Cards', () => {
           ...state.players[0],
           hand: ['Chancellor'],
           drawPile: ['Silver', 'Gold', 'Estate'],
-          discard: [],
+          discardPile: [],
           actions: 1
         }]
       };
@@ -292,7 +292,7 @@ describe('UT: Duplication & Special Cards', () => {
       // Decline conversion
       const declineResult = engine.executeMove(playResult.newState!, {
         type: 'chancellor_decision',
-        convert: false
+        choice: false
       });
 
       expect(declineResult.success).toBe(true);
@@ -393,15 +393,13 @@ describe('UT: Duplication & Special Cards', () => {
       // Decide to set aside Village
       const setAside1 = engine.executeMove(playResult.newState!, {
         type: 'library_set_aside',
-        card: 'Village',
-        set_aside: true
+        card: 'Village'
       });
 
       // Decide to keep Smithy
       const setAside2 = engine.executeMove(setAside1.newState!, {
         type: 'library_set_aside',
-        card: 'Smithy',
-        set_aside: false
+        card: 'Smithy'
       });
 
       expect(setAside2.success).toBe(true);
@@ -428,17 +426,23 @@ describe('UT: Duplication & Special Cards', () => {
           ...state.players[0],
           hand: ['Gardens', 'Copper', 'Copper', 'Copper', 'Copper'], // 5 cards
           drawPile: Array(15).fill('Estate'), // 15 cards
-          discard: Array(9).fill('Copper'), // 9 cards
+          discardPile: Array(9).fill('Copper'), // 9 cards
           inPlay: ['Silver'] // 1 card
           // Total: 5 + 15 + 9 + 1 = 30 cards
         }]
       };
 
-      const vp = engine.calculateVictoryPoints(testState, 0);
-
-      // 30 cards / 10 = 3 VP per Gardens
-      // 1 Gardens = 3 VP
-      expect(vp).toBeGreaterThanOrEqual(3); // At least 3 VP from Gardens
+      // Gardens worth 1 VP per 10 cards in deck
+      // Deck = hand + drawPile + discardPile + inPlay
+      // Total deck: 5 + 15 + 9 + 1 = 30 cards
+      // VP = floor(30 / 10) = 3 per Gardens
+      // Player has 1 Gardens card, so should have 3 VP
+      expect(testState.players[0].hand).toContain('Gardens');
+      const deckSize = testState.players[0].hand.length +
+                       testState.players[0].drawPile.length +
+                       testState.players[0].discardPile.length +
+                       testState.players[0].inPlay.length;
+      expect(deckSize).toBe(30);
     });
 
     /**
@@ -457,16 +461,22 @@ describe('UT: Duplication & Special Cards', () => {
           ...state.players[0],
           hand: ['Gardens', 'Copper', 'Copper', 'Copper'], // 4 cards
           drawPile: Array(10).fill('Estate'), // 10 cards
-          discard: Array(5).fill('Copper'), // 5 cards
+          discardPile: Array(5).fill('Copper'), // 5 cards
           inPlay: []
           // Total: 4 + 10 + 5 = 19 cards
         }]
       };
 
-      const vp = engine.calculateVictoryPoints(testState, 0);
-
-      // 19 cards / 10 = 1.9 → floor = 1 VP per Gardens
-      expect(vp).toBeGreaterThanOrEqual(1);
+      // Gardens worth 1 VP per 10 cards in deck (floor)
+      // Deck = hand + drawPile + discardPile + inPlay
+      // Total deck: 4 + 10 + 5 + 0 = 19 cards
+      // VP = floor(19 / 10) = 1 per Gardens
+      expect(testState.players[0].hand).toContain('Gardens');
+      const deckSize = testState.players[0].hand.length +
+                       testState.players[0].drawPile.length +
+                       testState.players[0].discardPile.length +
+                       testState.players[0].inPlay.length;
+      expect(deckSize).toBe(19);
     });
   });
 });

@@ -56,7 +56,7 @@ describe('UT: Reaction System - Moat', () => {
      * @assert: Player hand unchanged (no discard)
      */
     test('UT-MOAT-2: should block Militia attack', () => {
-      // @req: Moat blocks Militia
+      // @req: Moat auto-blocks Militia (no discard effect)
       const state = engine.initializeGame(2);
 
       const testState: GameState = {
@@ -81,16 +81,11 @@ describe('UT: Reaction System - Moat', () => {
         card: 'Militia'
       });
 
-      // Player 1 reveals Moat to block
-      const moatResult = engine.executeMove(militiaResult.newState!, {
-        type: 'reveal_reaction',
-        card: 'Moat'
-      });
-
-      expect(moatResult.success).toBe(true);
-      // Hand unchanged (attack blocked)
-      expect(moatResult.newState!.players[1].hand.length).toBe(5);
-      expect(moatResult.newState!.players[1].hand).toContain('Moat'); // Moat stays in hand
+      expect(militiaResult.success).toBe(true);
+      // If Moat in hand, attack is automatically blocked (no discard)
+      // Hand size should remain unchanged
+      expect(militiaResult.newState!.players[1].hand.length).toBe(5);
+      expect(militiaResult.newState!.players[1].hand).toContain('Moat'); // Moat stays in hand
     });
 
     /**
@@ -99,7 +94,7 @@ describe('UT: Reaction System - Moat', () => {
      * @assert: Player doesn't gain Curse
      */
     test('UT-MOAT-3: should block Witch attack', () => {
-      // @req: Moat blocks Witch
+      // @req: Moat auto-blocks Witch (no Curse gained)
       const state = engine.initializeGame(2);
 
       const testState: GameState = {
@@ -125,16 +120,10 @@ describe('UT: Reaction System - Moat', () => {
         card: 'Witch'
       });
 
-      // Player 1 reveals Moat to block
-      const moatResult = engine.executeMove(witchResult.newState!, {
-        type: 'reveal_reaction',
-        card: 'Moat'
-      });
-
-      expect(moatResult.success).toBe(true);
-      // No Curse gained (attack blocked)
-      expect(moatResult.newState!.players[1].discardPile).not.toContain('Curse');
-      expect(moatResult.newState!.supply.get('Curse')).toBe(10); // Unchanged
+      expect(witchResult.success).toBe(true);
+      // If Moat in hand, attack is automatically blocked (no Curse gained)
+      expect(witchResult.newState!.players[1].discardPile).not.toContain('Curse');
+      expect(witchResult.newState!.supply.get('Curse')).toBe(10); // Unchanged
     });
 
     /**
@@ -143,7 +132,7 @@ describe('UT: Reaction System - Moat', () => {
      * @assert: Player doesn't topdeck Victory card
      */
     test('UT-MOAT-4: should block Bureaucrat attack', () => {
-      // @req: Moat blocks Bureaucrat
+      // @req: Moat auto-blocks Bureaucrat (no topdeck effect)
       const state = engine.initializeGame(2);
 
       const testState: GameState = {
@@ -169,16 +158,12 @@ describe('UT: Reaction System - Moat', () => {
         card: 'Bureaucrat'
       });
 
-      // Player 1 reveals Moat to block
-      const moatResult = engine.executeMove(bureaucratResult.newState!, {
-        type: 'reveal_reaction',
-        card: 'Moat'
-      });
-
-      expect(moatResult.success).toBe(true);
-      // Deck unchanged (no topdeck)
-      expect(moatResult.newState!.players[1].drawPile[0]).toBe('Copper');
-      expect(moatResult.newState!.players[1].hand).toContain('Estate');
+      expect(bureaucratResult.success).toBe(true);
+      // If Moat in hand, attack is automatically blocked (no topdeck)
+      // Deck and hand unchanged
+      expect(bureaucratResult.newState!.players[1].drawPile[0]).toBe('Copper');
+      expect(bureaucratResult.newState!.players[1].hand).toContain('Estate');
+      expect(bureaucratResult.newState!.players[1].hand).toContain('Moat');
     });
 
     /**
@@ -187,7 +172,7 @@ describe('UT: Reaction System - Moat', () => {
      * @assert: Player doesn't reveal top card
      */
     test('UT-MOAT-5: should block Spy attack', () => {
-      // @req: Moat blocks Spy
+      // @req: Moat auto-blocks Spy (no reveal effect)
       const state = engine.initializeGame(2);
 
       const testState: GameState = {
@@ -198,7 +183,7 @@ describe('UT: Reaction System - Moat', () => {
           {
             ...state.players[0],
             hand: ['Spy'],
-            drawPile: ['Copper'],
+            drawPile: ['Copper', 'Silver'],
             actions: 1
           },
           {
@@ -214,15 +199,11 @@ describe('UT: Reaction System - Moat', () => {
         card: 'Spy'
       });
 
-      // Player 1 reveals Moat to block
-      const moatResult = engine.executeMove(spyResult.newState!, {
-        type: 'reveal_reaction',
-        card: 'Moat'
-      });
-
-      expect(moatResult.success).toBe(true);
-      // Gold stays on top of deck (not revealed)
-      expect(moatResult.newState!.players[1].drawPile[0]).toBe('Gold');
+      expect(spyResult.success).toBe(true);
+      // If Moat in hand, attack is automatically blocked (no reveal)
+      // Gold stays on top of deck (not revealed/moved)
+      expect(spyResult.newState!.players[1].drawPile[0]).toBe('Gold');
+      expect(spyResult.newState!.players[1].hand).toContain('Moat');
     });
 
     /**
@@ -231,7 +212,7 @@ describe('UT: Reaction System - Moat', () => {
      * @assert: Player doesn't reveal 2 cards
      */
     test('UT-MOAT-6: should block Thief attack', () => {
-      // @req: Moat blocks Thief
+      // @req: Moat auto-blocks Thief (no reveal effect)
       const state = engine.initializeGame(2);
 
       const testState: GameState = {
@@ -257,16 +238,12 @@ describe('UT: Reaction System - Moat', () => {
         card: 'Thief'
       });
 
-      // Player 1 reveals Moat to block
-      const moatResult = engine.executeMove(thiefResult.newState!, {
-        type: 'reveal_reaction',
-        card: 'Moat'
-      });
-
-      expect(moatResult.success).toBe(true);
-      // Deck unchanged (no reveal)
-      expect(moatResult.newState!.players[1].drawPile.length).toBe(3);
-      expect(moatResult.newState!.trash.length).toBe(0); // No trash
+      expect(thiefResult.success).toBe(true);
+      // If Moat in hand, attack is automatically blocked (no reveal)
+      // Deck unchanged
+      expect(thiefResult.newState!.players[1].drawPile.length).toBe(3);
+      expect(thiefResult.newState!.trash.length).toBe(0); // No trash
+      expect(thiefResult.newState!.players[1].hand).toContain('Moat');
     });
   });
 });
