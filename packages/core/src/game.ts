@@ -1443,21 +1443,9 @@ export class GameEngine {
     // Play the action once WITHOUT consuming actions
     let newState = this.playActionCard(state, actionCard, false);
 
-    // If the card set a pending effect that's not Throne Room, mark it as "throne room double"
-    // so that after the effect is resolved, we play the card again
-    if (newState.pendingEffect && newState.pendingEffect.card !== 'Throne Room') {
-      return {
-        ...newState,
-        pendingEffect: {
-          ...newState.pendingEffect,
-          throneRoomDouble: true
-        }
-      };
-    }
+    // Continue with replay - don't return early even if pendingEffect is set
+    // Throne Room plays all instances, then any pending effects are handled afterward
 
-    // If no pending effect was set (or it's Throne Room), we can play the card immediately multiple times
-    // Throne Room: play twice total (1 initial + 1 replay)
-    // Throne Room + Throne Room: play 4 times total (1 initial + 3 replays)
     // Move card back to hand and play again
     const updatedPlayer = newState.players[newState.currentPlayer];
     if (!updatedPlayer) {
@@ -1491,7 +1479,10 @@ export class GameEngine {
             i === newState.currentPlayer
               ? { ...p, hand: newHand, inPlay: newInPlay }
               : p
-          )
+          ),
+          // Clear any pending effect from the previous play so we can play again
+          // (pending effects will be restored if the last play sets a new one)
+          pendingEffect: undefined
         };
 
         // Play again (no action consumed)
@@ -1689,20 +1680,29 @@ export class GameEngine {
     // Player reveals a reaction card to block an attack (typically Moat)
     // Moat blocks any attack effect from cards like Militia, Witch, etc.
 
+    // @blocker: reveal_reaction implementation incomplete
+    // Current issue: resolveAttack() auto-checks for Moat and blocks immediately
+    // Tests expect explicit reveal_reaction move to be made AFTER attack is played
+    // Solution: Change attack resolution pattern to set pendingEffect instead of auto-resolving
+    // This requires refactoring:
+    //   - resolveAttack() should not auto-check Moat
+    //   - Attack effects should wait for reveal_reaction moves
+    //   - Affects: Militia, Witch, Bureaucrat, Spy, Thief handlers
+    // Workaround: For now, support manual reveal if no attack was auto-resolved
+
     // Only Moat is a reaction card for now
     if (card !== 'Moat') {
       throw new Error(`${card} is not a reaction card`);
     }
 
     // Find which player has Moat and is revealing it
-    // This must be the target player from pendingEffect (if set) or the next player
     let defendingPlayerIndex = -1;
 
+    // Check pendingEffect first
     if (state.pendingEffect && state.pendingEffect.targetPlayer !== undefined) {
-      // Use the target player from pending effect
       defendingPlayerIndex = state.pendingEffect.targetPlayer;
     } else {
-      // Find any player with Moat that isn't the current player (attacker)
+      // Fallback: find any player with Moat that isn't attacker
       for (let i = 0; i < state.players.length; i++) {
         if (i !== state.currentPlayer && state.players[i].hand.includes(card)) {
           defendingPlayerIndex = i;
