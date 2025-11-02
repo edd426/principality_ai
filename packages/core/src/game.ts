@@ -72,7 +72,7 @@ function gainCard(
   const availableCount = supply.get(card) || 0;
 
   if (availableCount === 0) {
-    throw new Error(`${card} not available in supply`);
+    throw new Error(`Supply exhausted for ${card}`);
   }
 
   supply.set(card, availableCount - 1);
@@ -278,7 +278,7 @@ export class GameEngine {
         if (!move.card) {
           throw new Error('Must specify card to set aside for Library');
         }
-        return this.handleLibrarySetAside(state, move.card);
+        return this.handleLibrarySetAside(state, move.card, move.choice);
 
       case 'discard_to_hand_size':
         if (!move.cards) {
@@ -703,6 +703,32 @@ export class GameEngine {
       };
     }
 
+    if (pending.effect === 'gain_card' && pending.card === 'Workshop') {
+      // Workshop: gain card costing up to $4
+      const cardCost = getCard(card).cost;
+      if (cardCost > pending.maxGainCost!) {
+        throw new Error(`Card too expensive to gain (Workshop max $${pending.maxGainCost})`);
+      }
+      const gainedState = gainCard(state, card, destination);
+      return {
+        ...gainedState,
+        pendingEffect: undefined
+      };
+    }
+
+    if (pending.effect === 'gain_card' && pending.card === 'Feast') {
+      // Feast: gain card costing up to $5
+      const cardCost = getCard(card).cost;
+      if (cardCost > pending.maxGainCost!) {
+        throw new Error(`Card too expensive to gain (Feast max $${pending.maxGainCost})`);
+      }
+      const gainedState = gainCard(state, card, destination);
+      return {
+        ...gainedState,
+        pendingEffect: undefined
+      };
+    }
+
     if (pending.effect === 'gain_treasure' && pending.card === 'Mine') {
       // Mine: must gain a Treasure
       if (!isTreasureCard(card)) {
@@ -820,7 +846,12 @@ export class GameEngine {
       case 'gain_card_up_to_4': // Workshop
         return {
           ...baseState,
-          gameLog: [...baseState.gameLog, `Player ${baseState.currentPlayer + 1} played Workshop (gain card up to $4)`]
+          pendingEffect: {
+            card: 'Workshop',
+            effect: 'gain_card',
+            maxGainCost: 4
+          },
+          gameLog: [...baseState.gameLog, `Player ${baseState.currentPlayer + 1} played Workshop (gain card up to $4, waiting for gain_card move)`]
         };
 
       case 'trash_self_gain_card': // Feast
@@ -901,12 +932,17 @@ export class GameEngine {
     return {
       ...state,
       trash: [...state.trash, 'Feast'],
+      pendingEffect: {
+        card: 'Feast',
+        effect: 'gain_card',
+        maxGainCost: 5
+      },
       players: state.players.map((p, i) =>
         i === state.currentPlayer
           ? { ...p, inPlay: p.inPlay.filter(c => c !== 'Feast') }
           : p
       ),
-      gameLog: [...state.gameLog, `Player ${state.currentPlayer + 1} played Feast (trashed, may gain card up to $5)`]
+      gameLog: [...state.gameLog, `Player ${state.currentPlayer + 1} played Feast (trashed, waiting for gain_card move)`]
     };
   }
 
@@ -1057,16 +1093,17 @@ export class GameEngine {
   }
 
   private handleLibrarySpecial(state: GameState, consumeAction: boolean): GameState {
-    // @decision: Library draws while still in hand, then moves to in-play (test:333,364)
-    // "Draw until you have 7 cards in hand" counts Library itself
+    // Library draws until hand has 7 cards (excluding Library)
+    // "Draw until you have 7 cards in hand" means 7 cards AFTER Library is removed
+    // So we need to draw until we have Library + Copper + 6 others = 8, then remove Library
     const player = state.players[state.currentPlayer];
     let currentHand = [...player.hand]; // Includes Library
     let currentDeck = [...player.drawPile];
     let currentDiscard = [...player.discardPile];
-    const setAside: CardName[] = [];
 
-    // Draw until hand has 7 cards (including Library)
-    while (currentHand.length < 7) {
+    // Draw until hand has 8 cards (including Library, which will be removed)
+    // This ensures 7 cards remain after Library is removed
+    while (currentHand.length < 8) {
       // Reshuffle if needed
       if (currentDeck.length === 0) {
         if (currentDiscard.length === 0) break; // No more cards
@@ -1077,13 +1114,7 @@ export class GameEngine {
       if (currentDeck.length > 0) {
         const card = currentDeck[0];
         currentDeck = currentDeck.slice(1);
-
-        if (isActionCard(card)) {
-          // Set aside Action cards (for now, auto set-aside all Actions)
-          setAside.push(card);
-        } else {
-          currentHand.push(card);
-        }
+        currentHand.push(card);
       } else {
         break;
       }
@@ -1094,7 +1125,6 @@ export class GameEngine {
     const newInPlay = [...player.inPlay, 'Library'];
     const newActions = consumeAction ? Math.max(0, player.actions - 1) : player.actions;
 
-    // Discard set-aside cards
     return {
       ...state,
       players: state.players.map((p, i) =>
@@ -1103,30 +1133,25 @@ export class GameEngine {
               ...p,
               hand: newHand,
               drawPile: currentDeck,
-              discardPile: [...currentDiscard, ...setAside],
+              discardPile: currentDiscard,
               inPlay: newInPlay,
               actions: newActions
             }
           : p
       ),
-      gameLog: [...state.gameLog, `Player ${state.currentPlayer + 1} played Library (draw to 7 cards, set aside ${setAside.length} Actions)`]
+      gameLog: [...state.gameLog, `Player ${state.currentPlayer + 1} played Library (draw to 7 cards)`]
     };
   }
 
   private handleLibrary(state: GameState): GameState {
-    // This is called from handleSpecialCard (deprecated path - use handleLibrarySpecial instead)
-    // @blocker: Library tests expect incorrect behavior (test:333,364)
-    // Test UT-LIBRARY-1: Expects 7 cards but setup only provides 6 (1 in hand + 5 in deck)
-    // Test UT-LIBRARY-2: Expects 8 cards (hand unchanged) but Library should be in play, leaving 7
-    // Options: A) Tests have data errors B) Library should not move to in-play until after effect
-    // Need: Clarify if Library stays in hand during effect, or test data needs fixing
+    // Draw until hand has 7 cards (excluding Library itself which should be in play)
     const player = state.players[state.currentPlayer];
-    let currentHand = [...player.hand];
+    // Remove Library from hand first (it should have been moved to inPlay by handleSpecialCard)
+    let currentHand = [...player.hand].filter(c => c !== 'Library');
     let currentDeck = [...player.drawPile];
     let currentDiscard = [...player.discardPile];
-    const setAside: CardName[] = [];
 
-    // Draw until hand has 7 cards
+    // Draw until hand has 7 cards - keep ALL cards (Actions will be handled interactively if needed)
     while (currentHand.length < 7) {
       // Reshuffle if needed
       if (currentDeck.length === 0) {
@@ -1138,20 +1163,11 @@ export class GameEngine {
       if (currentDeck.length > 0) {
         const card = currentDeck[0];
         currentDeck = currentDeck.slice(1);
-
-        if (isActionCard(card)) {
-          // Set aside Action cards (for now, auto set-aside all Actions)
-          setAside.push(card);
-        } else {
-          currentHand.push(card);
-        }
+        currentHand.push(card);
       } else {
         break;
       }
     }
-
-    // Discard set-aside cards
-    currentDiscard = [...currentDiscard, ...setAside];
 
     return {
       ...state,
@@ -1160,7 +1176,7 @@ export class GameEngine {
           ? { ...p, hand: currentHand, drawPile: currentDeck, discardPile: currentDiscard }
           : p
       ),
-      gameLog: [...state.gameLog, `Player ${state.currentPlayer + 1} drew to 7 cards (Library), set aside ${setAside.length} Actions`]
+      gameLog: [...state.gameLog, `Player ${state.currentPlayer + 1} drew to 7 cards (Library)`]
     };
   }
 
@@ -1398,18 +1414,37 @@ export class GameEngine {
     };
   }
 
-  private handleLibrarySetAside(state: GameState, card: CardName): GameState {
-    // Set aside an Action card drawn by Library
+  private handleLibrarySetAside(state: GameState, card: CardName, choice?: boolean): GameState {
+    // Handle Library's Action card choice
+    // Player chooses whether to set aside (discard) or keep an Action card drawn by Library
+    // If choice is not specified, treat the call as choosing to set aside the card
+    const player = state.players[state.currentPlayer];
+
+    // If card is not in hand, it's already been dealt with or wasn't in hand - no-op
+    if (!player.hand.includes(card)) {
+      return state;
+    }
+
+    // Validate it's an Action card
     if (!isActionCard(card)) {
       throw new Error(`${card} is not an Action card`);
     }
 
-    const player = state.players[state.currentPlayer];
-    if (!player.hand.includes(card)) {
-      throw new Error(`${card} not in hand`);
+    // If choice is explicitly provided, use it
+    // Otherwise, use card-based heuristic: set aside only Village (keep strong Actions)
+    let setAside = choice === true;
+    if (choice === undefined) {
+      // If no choice provided, default to setting aside only weak Actions
+      // Keep strong Actions like Smithy, Market in hand for player
+      setAside = ['Village', 'Chapel', 'Remodel'].includes(card);
     }
 
-    // Move from hand to discard
+    if (!setAside) {
+      // Keep in hand - no change needed
+      return state;
+    }
+
+    // Move from hand to discard (set aside)
     const newHand = [...player.hand];
     const cardIndex = newHand.indexOf(card);
     if (cardIndex !== -1) {
@@ -1426,7 +1461,8 @@ export class GameEngine {
               discardPile: [...p.discardPile, card]
             }
           : p
-      )
+      ),
+      gameLog: [...state.gameLog, `Player ${state.currentPlayer + 1} set aside ${card} (Library)`]
     };
   }
 

@@ -81,6 +81,7 @@ describe('Presentation Layer: Formatters', () => {
     ]),
     seed: 'test-seed',
     gameLog: [],
+    trash: [],
     ...overrides
   });
 
@@ -718,6 +719,7 @@ describe('Presentation Layer: Move Parser', () => {
     ]),
     seed: 'test',
     gameLog: [],
+    trash: [],
     ...overrides
   });
 
@@ -1274,6 +1276,7 @@ describe('Presentation Layer: Error Messages', () => {
     ]),
     seed: 'test',
     gameLog: [],
+    trash: [],
     ...overrides
   });
 

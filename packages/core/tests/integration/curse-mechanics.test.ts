@@ -33,12 +33,13 @@ describe('IT: Curse Mechanics', () => {
         ...state.players[0],
         hand: [],
         drawPile: ['Curse', 'Curse', 'Curse', 'Estate', 'Estate'], // 3 Curses, 2 Estates
-        discard: [],
+        discardPile: [],
         inPlay: []
       }]
     };
 
-    const vp = engine.calculateVictoryPoints(testState, 0);
+    const victory = engine.checkGameOver(testState);
+    const vp = victory.scores?.[0] || 0;
 
     // 2 Estates = 2 VP, 3 Curses = -3 VP, Total = -1 VP
     expect(vp).toBe(-1);

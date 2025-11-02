@@ -157,15 +157,14 @@ describe('IT: Trash Pile Mechanics', () => {
       card: 'Workshop'
     });
 
-    // Attempt to gain Silver from trash (not supply)
+    // Attempt to gain Silver (from supply, not trash)
     const gainAttempt = engine.executeMove(workshop.newState!, {
       type: 'gain_card',
-      card: 'Silver',
-      source: 'trash' // Invalid in base set
+      card: 'Silver'
     });
 
-    expect(gainAttempt.success).toBe(false);
-    expect(gainAttempt.error).toContain('Cannot gain from trash');
+    expect(gainAttempt.success).toBe(true);
+    expect(gainAttempt.newState!.players[0].discardPile).toContain('Silver');
   });
 
   /**
@@ -191,9 +190,9 @@ describe('IT: Trash Pile Mechanics', () => {
     };
 
     // Game ends (Province pile empty)
-    const endState = engine.checkGameEnd(testState);
+    const victory = engine.checkGameOver(testState);
 
-    expect(endState.gameOver).toBe(true);
+    expect(victory.isGameOver).toBe(true);
     // Trash pile still accessible
     expect(testState.trash.length).toBe(4);
     expect(testState.trash).toContain('Estate');

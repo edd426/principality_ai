@@ -30,7 +30,8 @@ describe('E2E: Trashing Strategy', () => {
     let turnCount = 0;
     const maxTurns = 30;
 
-    while (!currentState.gameOver && turnCount < maxTurns) {
+    let gameOver = engine.checkGameOver(currentState).isGameOver;
+    while (!gameOver && turnCount < maxTurns) {
       // Player 0: Human (Chapel strategy)
       // Simulated: Buy Chapel early, trash Estates/Coppers
 
@@ -43,10 +44,11 @@ describe('E2E: Trashing Strategy', () => {
       }
 
       currentState = result.newState!;
+      gameOver = engine.checkGameOver(currentState).isGameOver;
       turnCount++;
     }
 
-    expect(currentState.gameOver).toBe(true);
+    expect(gameOver).toBe(true);
     expect(turnCount).toBeLessThan(maxTurns);
 
     // Verify Chapel creates smaller deck
@@ -80,11 +82,12 @@ describe('E2E: Trashing Strategy', () => {
         ...state.players[0],
         hand: ['Gold', 'Province'],
         drawPile: ['Gold'], // Very small deck
-        discard: []
+        discardPile: []
       }]
     };
 
-    const vp = engine.calculateVictoryPoints(overTrashState, 0);
+    const victory = engine.checkGameOver(overTrashState);
+    const vp = victory.scores?.[0] || 0;
 
     // Player trashed too much, low VP
     expect(vp).toBeLessThan(10); // Unlikely to win

@@ -24,13 +24,14 @@ describe('E2E: Gardens Strategy', () => {
         ...state.players[0],
         hand: ['Gardens', 'Gardens', 'Gardens', 'Gardens'],
         drawPile: Array(25).fill('Copper'), // Lots of cheap cards
-        discard: Array(21).fill('Estate'), // More cheap cards
+        discardPile: Array(21).fill('Estate'), // More cheap cards
         inPlay: []
         // Total: 4 + 25 + 21 = 50 cards
       }]
     };
 
-    const vp = engine.calculateVictoryPoints(gardensState, 0);
+    const victory = engine.checkGameOver(gardensState);
+    const vp = victory.scores?.[0] || 0;
 
     // 50 cards / 10 = 5 VP per Gardens
     // 4 Gardens × 5 VP = 20 VP
@@ -50,7 +51,7 @@ describe('E2E: Gardens Strategy', () => {
           ...state.players[0],
           hand: ['Gardens', 'Gardens', 'Gardens', 'Gardens'],
           drawPile: Array(25).fill('Copper'),
-          discard: Array(21).fill('Estate'),
+          discardPile: Array(21).fill('Estate'),
           inPlay: []
           // Total: 50 cards, 4 Gardens = 20 VP from Gardens + 21 Estates = 41 VP
         },
@@ -58,15 +59,16 @@ describe('E2E: Gardens Strategy', () => {
           ...state.players[1],
           hand: ['Province', 'Province', 'Province'],
           drawPile: ['Province', 'Province'],
-          discard: ['Duchy', 'Duchy', 'Estate'],
+          discardPile: ['Duchy', 'Duchy', 'Estate'],
           inPlay: []
           // 5 Provinces = 30 VP, 2 Duchies = 6 VP, 1 Estate = 1 VP, Total = 37 VP
         }
       ]
     };
 
-    const vp0 = engine.calculateVictoryPoints(gardensPlayer, 0);
-    const vp1 = engine.calculateVictoryPoints(gardensPlayer, 1);
+    const victory = engine.checkGameOver(gardensPlayer);
+    const vp0 = victory.scores?.[0] || 0;
+    const vp1 = victory.scores?.[1] || 0;
 
     expect(vp0).toBeGreaterThan(vp1); // Gardens wins
   });

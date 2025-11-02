@@ -317,7 +317,7 @@ describe('UT: Duplication & Special Cards', () => {
         players: [{
           ...state.players[0],
           hand: ['Library', 'Copper'], // 2 cards
-          drawPile: ['Silver', 'Gold', 'Estate', 'Duchy', 'Province'], // Need 5 more
+          drawPile: ['Silver', 'Gold', 'Estate', 'Duchy', 'Province', 'Smithy', 'Village'], // 7 cards in draw pile
           actions: 1
         }]
       };
@@ -328,8 +328,7 @@ describe('UT: Duplication & Special Cards', () => {
       });
 
       expect(result.success).toBe(true);
-      // Hand: Copper + 5 drawn = 6 total (Library played, so 7 - 1 = 6 visible)
-      // Actually: Hand should be 7 cards total after Library completes
+      // After Library plays: hand has Copper (1), draws 6 to reach 7 total
       expect(result.newState!.players[0].hand.length).toBe(7);
     });
 
@@ -360,8 +359,8 @@ describe('UT: Duplication & Special Cards', () => {
       });
 
       expect(result.success).toBe(true);
-      // No draw (hand already ≥ 7)
-      expect(result.newState!.players[0].hand.length).toBe(8); // Unchanged
+      // After Library plays: 7 remaining cards in hand, already ≥ 7, so no draw
+      expect(result.newState!.players[0].hand.length).toBe(7); // Library removed, no cards drawn
       expect(result.newState!.players[0].drawPile[0]).toBe('Province'); // Deck untouched
     });
 

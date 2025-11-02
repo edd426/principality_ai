@@ -24,7 +24,8 @@ describe('E2E: Attack/Defense Gameplay', () => {
     let moatBlocks = 0;
     let turnCount = 0;
 
-    while (!currentState.gameOver && turnCount < 30) {
+    let gameOver = engine.checkGameOver(currentState).isGameOver;
+    while (!gameOver && turnCount < 30) {
       const move = ai.decideBestMove(currentState, currentState.currentPlayer);
       const result = engine.executeMove(currentState, move.move);
 
@@ -35,10 +36,11 @@ describe('E2E: Attack/Defense Gameplay', () => {
       if (move.move.type === 'reveal_reaction' && move.move.card === 'Moat') moatBlocks++;
 
       currentState = result.newState!;
+      gameOver = engine.checkGameOver(currentState).isGameOver;
       turnCount++;
     }
 
-    expect(currentState.gameOver).toBe(true);
+    expect(gameOver).toBe(true);
     // Verify attacks occurred
     expect(militiaAttacks + moatBlocks).toBeGreaterThan(0);
   });
@@ -80,7 +82,7 @@ describe('E2E: Attack/Defense Gameplay', () => {
     };
 
     const thief = engine.executeMove(testState, { type: 'play_action', card: 'Thief' });
-    const trash = engine.executeMove(thief.newState!, { type: 'select_treasure_to_trash', player: 1, card: 'Gold' });
+    const trash = engine.executeMove(thief.newState!, { type: 'select_treasure_to_trash', playerIndex: 1, card: 'Gold' });
     const gain = engine.executeMove(trash.newState!, { type: 'gain_trashed_card', card: 'Gold' });
 
     expect(gain.newState!.trash).toContain('Gold');
@@ -94,17 +96,19 @@ describe('E2E: Attack/Defense Gameplay', () => {
     let currentState = state;
     let turnCount = 0;
 
-    while (!currentState.gameOver && turnCount < 30) {
+    let gameOver = engine.checkGameOver(currentState).isGameOver;
+    while (!gameOver && turnCount < 30) {
       const move = ai.decideBestMove(currentState, currentState.currentPlayer);
       const result = engine.executeMove(currentState, move.move);
 
       if (!result.success) break;
 
       currentState = result.newState!;
+      gameOver = engine.checkGameOver(currentState).isGameOver;
       turnCount++;
     }
 
-    expect(currentState.gameOver).toBe(true);
+    expect(gameOver).toBe(true);
     // Verify game completed without errors
     expect(turnCount).toBeLessThan(30);
   });

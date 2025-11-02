@@ -79,17 +79,17 @@ describe('IT: Attack/Reaction Flow', () => {
 
     // P0 decides on own card
     const decision1 = engine.executeMove(spy.newState!, {
-      type: 'spy_decision', player: 0, card: 'Copper', decision: 'discard'
+      type: 'spy_decision', playerIndex: 0, card: 'Copper', choice: true
     });
 
     // P0 decides on P1's card
     const decision2 = engine.executeMove(decision1.newState!, {
-      type: 'spy_decision', player: 1, card: 'Estate', decision: 'keep'
+      type: 'spy_decision', playerIndex: 1, card: 'Estate', choice: false
     });
 
     // P0 decides on P2's card
     const decision3 = engine.executeMove(decision2.newState!, {
-      type: 'spy_decision', player: 2, card: 'Gold', decision: 'discard'
+      type: 'spy_decision', playerIndex: 2, card: 'Gold', choice: true
     });
 
     expect(decision3.success).toBe(true);
@@ -270,12 +270,12 @@ describe('IT: Attack/Reaction Flow', () => {
 
     // First reveal: Silver, Copper
     const trash1 = engine.executeMove(thief.newState!, {
-      type: 'select_treasure_to_trash', player: 1, card: 'Silver'
+      type: 'select_treasure_to_trash', playerIndex: 1, card: 'Silver'
     });
 
     // Second reveal: Gold, Estate
     const trash2 = engine.executeMove(trash1.newState!, {
-      type: 'select_treasure_to_trash', player: 1, card: 'Gold'
+      type: 'select_treasure_to_trash', playerIndex: 1, card: 'Gold'
     });
 
     expect(trash2.newState!.trash).toContain('Silver');

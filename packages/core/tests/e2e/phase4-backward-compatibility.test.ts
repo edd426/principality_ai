@@ -36,17 +36,19 @@ describe('E2E: Backward Compatibility', () => {
     let currentState = phase1State;
     let turnCount = 0;
 
-    while (!currentState.gameOver && turnCount < 30) {
+    let gameOver = engine.checkGameOver(currentState).isGameOver;
+    while (!gameOver && turnCount < 30) {
       const move = ai.decideBestMove(currentState, 0);
       const result = engine.executeMove(currentState, move.move);
 
       if (!result.success) break;
 
       currentState = result.newState!;
+      gameOver = engine.checkGameOver(currentState).isGameOver;
       turnCount++;
     }
 
-    expect(currentState.gameOver).toBe(true);
+    expect(gameOver).toBe(true);
     // Game completes without Phase 4 cards
     expect(turnCount).toBeLessThan(30);
   });
@@ -58,7 +60,8 @@ describe('E2E: Backward Compatibility', () => {
     let currentState = state;
     let turnCount = 0;
 
-    while (!currentState.gameOver && turnCount < 40) {
+    let gameOver = engine.checkGameOver(currentState).isGameOver;
+    while (!gameOver && turnCount < 40) {
       const move = ai.decideBestMove(currentState, currentState.currentPlayer);
       const result = engine.executeMove(currentState, move.move);
 
@@ -68,10 +71,11 @@ describe('E2E: Backward Compatibility', () => {
       }
 
       currentState = result.newState!;
+      gameOver = engine.checkGameOver(currentState).isGameOver;
       turnCount++;
     }
 
-    expect(currentState.gameOver).toBe(true);
+    expect(gameOver).toBe(true);
     expect(turnCount).toBeLessThan(40);
 
     // Both players completed game
