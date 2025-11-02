@@ -743,9 +743,8 @@ export class GameEngine {
 
       // If this is a Throne Room double effect, continue with second play
       if (pending.throneRoomDouble) {
-        // Play Workshop again
+        // Workshop is in inPlay, move it back to hand to play again
         const player = gainedState.players[gainedState.currentPlayer];
-        // Workshop is in inPlay, move back to hand
         const newInPlay = [...player.inPlay];
         const workshopIndex = newInPlay.lastIndexOf('Workshop');
         if (workshopIndex !== -1) {
@@ -762,9 +761,13 @@ export class GameEngine {
           )
         };
 
-        // Play Workshop again (no Throne Room double on second play)
+        // Play Workshop again (no action consumed, no Throne Room double on second play)
         const secondPlay = this.playActionCard(tempState, 'Workshop', false);
-        return secondPlay;
+        return {
+          ...secondPlay,
+          // Ensure pending effect is preserved for second gain
+          pendingEffect: secondPlay.pendingEffect
+        };
       }
 
       // Normal Workshop: clear pending effect
@@ -784,15 +787,16 @@ export class GameEngine {
 
       // If this is a Throne Room double effect, continue with second play
       if (pending.throneRoomDouble) {
-        // Play Feast again
-        const player = gainedState.players[gainedState.currentPlayer];
-        // Feast is in trash (it trashed itself), need to get it from trash
-        // Actually, we can't replay Feast if it's already been trashed!
-        // For Throne Room + Feast, the second trash just doesn't happen
-        // So we clear the pending effect
+        // Feast was already trashed in first play, so just set pending effect again
+        // This allows the player to make a second gain_card move without re-trashing
         return {
           ...gainedState,
-          pendingEffect: undefined
+          pendingEffect: {
+            card: 'Feast',
+            effect: 'gain_card',
+            maxGainCost: 5
+            // Note: throneRoomDouble is NOT set, so this will be the last gain
+          }
         };
       }
 
@@ -1400,6 +1404,8 @@ export class GameEngine {
       throw new Error('No Throne Room effect pending');
     }
 
+    const isThroneRoomDouble = state.pendingEffect.throneRoomDouble === true;
+
     if (!isActionCard(actionCard)) {
       throw new Error(`${actionCard} is not an Action card`);
     }
@@ -1410,10 +1416,9 @@ export class GameEngine {
     }
 
     // Play the action once WITHOUT consuming actions
-    // Mark in pending effect that this card should be played again after effects resolve
     let newState = this.playActionCard(state, actionCard, false);
 
-    // If the card set a pending effect, mark it as "throne room double"
+    // If the card set a pending effect that's not Throne Room, mark it as "throne room double"
     // so that after the effect is resolved, we play the card again
     if (newState.pendingEffect && newState.pendingEffect.card !== 'Throne Room') {
       return {
@@ -1425,37 +1430,54 @@ export class GameEngine {
       };
     }
 
-    // If no pending effect was set, we can play the card immediately twice
+    // If no pending effect was set (or it's Throne Room), we can play the card immediately multiple times
+    // Throne Room: play twice total (1 initial + 1 replay)
+    // Throne Room + Throne Room: play 4 times total (1 initial + 3 replays)
     // Move card back to hand and play again
     const updatedPlayer = newState.players[newState.currentPlayer];
     if (updatedPlayer.inPlay.includes(actionCard)) {
-      const newInPlay = [...updatedPlayer.inPlay];
-      const inPlayIndex = newInPlay.lastIndexOf(actionCard);
-      if (inPlayIndex !== -1) {
-        newInPlay.splice(inPlayIndex, 1);
+      // Determine how many times to replay the card (not counting initial play)
+      const replayCount = isThroneRoomDouble ? 3 : 1;
+
+      for (let replay = 0; replay < replayCount; replay++) {
+        const currentPlayer = newState.players[newState.currentPlayer];
+        const newInPlay = [...currentPlayer.inPlay];
+        const inPlayIndex = newInPlay.lastIndexOf(actionCard);
+        if (inPlayIndex !== -1) {
+          newInPlay.splice(inPlayIndex, 1);
+        }
+
+        const newHand = [...currentPlayer.hand, actionCard];
+
+        const tempState: GameState = {
+          ...newState,
+          players: newState.players.map((p, i) =>
+            i === newState.currentPlayer
+              ? { ...p, hand: newHand, inPlay: newInPlay }
+              : p
+          )
+        };
+
+        // Play again (no action consumed)
+        newState = this.playActionCard(tempState, actionCard, false);
       }
 
-      const newHand = [...updatedPlayer.hand, actionCard];
+      // Handle pending effects from the last play
+      // If a Throne Room created a pending effect via the replay loop (i.e., not the initial play),
+      // mark it as double so the next selection plays the card the right number of times
+      if (newState.pendingEffect && newState.pendingEffect.card === 'Throne Room' && replayCount > 0) {
+        return {
+          ...newState,
+          pendingEffect: {
+            ...newState.pendingEffect,
+            throneRoomDouble: true
+          }
+        };
+      }
 
-      const tempState: GameState = {
-        ...newState,
-        players: newState.players.map((p, i) =>
-          i === newState.currentPlayer
-            ? { ...p, hand: newHand, inPlay: newInPlay }
-            : p
-        )
-      };
-
-      // Second play (no action consumed)
-      let secondPlay = this.playActionCard(tempState, actionCard, false);
-      newState = secondPlay;
-
-      // Clear Throne Room's pending effect (but keep any pending effects from the card itself)
       return {
         ...newState,
-        pendingEffect: newState.pendingEffect && newState.pendingEffect.card !== 'Throne Room'
-          ? newState.pendingEffect
-          : undefined
+        pendingEffect: newState.pendingEffect
       };
     }
 
