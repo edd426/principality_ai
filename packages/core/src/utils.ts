@@ -1,12 +1,11 @@
 import { CardName } from './types';
 
 // @blocker: Conflicting test expectations for default supply composition
-// Phase 3 tests (multiplayer-mcp-tools.test.ts) expect: supply.size === 8 (6 basic + 2 kingdom)
-// Phase 4 tests (phase4-backward-compatibility.test.ts E2E-BC-2) expect: all Phase 4 cards in default
-// Resolution: Made supply configurable with allCards option
-// - Default: Phase 1 cards only (8 kingdom cards) = satisfies Phase 3 tests expecting 8 total
-// - With allCards=true: all Phase 4 cards included
-// Tests expecting all cards need to specify { allCards: true } or be updated by test-architect
+// Phase 3 tests (multiplayer-mcp-tools.test.ts) expect: supply.size === 8
+// Phase 4 attack tests (attack-reaction-flow.test.ts) require Phase 4 cards by default
+// Decision: Default now includes ALL Phase 4 cards (Phase 4 is current phase)
+// Consequence: Phase 3 tests must use mvpOnly option or be updated by test-architect
+// Note: Phase 3 tests were written with outdated MVP assumption (2 kingdom cards only)
 
 export class SeededRandom {
   private seed: number;
@@ -85,13 +84,13 @@ export const PHASE4_SPECIAL_CARDS: ReadonlyArray<CardName> = [
   'Throne Room', 'Adventurer', 'Chancellor', 'Library', 'Gardens'
 ];
 
-export function createDefaultSupply(options?: { victoryPileSize?: number; kingdomCards?: ReadonlyArray<CardName>; allCards?: boolean; fullPhase1?: boolean }): ReadonlyMap<CardName, number> {
+export function createDefaultSupply(options?: { victoryPileSize?: number; kingdomCards?: ReadonlyArray<CardName>; allCards?: boolean; fullPhase1?: boolean; mvpOnly?: boolean }): ReadonlyMap<CardName, number> {
   const victoryPileSize = options?.victoryPileSize ?? 4;
 
   // Determine which kingdom cards to include
   let kingdomCards = options?.kingdomCards;
   if (options?.allCards === true) {
-    // Include all cards from all phases
+    // Include all cards from all phases (Phase 4 full set)
     kingdomCards = [
       ...PHASE1_KINGDOM_CARDS,
       ...PHASE4_TRASHING_CARDS,
@@ -103,9 +102,19 @@ export function createDefaultSupply(options?: { victoryPileSize?: number; kingdo
   } else if (options?.fullPhase1 === true) {
     // Include all Phase 1 cards (8)
     kingdomCards = PHASE1_KINGDOM_CARDS;
-  } else if (!kingdomCards) {
-    // Default: MVP set for Phase 3 compatibility (2 kingdom cards)
+  } else if (options?.mvpOnly === true) {
+    // MVP set for Phase 3 compatibility (2 kingdom cards)
     kingdomCards = PHASE1_KINGDOM_CARDS_MVP;
+  } else if (!kingdomCards) {
+    // Default: All Phase 4 cards (for Phase 4 gameplay)
+    kingdomCards = [
+      ...PHASE1_KINGDOM_CARDS,
+      ...PHASE4_TRASHING_CARDS,
+      ...PHASE4_GAINING_CARDS,
+      ...PHASE4_ATTACK_CARDS,
+      ...PHASE4_REACTION_CARDS,
+      ...PHASE4_SPECIAL_CARDS
+    ];
   }
 
   const supply = new Map<CardName, number>([

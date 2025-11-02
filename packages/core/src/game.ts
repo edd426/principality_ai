@@ -292,6 +292,12 @@ export class GameEngine {
         }
         return this.handleRevealAndTopdeck(state, move.card);
 
+      case 'reveal_reaction':
+        if (!move.card) {
+          throw new Error('Must specify card to reveal for reaction');
+        }
+        return this.handleReactReveal(state, move.card);
+
       default:
         throw new Error(`Unknown move type: ${(move as any).type}`);
     }
@@ -1025,26 +1031,45 @@ export class GameEngine {
   }
 
   private handleMilitia(state: GameState): GameState {
-    // Militia already gave +$2 coins in standard effects
-    // Attack resolves immediately - opponents must use discard_to_hand_size move if needed
+    // Militia: +$2 and attack effect
+    // Attack: Each opponent must discard down to 3 cards in hand
+    // Reaction: Moat blocks the attack
 
     let newState = state;
 
+    // Apply attack to each other player
     for (let i = 0; i < state.players.length; i++) {
       if (i === state.currentPlayer) continue; // Skip attacker
 
-      // Check for Moat
-      if (checkForMoatReveal(newState, i)) {
+      const opponent = newState.players[i];
+
+      // Check if opponent has Moat - if so, they can block
+      if (opponent.hand.includes('Moat')) {
+        // Set pending effect to wait for reveal_reaction move
+        // For now, auto-resolve - tests can override with explicit moves
         newState = {
           ...newState,
           gameLog: [...newState.gameLog, `Player ${i + 1} revealed Moat and blocked Militia`]
         };
+      } else {
+        // Apply discard effect
+        if (opponent.hand.length > 3) {
+          // Must discard down to 3 - wait for discard_to_hand_size move
+          newState = {
+            ...newState,
+            pendingEffect: {
+              card: 'Militia',
+              effect: 'discard_to_hand_size',
+              targetPlayer: i
+            }
+          };
+        }
       }
     }
 
     return {
       ...newState,
-      gameLog: [...newState.gameLog, `Player ${newState.currentPlayer + 1} played Militia (+$2, opponents discard to 3)`]
+      gameLog: [...newState.gameLog, `Player ${newState.currentPlayer + 1} played Militia (+$2, opponents must discard)`]
     };
   }
 
@@ -1657,6 +1682,51 @@ export class GameEngine {
       ),
       pendingEffect: undefined,
       gameLog: [...state.gameLog, `Player ${targetPlayerIndex + 1} topdecked ${card} (Bureaucrat attack)`]
+    };
+  }
+
+  private handleReactReveal(state: GameState, card: CardName): GameState {
+    // Player reveals a reaction card to block an attack (typically Moat)
+    // Moat blocks any attack effect from cards like Militia, Witch, etc.
+
+    // Only Moat is a reaction card for now
+    if (card !== 'Moat') {
+      throw new Error(`${card} is not a reaction card`);
+    }
+
+    // Find which player has Moat and is revealing it
+    // This must be the target player from pendingEffect (if set) or the next player
+    let defendingPlayerIndex = -1;
+
+    if (state.pendingEffect && state.pendingEffect.targetPlayer !== undefined) {
+      // Use the target player from pending effect
+      defendingPlayerIndex = state.pendingEffect.targetPlayer;
+    } else {
+      // Find any player with Moat that isn't the current player (attacker)
+      for (let i = 0; i < state.players.length; i++) {
+        if (i !== state.currentPlayer && state.players[i].hand.includes(card)) {
+          defendingPlayerIndex = i;
+          break;
+        }
+      }
+    }
+
+    if (defendingPlayerIndex === -1) {
+      throw new Error(`No player with ${card} found to reveal`);
+    }
+
+    const defendingPlayer = state.players[defendingPlayerIndex];
+
+    if (!defendingPlayer.hand.includes(card)) {
+      throw new Error(`${card} not in hand`);
+    }
+
+    // Moat stays in hand (it's just revealed, not played)
+    // Clear the pending attack effect
+    return {
+      ...state,
+      pendingEffect: undefined,
+      gameLog: [...state.gameLog, `Player ${defendingPlayerIndex + 1} revealed ${card} and blocked the attack`]
     };
   }
 
