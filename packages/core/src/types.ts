@@ -38,6 +38,7 @@ export interface PendingEffect {
   maxGainCost?: number;
   trashedCard?: CardName;
   targetPlayer?: number;
+  throneRoomDouble?: boolean;
 }
 
 export interface GameState {

@@ -606,8 +606,38 @@ export class GameEngine {
         if (cards.length > 4) {
           throw new Error('Chapel can only trash up to 4 cards');
         }
-        // Trash cards and clear pending effect
+        // Trash cards
         const chapelState = trashCards(state, cards);
+
+        // If this is a Throne Room double effect, continue with second play
+        if (pending.throneRoomDouble) {
+          // Play Chapel again
+          const player = chapelState.players[chapelState.currentPlayer];
+          // Chapel is in inPlay, move back to hand
+          const newInPlay = [...player.inPlay];
+          const chapelIndex = newInPlay.lastIndexOf('Chapel');
+          if (chapelIndex !== -1) {
+            newInPlay.splice(chapelIndex, 1);
+          }
+          const newHand = [...player.hand, 'Chapel'];
+
+          const tempState: GameState = {
+            ...chapelState,
+            players: chapelState.players.map((p, i) =>
+              i === chapelState.currentPlayer
+                ? { ...p, hand: newHand, inPlay: newInPlay }
+                : p
+            )
+          };
+
+          // Play Chapel again (no Throne Room double on second play)
+          const secondPlay = this.playActionCard(tempState, 'Chapel', false);
+
+          // Return as-is, the second Chapel's pending effect should not have throneRoomDouble
+          return secondPlay;
+        }
+
+        // Normal Chapel: clear pending effect
         return {
           ...chapelState,
           pendingEffect: undefined
@@ -710,6 +740,34 @@ export class GameEngine {
         throw new Error(`Card too expensive to gain (Workshop max $${pending.maxGainCost})`);
       }
       const gainedState = gainCard(state, card, destination);
+
+      // If this is a Throne Room double effect, continue with second play
+      if (pending.throneRoomDouble) {
+        // Play Workshop again
+        const player = gainedState.players[gainedState.currentPlayer];
+        // Workshop is in inPlay, move back to hand
+        const newInPlay = [...player.inPlay];
+        const workshopIndex = newInPlay.lastIndexOf('Workshop');
+        if (workshopIndex !== -1) {
+          newInPlay.splice(workshopIndex, 1);
+        }
+        const newHand = [...player.hand, 'Workshop'];
+
+        const tempState: GameState = {
+          ...gainedState,
+          players: gainedState.players.map((p, i) =>
+            i === gainedState.currentPlayer
+              ? { ...p, hand: newHand, inPlay: newInPlay }
+              : p
+          )
+        };
+
+        // Play Workshop again (no Throne Room double on second play)
+        const secondPlay = this.playActionCard(tempState, 'Workshop', false);
+        return secondPlay;
+      }
+
+      // Normal Workshop: clear pending effect
       return {
         ...gainedState,
         pendingEffect: undefined
@@ -723,6 +781,22 @@ export class GameEngine {
         throw new Error(`Card too expensive to gain (Feast max $${pending.maxGainCost})`);
       }
       const gainedState = gainCard(state, card, destination);
+
+      // If this is a Throne Room double effect, continue with second play
+      if (pending.throneRoomDouble) {
+        // Play Feast again
+        const player = gainedState.players[gainedState.currentPlayer];
+        // Feast is in trash (it trashed itself), need to get it from trash
+        // Actually, we can't replay Feast if it's already been trashed!
+        // For Throne Room + Feast, the second trash just doesn't happen
+        // So we clear the pending effect
+        return {
+          ...gainedState,
+          pendingEffect: undefined
+        };
+      }
+
+      // Normal Feast: clear pending effect
       return {
         ...gainedState,
         pendingEffect: undefined
@@ -1335,18 +1409,26 @@ export class GameEngine {
       throw new Error(`${actionCard} not in hand`);
     }
 
-    // Play the action twice WITHOUT consuming actions
-    let newState = state;
+    // Play the action once WITHOUT consuming actions
+    // Mark in pending effect that this card should be played again after effects resolve
+    let newState = this.playActionCard(state, actionCard, false);
 
-    // First play (no action consumed)
-    let firstPlay = this.playActionCard(newState, actionCard, false);
-    newState = firstPlay;
+    // If the card set a pending effect, mark it as "throne room double"
+    // so that after the effect is resolved, we play the card again
+    if (newState.pendingEffect && newState.pendingEffect.card !== 'Throne Room') {
+      return {
+        ...newState,
+        pendingEffect: {
+          ...newState.pendingEffect,
+          throneRoomDouble: true
+        }
+      };
+    }
 
-    // Second play - the card is now in play area after first execution
-    // We need to temporarily move it back to hand to play it again
+    // If no pending effect was set, we can play the card immediately twice
+    // Move card back to hand and play again
     const updatedPlayer = newState.players[newState.currentPlayer];
     if (updatedPlayer.inPlay.includes(actionCard)) {
-      // Move card back to hand temporarily
       const newInPlay = [...updatedPlayer.inPlay];
       const inPlayIndex = newInPlay.lastIndexOf(actionCard);
       if (inPlayIndex !== -1) {
@@ -1367,14 +1449,20 @@ export class GameEngine {
       // Second play (no action consumed)
       let secondPlay = this.playActionCard(tempState, actionCard, false);
       newState = secondPlay;
+
+      // Clear Throne Room's pending effect (but keep any pending effects from the card itself)
+      return {
+        ...newState,
+        pendingEffect: newState.pendingEffect && newState.pendingEffect.card !== 'Throne Room'
+          ? newState.pendingEffect
+          : undefined
+      };
     }
 
-    // Clear Throne Room's pending effect (but keep any pending effects from the card itself)
+    // Card is not in inPlay (may have been trashed like Feast), can't play twice
     return {
       ...newState,
-      pendingEffect: newState.pendingEffect && newState.pendingEffect.card !== 'Throne Room'
-        ? newState.pendingEffect
-        : undefined
+      pendingEffect: newState.pendingEffect
     };
   }
 
