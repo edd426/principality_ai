@@ -48,7 +48,9 @@ export class TransactionManager {
       phase: state.phase,
       turnNumber: state.turnNumber,
       gameLog: [...state.gameLog],
-      seed: state.seed
+      seed: state.seed,
+      trash: [...state.trash],
+      pendingEffect: state.pendingEffect ? { ...state.pendingEffect } : undefined
     };
   }
 
