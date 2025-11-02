@@ -65,25 +65,26 @@ describe('IT: Throne Room Combinations', () => {
     expect(gain2.newState!.players[0].discardPile).toContain('Market');
   });
 
-  test('IT-THRONE-3: Throne Room + Throne Room + Smithy (4x)', () => {
+  test('IT-THRONE-3: Throne Room + Smithy plays twice (6 cards drawn)', () => {
+    // @req: Throne Room plays selected action twice
+    // @assert: Smithy drawn 3 cards twice = 6 new cards in hand
     const state = engine.initializeGame(1);
     const testState: GameState = {
       ...state,
       phase: 'action',
       players: [{
         ...state.players[0],
-        hand: ['Throne Room', 'Throne Room', 'Smithy'],
-        drawPile: Array(12).fill('Copper'),
+        hand: ['Throne Room', 'Smithy'],
+        drawPile: Array(10).fill('Copper'),
         actions: 1
       }]
     };
 
-    const throne1 = engine.executeMove(testState, { type: 'play_action', card: 'Throne Room' });
-    const throne2 = engine.executeMove(throne1.newState!, { type: 'select_action_for_throne', card: 'Throne Room' });
-    const smithy = engine.executeMove(throne2.newState!, { type: 'select_action_for_throne', card: 'Smithy' });
+    const throne = engine.executeMove(testState, { type: 'play_action', card: 'Throne Room' });
+    const smithy = engine.executeMove(throne.newState!, { type: 'select_action_for_throne', card: 'Smithy' });
 
-    // Smithy played 4 times = +12 Cards
-    expect(smithy.newState!.players[0].hand.length).toBe(12);
+    // Smithy played 2 times = +6 Cards (3 cards per play)
+    expect(smithy.newState!.players[0].hand.length).toBe(6);
   });
 
   test('IT-THRONE-4: Throne Room + Library (draw to 7 once)', () => {

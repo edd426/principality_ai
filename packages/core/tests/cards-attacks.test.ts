@@ -411,13 +411,13 @@ describe('UT: Attack System Cards', () => {
         players: [
           {
             ...state.players[0],
-            hand: ['Spy'],
-            drawPile: ['Copper', 'Estate'],
+            hand: ['Spy', 'Copper'],
+            drawPile: ['Silver', 'Estate'],
             actions: 1
           },
           {
             ...state.players[1],
-            drawPile: ['Silver', 'Gold']
+            drawPile: ['Gold', 'Copper']
           }
         ]
       };
