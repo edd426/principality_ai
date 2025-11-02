@@ -1004,7 +1004,7 @@ describe('Big Money Strategy - Priority Tree Validation', () => {
      * E2E-BM-1: Complete Game with Expected Outcomes
      * @req: BIG_MONEY_STRATEGY.md Full Big Money game progression
      * @input: Run full AI vs AI game to completion
-     * @expected: Game ends 18-25 turns, final deck: 4-6 Provinces, 3-5 Golds, Total VP: 28-38
+     * @expected: Game ends 18-25 turns, final drawPile: 4-6 Provinces, 3-5 Golds, Total VP: 28-38
      * @edge: Full game validation
      * @why: Validates complete strategy produces expected outcomes
      * @assert: Game ends in 18-25 turns, final deck composition matches targets
@@ -1397,7 +1397,7 @@ describe('Big Money Strategy - Priority Tree Validation', () => {
        * @req: BIG_MONEY_STRATEGY.md Deck efficiency - Treasure ratio
        * @input: Run 10 games, calculate deck efficiency (treasures / total cards)
        * @expected: Deck efficiency improves over time (better treasure ratio)
-       * @expected: Final deck: 60-75% treasures, 25-40% victory/estates
+       * @expected: Final drawPile: 60-75% treasures, 25-40% victory/estates
        * @edge: Validates AI isn't clogging deck with too many victory cards
        * @why: Ensures optimal deck composition for Big Money strategy
        * @assert: Final treasure ratio in [0.60, 0.75]

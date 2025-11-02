@@ -73,7 +73,7 @@ describe('IT: Throne Room Combinations', () => {
       players: [{
         ...state.players[0],
         hand: ['Throne Room', 'Throne Room', 'Smithy'],
-        deck: Array(12).fill('Copper'),
+        drawPile: Array(12).fill('Copper'),
         actions: 1
       }]
     };
@@ -94,7 +94,7 @@ describe('IT: Throne Room Combinations', () => {
       players: [{
         ...state.players[0],
         hand: ['Throne Room', 'Library'],
-        deck: Array(10).fill('Copper'),
+        drawPile: Array(10).fill('Copper'),
         actions: 1
       }]
     };
@@ -133,7 +133,7 @@ describe('IT: Throne Room Combinations', () => {
       players: [{
         ...state.players[0],
         hand: ['Throne Room', 'Adventurer'],
-        deck: ['Copper', 'Estate', 'Silver', 'Duchy', 'Gold', 'Province', 'Copper', 'Silver'],
+        drawPile: ['Copper', 'Estate', 'Silver', 'Duchy', 'Gold', 'Province', 'Copper', 'Silver'],
         actions: 1
       }]
     };

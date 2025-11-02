@@ -240,7 +240,7 @@ describe('UT: Gaining System Cards', () => {
       };
 
       const cleanupResult = engine.executeMove(cleanupState, {
-        type: 'end_turn'
+        type: 'end_phase'
       });
 
       // Feast should be in trash, NOT in discard

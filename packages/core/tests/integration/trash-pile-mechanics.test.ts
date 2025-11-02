@@ -240,7 +240,7 @@ describe('IT: Trash Pile Mechanics', () => {
     };
 
     const cleanup = engine.executeMove(cleanupState, {
-      type: 'end_turn'
+      type: 'end_phase'
     });
 
     // Feast should remain in trash (not moved to discard)

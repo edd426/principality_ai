@@ -32,7 +32,7 @@ describe('IT: Curse Mechanics', () => {
       players: [{
         ...state.players[0],
         hand: [],
-        deck: ['Curse', 'Curse', 'Curse', 'Estate', 'Estate'], // 3 Curses, 2 Estates
+        drawPile: ['Curse', 'Curse', 'Curse', 'Estate', 'Estate'], // 3 Curses, 2 Estates
         discard: [],
         inPlay: []
       }]

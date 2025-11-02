@@ -23,7 +23,7 @@ describe('E2E: Gardens Strategy', () => {
       players: [{
         ...state.players[0],
         hand: ['Gardens', 'Gardens', 'Gardens', 'Gardens'],
-        deck: Array(25).fill('Copper'), // Lots of cheap cards
+        drawPile: Array(25).fill('Copper'), // Lots of cheap cards
         discard: Array(21).fill('Estate'), // More cheap cards
         inPlay: []
         // Total: 4 + 25 + 21 = 50 cards
@@ -49,7 +49,7 @@ describe('E2E: Gardens Strategy', () => {
         {
           ...state.players[0],
           hand: ['Gardens', 'Gardens', 'Gardens', 'Gardens'],
-          deck: Array(25).fill('Copper'),
+          drawPile: Array(25).fill('Copper'),
           discard: Array(21).fill('Estate'),
           inPlay: []
           // Total: 50 cards, 4 Gardens = 20 VP from Gardens + 21 Estates = 41 VP
@@ -57,7 +57,7 @@ describe('E2E: Gardens Strategy', () => {
         {
           ...state.players[1],
           hand: ['Province', 'Province', 'Province'],
-          deck: ['Province', 'Province'],
+          drawPile: ['Province', 'Province'],
           discard: ['Duchy', 'Duchy', 'Estate'],
           inPlay: []
           // 5 Provinces = 30 VP, 2 Duchies = 6 VP, 1 Estate = 1 VP, Total = 37 VP

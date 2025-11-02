@@ -244,6 +244,54 @@ export class GameEngine {
         }
         return this.handleGainCard(state, move.card, move.destination || 'discard');
 
+      case 'spy_decision':
+        if (move.playerIndex === undefined || !move.card || move.choice === undefined) {
+          throw new Error('Spy decision requires playerIndex, card, and choice');
+        }
+        return this.handleSpyDecision(state, move.playerIndex, move.card, move.choice);
+
+      case 'select_treasure_to_trash':
+        if (!move.card) {
+          throw new Error('Must specify treasure to trash');
+        }
+        return this.handleThiefTrashTreasure(state, move.card);
+
+      case 'gain_trashed_card':
+        if (!move.card) {
+          throw new Error('Must specify card to gain from trash');
+        }
+        return this.handleGainFromTrash(state, move.card);
+
+      case 'select_action_for_throne':
+        if (!move.card) {
+          throw new Error('Must specify action card for Throne Room');
+        }
+        return this.handleThroneRoomSelection(state, move.card);
+
+      case 'chancellor_decision':
+        if (move.choice === undefined) {
+          throw new Error('Chancellor decision requires choice');
+        }
+        return this.handleChancellorDecision(state, move.choice);
+
+      case 'library_set_aside':
+        if (!move.card) {
+          throw new Error('Must specify card to set aside for Library');
+        }
+        return this.handleLibrarySetAside(state, move.card);
+
+      case 'discard_to_hand_size':
+        if (!move.cards) {
+          throw new Error('Must specify cards to discard');
+        }
+        return this.handleDiscardToHandSize(state, move.cards);
+
+      case 'reveal_and_topdeck':
+        if (!move.card) {
+          throw new Error('Must specify card to topdeck');
+        }
+        return this.handleRevealAndTopdeck(state, move.card);
+
       default:
         throw new Error(`Unknown move type: ${(move as any).type}`);
     }
@@ -781,16 +829,10 @@ export class GameEngine {
         return this.handleBureaucrat(baseState);
 
       case 'attack_reveal_top_card': // Spy
-        return {
-          ...baseState,
-          gameLog: [...baseState.gameLog, `Player ${baseState.currentPlayer + 1} played Spy (reveal top card for all players)`]
-        };
+        return this.handleSpy(baseState);
 
       case 'attack_reveal_2_trash_treasure': // Thief
-        return {
-          ...baseState,
-          gameLog: [...baseState.gameLog, `Player ${baseState.currentPlayer + 1} played Thief (reveal 2, trash treasure)`]
-        };
+        return this.handleThief(baseState);
 
       // === Reaction ===
       case 'reaction_block_attack': // Moat
@@ -858,32 +900,25 @@ export class GameEngine {
 
   private handleMilitia(state: GameState): GameState {
     // Militia already gave +$2 coins in standard effects
-    // Now apply attack: each other player discards down to 3 cards
-    const attackedState = resolveAttack(state, (s, playerIndex) => {
-      const targetPlayer = s.players[playerIndex];
-      if (targetPlayer.hand.length <= 3) {
-        return s; // No need to discard
+    // Attack resolves immediately - opponents must use discard_to_hand_size move if needed
+
+    let newState = state;
+
+    for (let i = 0; i < state.players.length; i++) {
+      if (i === state.currentPlayer) continue; // Skip attacker
+
+      // Check for Moat
+      if (checkForMoatReveal(newState, i)) {
+        newState = {
+          ...newState,
+          gameLog: [...newState.gameLog, `Player ${i + 1} revealed Moat and blocked Militia`]
+        };
       }
-
-      // Discard down to 3 (for now, discard from end of hand)
-      const toDiscard = targetPlayer.hand.length - 3;
-      const newHand = [...targetPlayer.hand].slice(0, 3);
-      const discarded = [...targetPlayer.hand].slice(3);
-
-      return {
-        ...s,
-        players: s.players.map((p, i) =>
-          i === playerIndex
-            ? { ...p, hand: newHand, discardPile: [...p.discardPile, ...discarded] }
-            : p
-        ),
-        gameLog: [...s.gameLog, `Player ${playerIndex + 1} discarded ${toDiscard} cards (Militia attack)`]
-      };
-    });
+    }
 
     return {
-      ...attackedState,
-      gameLog: [...attackedState.gameLog, `Player ${attackedState.currentPlayer + 1} played Militia`]
+      ...newState,
+      gameLog: [...newState.gameLog, `Player ${newState.currentPlayer + 1} played Militia (+$2, opponents discard to 3)`]
     };
   }
 
@@ -1051,6 +1086,321 @@ export class GameEngine {
           : p
       ),
       gameLog: [...state.gameLog, `Player ${state.currentPlayer + 1} drew to 7 cards (Library), set aside ${setAside.length} Actions`]
+    };
+  }
+
+  private handleSpy(state: GameState): GameState {
+    // Spy already drew +1 card and gave +1 action in standard effects
+    // Each player (including attacker) reveals top card of deck
+    // Attacker decides whether each revealed card is discarded or returned to top
+    // Cards stay on deck until spy_decision is made
+
+    let newState = state;
+
+    for (let i = 0; i < state.players.length; i++) {
+      // Skip if Moat blocks (except attacker)
+      if (i !== state.currentPlayer && checkForMoatReveal(newState, i)) {
+        newState = {
+          ...newState,
+          gameLog: [...newState.gameLog, `Player ${i + 1} revealed Moat and blocked Spy`]
+        };
+      }
+    }
+
+    return {
+      ...newState,
+      gameLog: [...newState.gameLog, `Player ${newState.currentPlayer + 1} played Spy (revealing top cards)`]
+    };
+  }
+
+  private handleSpyDecision(state: GameState, playerIndex: number, card: CardName, keepOnTop: boolean): GameState {
+    const player = state.players[playerIndex];
+
+    // Validate card is on top of deck
+    if (player.drawPile.length === 0) {
+      throw new Error(`Player ${playerIndex + 1} has no cards in deck`);
+    }
+
+    if (player.drawPile[0] !== card) {
+      throw new Error(`Card ${card} is not on top of Player ${playerIndex + 1}'s deck (top card is ${player.drawPile[0]})`);
+    }
+
+    if (keepOnTop) {
+      // Keep card on top of deck (no change needed)
+      return {
+        ...state,
+        gameLog: [...state.gameLog, `Player ${state.currentPlayer + 1} kept ${card} on top of Player ${playerIndex + 1}'s deck`]
+      };
+    } else {
+      // Discard the card
+      return {
+        ...state,
+        players: state.players.map((p, i) =>
+          i === playerIndex
+            ? {
+                ...p,
+                drawPile: p.drawPile.slice(1),
+                discardPile: [...p.discardPile, card]
+              }
+            : p
+        ),
+        gameLog: [...state.gameLog, `Player ${state.currentPlayer + 1} discarded ${card} from Player ${playerIndex + 1}'s deck`]
+      };
+    }
+  }
+
+  private handleThief(state: GameState): GameState {
+    // Each opponent reveals top 2 cards
+    // Cards stay revealed until attacker makes decision via select_treasure_to_trash
+
+    let newState = state;
+
+    for (let i = 0; i < state.players.length; i++) {
+      if (i === state.currentPlayer) continue; // Skip attacker
+
+      // Check for Moat
+      if (checkForMoatReveal(newState, i)) {
+        newState = {
+          ...newState,
+          gameLog: [...newState.gameLog, `Player ${i + 1} revealed Moat and blocked Thief`]
+        };
+      }
+    }
+
+    return {
+      ...newState,
+      gameLog: [...newState.gameLog, `Player ${newState.currentPlayer + 1} played Thief (revealing 2 cards from each opponent)`]
+    };
+  }
+
+  private handleThiefTrashTreasure(state: GameState, treasure: CardName): GameState {
+    // Trash the selected treasure from an opponent's revealed cards
+    if (!isTreasureCard(treasure)) {
+      throw new Error(`${treasure} is not a Treasure`);
+    }
+
+    // Find which opponent has this treasure in top 2 cards
+    let newState = state;
+    let found = false;
+
+    for (let i = 0; i < state.players.length; i++) {
+      if (i === state.currentPlayer) continue; // Skip attacker
+
+      const player = state.players[i];
+      const revealed = player.drawPile.slice(0, 2);
+
+      if (revealed.includes(treasure)) {
+        // Trash this treasure, discard the other revealed card
+        const otherCards = revealed.filter(c => c !== treasure);
+
+        newState = {
+          ...newState,
+          trash: [...newState.trash, treasure],
+          players: newState.players.map((p, idx) =>
+            idx === i
+              ? {
+                  ...p,
+                  drawPile: p.drawPile.slice(2),
+                  discardPile: [...p.discardPile, ...otherCards]
+                }
+              : p
+          ),
+          gameLog: [...newState.gameLog, `Player ${state.currentPlayer + 1} trashed ${treasure} from Player ${i + 1}`]
+        };
+        found = true;
+        break;
+      }
+    }
+
+    if (!found) {
+      throw new Error(`${treasure} not found in any opponent's revealed cards`);
+    }
+
+    return newState;
+  }
+
+  private handleGainFromTrash(state: GameState, card: CardName): GameState {
+    // Gain a card from trash to discard pile
+    if (!state.trash.includes(card)) {
+      throw new Error(`${card} is not in the trash`);
+    }
+
+    const newTrash = [...state.trash];
+    const cardIndex = newTrash.indexOf(card);
+    if (cardIndex !== -1) {
+      newTrash.splice(cardIndex, 1);
+    }
+
+    return {
+      ...state,
+      trash: newTrash,
+      players: state.players.map((p, i) =>
+        i === state.currentPlayer
+          ? { ...p, discardPile: [...p.discardPile, card] }
+          : p
+      )
+    };
+  }
+
+  private handleThroneRoomSelection(state: GameState, actionCard: CardName): GameState {
+    if (!isActionCard(actionCard)) {
+      throw new Error(`${actionCard} is not an Action card`);
+    }
+
+    const player = state.players[state.currentPlayer];
+    if (!player.hand.includes(actionCard)) {
+      throw new Error(`${actionCard} not in hand`);
+    }
+
+    // Play the action twice
+    let newState = state;
+
+    // First play
+    let firstPlay = this.playActionCard(newState, actionCard);
+    newState = firstPlay;
+
+    // Second play (if still in hand or play area)
+    const updatedPlayer = newState.players[newState.currentPlayer];
+    if (updatedPlayer.hand.includes(actionCard) || updatedPlayer.inPlay.includes(actionCard)) {
+      let secondPlay = this.playActionCard(newState, actionCard);
+      newState = secondPlay;
+    }
+
+    return newState;
+  }
+
+  private handleChancellorDecision(state: GameState, putDeckIntoDiscard: boolean): GameState {
+    if (!putDeckIntoDiscard) {
+      // Do nothing, just clear pending effect
+      return {
+        ...state,
+        pendingEffect: undefined
+      };
+    }
+
+    // Put entire deck into discard pile
+    return {
+      ...state,
+      players: state.players.map((p, i) =>
+        i === state.currentPlayer
+          ? {
+              ...p,
+              drawPile: [],
+              discardPile: [...p.discardPile, ...p.drawPile]
+            }
+          : p
+      ),
+      pendingEffect: undefined,
+      gameLog: [...state.gameLog, `Player ${state.currentPlayer + 1} put deck into discard (Chancellor)`]
+    };
+  }
+
+  private handleLibrarySetAside(state: GameState, card: CardName): GameState {
+    // Set aside an Action card drawn by Library
+    if (!isActionCard(card)) {
+      throw new Error(`${card} is not an Action card`);
+    }
+
+    const player = state.players[state.currentPlayer];
+    if (!player.hand.includes(card)) {
+      throw new Error(`${card} not in hand`);
+    }
+
+    // Move from hand to discard
+    const newHand = [...player.hand];
+    const cardIndex = newHand.indexOf(card);
+    if (cardIndex !== -1) {
+      newHand.splice(cardIndex, 1);
+    }
+
+    return {
+      ...state,
+      players: state.players.map((p, i) =>
+        i === state.currentPlayer
+          ? {
+              ...p,
+              hand: newHand,
+              discardPile: [...p.discardPile, card]
+            }
+          : p
+      )
+    };
+  }
+
+  private handleDiscardToHandSize(state: GameState, cards: ReadonlyArray<CardName>): GameState {
+    // Discard specified cards from a player's hand
+    // Used for Militia attack and similar effects
+    // For now, assumes next player (player 1) if not current player
+    // In full implementation, would track which player via pendingEffect
+
+    const targetPlayerIndex = (state.currentPlayer + 1) % state.players.length;
+    const player = state.players[targetPlayerIndex];
+
+    // Validate all cards are in hand
+    const handCounts = new Map<CardName, number>();
+    player.hand.forEach(card => {
+      handCounts.set(card, (handCounts.get(card) || 0) + 1);
+    });
+
+    const discardCounts = new Map<CardName, number>();
+    cards.forEach(card => {
+      discardCounts.set(card, (discardCounts.get(card) || 0) + 1);
+    });
+
+    for (const [card, count] of discardCounts) {
+      if ((handCounts.get(card) || 0) < count) {
+        throw new Error(`Cannot discard ${count} ${card}(s), only have ${handCounts.get(card) || 0}`);
+      }
+    }
+
+    // Remove cards from hand
+    const newHand = [...player.hand];
+    cards.forEach(cardToDiscard => {
+      const index = newHand.indexOf(cardToDiscard);
+      if (index !== -1) {
+        newHand.splice(index, 1);
+      }
+    });
+
+    return {
+      ...state,
+      players: state.players.map((p, i) =>
+        i === targetPlayerIndex
+          ? { ...p, hand: newHand, discardPile: [...p.discardPile, ...cards] }
+          : p
+      ),
+      gameLog: [...state.gameLog, `Player ${targetPlayerIndex + 1} discarded ${cards.length} cards`]
+    };
+  }
+
+  private handleRevealAndTopdeck(state: GameState, card: CardName): GameState {
+    // Move a Victory card from hand to top of deck (Bureaucrat attack)
+    if (!isVictoryCard(card)) {
+      throw new Error(`${card} is not a Victory card`);
+    }
+
+    const targetPlayerIndex = (state.currentPlayer + 1) % state.players.length;
+    const player = state.players[targetPlayerIndex];
+
+    if (!player.hand.includes(card)) {
+      throw new Error(`${card} not in hand`);
+    }
+
+    // Remove from hand
+    const newHand = [...player.hand];
+    const cardIndex = newHand.indexOf(card);
+    if (cardIndex !== -1) {
+      newHand.splice(cardIndex, 1);
+    }
+
+    return {
+      ...state,
+      players: state.players.map((p, i) =>
+        i === targetPlayerIndex
+          ? { ...p, hand: newHand, drawPile: [card, ...p.drawPile] }
+          : p
+      ),
+      gameLog: [...state.gameLog, `Player ${targetPlayerIndex + 1} topdecked ${card} (Bureaucrat attack)`]
     };
   }
 

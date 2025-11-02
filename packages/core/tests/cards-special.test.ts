@@ -39,7 +39,7 @@ describe('UT: Duplication & Special Cards', () => {
         players: [{
           ...state.players[0],
           hand: ['Throne Room', 'Smithy', 'Copper'],
-          deck: ['Silver', 'Gold', 'Estate', 'Duchy', 'Province', 'Copper'],
+          drawPile: ['Silver', 'Gold', 'Estate', 'Duchy', 'Province', 'Copper'],
           actions: 1
         }]
       };
@@ -75,7 +75,7 @@ describe('UT: Duplication & Special Cards', () => {
         players: [{
           ...state.players[0],
           hand: ['Throne Room', 'Village'],
-          deck: ['Copper', 'Silver'],
+          drawPile: ['Copper', 'Silver'],
           actions: 1
         }]
       };
@@ -144,7 +144,7 @@ describe('UT: Duplication & Special Cards', () => {
         players: [{
           ...state.players[0],
           hand: ['Adventurer', 'Estate'],
-          deck: ['Copper', 'Estate', 'Silver', 'Gold', 'Duchy']
+          drawPile: ['Copper', 'Estate', 'Silver', 'Gold', 'Duchy']
         }]
       };
 
@@ -177,7 +177,7 @@ describe('UT: Duplication & Special Cards', () => {
         players: [{
           ...state.players[0],
           hand: ['Adventurer'],
-          deck: ['Copper', 'Estate', 'Duchy'], // Only 1 Treasure
+          drawPile: ['Copper', 'Estate', 'Duchy'], // Only 1 Treasure
           discard: []
         }]
       };
@@ -241,7 +241,7 @@ describe('UT: Duplication & Special Cards', () => {
         players: [{
           ...state.players[0],
           hand: ['Chancellor', 'Copper'],
-          deck: ['Silver', 'Gold', 'Estate', 'Duchy', 'Province'], // 5 cards
+          drawPile: ['Silver', 'Gold', 'Estate', 'Duchy', 'Province'], // 5 cards
           discard: [],
           actions: 1
         }]
@@ -259,7 +259,7 @@ describe('UT: Duplication & Special Cards', () => {
       });
 
       expect(convertResult.success).toBe(true);
-      expect(convertResult.newState!.players[0].deck.length).toBe(0);
+      expect(convertResult.newState!.players[0].drawPile.length).toBe(0);
       expect(convertResult.newState!.players[0].discardPile.length).toBe(5);
     });
 
@@ -278,7 +278,7 @@ describe('UT: Duplication & Special Cards', () => {
         players: [{
           ...state.players[0],
           hand: ['Chancellor'],
-          deck: ['Silver', 'Gold', 'Estate'],
+          drawPile: ['Silver', 'Gold', 'Estate'],
           discard: [],
           actions: 1
         }]
@@ -296,7 +296,7 @@ describe('UT: Duplication & Special Cards', () => {
       });
 
       expect(declineResult.success).toBe(true);
-      expect(declineResult.newState!.players[0].deck.length).toBe(3); // Unchanged
+      expect(declineResult.newState!.players[0].drawPile.length).toBe(3); // Unchanged
       expect(declineResult.newState!.players[0].discardPile.length).toBe(0);
     });
   });
@@ -317,7 +317,7 @@ describe('UT: Duplication & Special Cards', () => {
         players: [{
           ...state.players[0],
           hand: ['Library', 'Copper'], // 2 cards
-          deck: ['Silver', 'Gold', 'Estate', 'Duchy', 'Province'], // Need 5 more
+          drawPile: ['Silver', 'Gold', 'Estate', 'Duchy', 'Province'], // Need 5 more
           actions: 1
         }]
       };
@@ -349,7 +349,7 @@ describe('UT: Duplication & Special Cards', () => {
         players: [{
           ...state.players[0],
           hand: ['Library', 'Copper', 'Copper', 'Silver', 'Silver', 'Gold', 'Gold', 'Estate'], // 8 cards
-          deck: ['Province'],
+          drawPile: ['Province'],
           actions: 1
         }]
       };
@@ -362,7 +362,7 @@ describe('UT: Duplication & Special Cards', () => {
       expect(result.success).toBe(true);
       // No draw (hand already ≥ 7)
       expect(result.newState!.players[0].hand.length).toBe(8); // Unchanged
-      expect(result.newState!.players[0].deck[0]).toBe('Province'); // Deck untouched
+      expect(result.newState!.players[0].drawPile[0]).toBe('Province'); // Deck untouched
     });
 
     /**
@@ -380,7 +380,7 @@ describe('UT: Duplication & Special Cards', () => {
         players: [{
           ...state.players[0],
           hand: ['Library', 'Copper'], // 2 cards
-          deck: ['Village', 'Silver', 'Smithy', 'Gold', 'Estate'], // Village, Smithy are Actions
+          drawPile: ['Village', 'Silver', 'Smithy', 'Gold', 'Estate'], // Village, Smithy are Actions
           actions: 1
         }]
       };
@@ -427,7 +427,7 @@ describe('UT: Duplication & Special Cards', () => {
         players: [{
           ...state.players[0],
           hand: ['Gardens', 'Copper', 'Copper', 'Copper', 'Copper'], // 5 cards
-          deck: Array(15).fill('Estate'), // 15 cards
+          drawPile: Array(15).fill('Estate'), // 15 cards
           discard: Array(9).fill('Copper'), // 9 cards
           inPlay: ['Silver'] // 1 card
           // Total: 5 + 15 + 9 + 1 = 30 cards
@@ -456,7 +456,7 @@ describe('UT: Duplication & Special Cards', () => {
         players: [{
           ...state.players[0],
           hand: ['Gardens', 'Copper', 'Copper', 'Copper'], // 4 cards
-          deck: Array(10).fill('Estate'), // 10 cards
+          drawPile: Array(10).fill('Estate'), // 10 cards
           discard: Array(5).fill('Copper'), // 5 cards
           inPlay: []
           // Total: 4 + 10 + 5 = 19 cards

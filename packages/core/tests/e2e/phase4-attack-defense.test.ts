@@ -75,7 +75,7 @@ describe('E2E: Attack/Defense Gameplay', () => {
       currentPlayer: 0,
       players: [
         { ...state.players[0], hand: ['Thief'], actions: 1 },
-        { ...state.players[1], deck: ['Gold', 'Silver', 'Copper', 'Estate'] }
+        { ...state.players[1], drawPile: ['Gold', 'Silver', 'Copper', 'Estate'] }
       ]
     };
 
@@ -119,15 +119,15 @@ describe('E2E: Attack/Defense Gameplay', () => {
       turnNumber: 15,
       supply: new Map([...state.supply, ['Province', 3]]), // Late game
       players: [
-        { ...state.players[0], hand: ['Bureaucrat'], actions: 1, deck: ['Copper'] },
-        { ...state.players[1], hand: ['Province', 'Duchy', 'Copper'], deck: ['Gold'] }
+        { ...state.players[0], hand: ['Bureaucrat'], actions: 1, drawPile: ['Copper'] },
+        { ...state.players[1], hand: ['Province', 'Duchy', 'Copper'], drawPile: ['Gold'] }
       ]
     };
 
     const bureaucrat = engine.executeMove(lateGameState, { type: 'play_action', card: 'Bureaucrat' });
     const topdeck = engine.executeMove(bureaucrat.newState!, { type: 'reveal_and_topdeck', card: 'Province' });
 
-    expect(topdeck.newState!.players[1].deck[0]).toBe('Province');
+    expect(topdeck.newState!.players[1].drawPile[0]).toBe('Province');
     // Province delayed from being drawn immediately
   });
 });

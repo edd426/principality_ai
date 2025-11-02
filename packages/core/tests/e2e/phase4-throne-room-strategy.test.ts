@@ -23,7 +23,7 @@ describe('E2E: Throne Room Strategy', () => {
       players: [{
         ...state.players[0],
         hand: ['Throne Room', 'Throne Room', 'Smithy', 'Smithy'],
-        deck: Array(20).fill('Copper'),
+        drawPile: Array(20).fill('Copper'),
         actions: 2
       }]
     };
@@ -50,7 +50,7 @@ describe('E2E: Throne Room Strategy', () => {
       players: [{
         ...state.players[0],
         hand: ['Throne Room', 'Village', 'Village', 'Smithy'],
-        deck: Array(10).fill('Copper'),
+        drawPile: Array(10).fill('Copper'),
         actions: 1
       }]
     };

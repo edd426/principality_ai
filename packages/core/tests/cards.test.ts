@@ -260,8 +260,8 @@ describe('Feature 3: Card Data Model - Phase 1.6', () => {
 
       // Verify count
       expect(basicNames).toHaveLength(7);
-      expect(kingdomNames).toHaveLength(8);
-      expect(allNames).toHaveLength(15);
+      expect(kingdomNames).toHaveLength(25);
+      expect(allNames).toHaveLength(32);
     });
 
     /**
@@ -274,7 +274,7 @@ describe('Feature 3: Card Data Model - Phase 1.6', () => {
      * - No typos or invalid types
      */
     test('V-3.6: All cards have valid type values', () => {
-      const validTypes = ['treasure', 'victory', 'action', 'curse'];
+      const validTypes = ['treasure', 'victory', 'action', 'curse', 'action-attack', 'action-reaction'];
       const allCards = { ...BASIC_CARDS, ...KINGDOM_CARDS };
 
       Object.entries(allCards).forEach(([name, card]) => {

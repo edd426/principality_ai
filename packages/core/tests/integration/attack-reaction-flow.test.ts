@@ -69,9 +69,9 @@ describe('IT: Attack/Reaction Flow', () => {
       phase: 'action',
       currentPlayer: 0,
       players: [
-        { ...state.players[0], hand: ['Spy'], deck: ['Copper'], actions: 1 },
-        { ...state.players[1], deck: ['Estate'] },
-        { ...state.players[2], deck: ['Gold'] }
+        { ...state.players[0], hand: ['Spy'], drawPile: ['Copper'], actions: 1 },
+        { ...state.players[1], drawPile: ['Estate'] },
+        { ...state.players[2], drawPile: ['Gold'] }
       ]
     };
 
@@ -94,7 +94,7 @@ describe('IT: Attack/Reaction Flow', () => {
 
     expect(decision3.success).toBe(true);
     expect(decision3.newState!.players[0].discardPile).toContain('Copper');
-    expect(decision3.newState!.players[1].deck[0]).toBe('Estate');
+    expect(decision3.newState!.players[1].drawPile[0]).toBe('Estate');
     expect(decision3.newState!.players[2].discardPile).toContain('Gold');
   });
 
@@ -116,8 +116,7 @@ describe('IT: Attack/Reaction Flow', () => {
     const militia = engine.executeMove(testState, { type: 'play_action', card: 'Militia' });
     const discard = engine.executeMove(militia.newState!, {
       type: 'discard_to_hand_size',
-      cards: ['Copper', 'Copper'],
-      target_size: 3
+      cards: ['Copper', 'Copper']
     });
 
     expect(discard.newState!.players[1].hand.length).toBe(3);
@@ -200,8 +199,7 @@ describe('IT: Attack/Reaction Flow', () => {
     // First discard: 7 → 3
     const discard1 = engine.executeMove(militia.newState!, {
       type: 'discard_to_hand_size',
-      cards: ['Copper', 'Copper', 'Copper', 'Copper'],
-      target_size: 3
+      cards: ['Copper', 'Copper', 'Copper', 'Copper']
     });
 
     expect(discard1.newState!.players[1].hand.length).toBe(3);
@@ -219,7 +217,7 @@ describe('IT: Attack/Reaction Flow', () => {
       currentPlayer: 0,
       supply: new Map([...state.supply, ['Curse', 10]]),
       players: [
-        { ...state.players[0], hand: ['Throne Room', 'Witch'], deck: Array(4).fill('Silver'), actions: 1 },
+        { ...state.players[0], hand: ['Throne Room', 'Witch'], drawPile: Array(4).fill('Silver'), actions: 1 },
         { ...state.players[1], hand: ['Copper'] }
       ]
     };
@@ -241,7 +239,7 @@ describe('IT: Attack/Reaction Flow', () => {
       currentPlayer: 0,
       supply: new Map([...state.supply, ['Silver', 40]]),
       players: [
-        { ...state.players[0], hand: ['Throne Room', 'Bureaucrat'], deck: ['Copper'], actions: 1 },
+        { ...state.players[0], hand: ['Throne Room', 'Bureaucrat'], drawPile: ['Copper'], actions: 1 },
         { ...state.players[1], hand: ['Estate', 'Duchy'] }
       ]
     };
@@ -249,8 +247,8 @@ describe('IT: Attack/Reaction Flow', () => {
     const throne = engine.executeMove(testState, { type: 'play_action', card: 'Throne Room' });
     const bureaucrat = engine.executeMove(throne.newState!, { type: 'select_action_for_throne', card: 'Bureaucrat' });
 
-    expect(bureaucrat.newState!.players[0].deck[0]).toBe('Silver');
-    expect(bureaucrat.newState!.players[0].deck[1]).toBe('Silver');
+    expect(bureaucrat.newState!.players[0].drawPile[0]).toBe('Silver');
+    expect(bureaucrat.newState!.players[0].drawPile[1]).toBe('Silver');
     expect(bureaucrat.newState!.supply.get('Silver')).toBe(38);
   });
 
@@ -263,7 +261,7 @@ describe('IT: Attack/Reaction Flow', () => {
       currentPlayer: 0,
       players: [
         { ...state.players[0], hand: ['Throne Room', 'Thief'], actions: 1 },
-        { ...state.players[1], deck: ['Silver', 'Copper', 'Gold', 'Estate'] }
+        { ...state.players[1], drawPile: ['Silver', 'Copper', 'Gold', 'Estate'] }
       ]
     };
 

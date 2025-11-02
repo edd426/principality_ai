@@ -51,11 +51,11 @@ describe('E2E: Trashing Strategy', () => {
 
     // Verify Chapel creates smaller deck
     const p0Cards = currentState.players[0].hand.length +
-                    currentState.players[0].deck.length +
+                    currentState.players[0].drawPile.length +
                     currentState.players[0].discardPile.length;
 
     const p1Cards = currentState.players[1].hand.length +
-                    currentState.players[1].deck.length +
+                    currentState.players[1].drawPile.length +
                     currentState.players[1].discardPile.length;
 
     // Chapel player should have fewer cards (thinner deck)
@@ -79,7 +79,7 @@ describe('E2E: Trashing Strategy', () => {
       players: [{
         ...state.players[0],
         hand: ['Gold', 'Province'],
-        deck: ['Gold'], // Very small deck
+        drawPile: ['Gold'], // Very small deck
         discard: []
       }]
     };

@@ -35,7 +35,7 @@ describe('UT: Reaction System - Moat', () => {
         players: [{
           ...state.players[0],
           hand: ['Moat', 'Copper', 'Estate'],
-          deck: ['Silver', 'Gold', 'Duchy'],
+          drawPile: ['Silver', 'Gold', 'Duchy'],
           actions: 1
         }]
       };
@@ -159,7 +159,7 @@ describe('UT: Reaction System - Moat', () => {
           {
             ...state.players[1],
             hand: ['Moat', 'Estate'],
-            deck: ['Copper']
+            drawPile: ['Copper']
           }
         ]
       };
@@ -177,7 +177,7 @@ describe('UT: Reaction System - Moat', () => {
 
       expect(moatResult.success).toBe(true);
       // Deck unchanged (no topdeck)
-      expect(moatResult.newState!.players[1].deck[0]).toBe('Copper');
+      expect(moatResult.newState!.players[1].drawPile[0]).toBe('Copper');
       expect(moatResult.newState!.players[1].hand).toContain('Estate');
     });
 
@@ -198,13 +198,13 @@ describe('UT: Reaction System - Moat', () => {
           {
             ...state.players[0],
             hand: ['Spy'],
-            deck: ['Copper'],
+            drawPile: ['Copper'],
             actions: 1
           },
           {
             ...state.players[1],
             hand: ['Moat'],
-            deck: ['Gold']
+            drawPile: ['Gold']
           }
         ]
       };
@@ -222,7 +222,7 @@ describe('UT: Reaction System - Moat', () => {
 
       expect(moatResult.success).toBe(true);
       // Gold stays on top of deck (not revealed)
-      expect(moatResult.newState!.players[1].deck[0]).toBe('Gold');
+      expect(moatResult.newState!.players[1].drawPile[0]).toBe('Gold');
     });
 
     /**
@@ -247,7 +247,7 @@ describe('UT: Reaction System - Moat', () => {
           {
             ...state.players[1],
             hand: ['Moat'],
-            deck: ['Silver', 'Gold', 'Copper']
+            drawPile: ['Silver', 'Gold', 'Copper']
           }
         ]
       };
@@ -265,7 +265,7 @@ describe('UT: Reaction System - Moat', () => {
 
       expect(moatResult.success).toBe(true);
       // Deck unchanged (no reveal)
-      expect(moatResult.newState!.players[1].deck.length).toBe(3);
+      expect(moatResult.newState!.players[1].drawPile.length).toBe(3);
       expect(moatResult.newState!.trash.length).toBe(0); // No trash
     });
   });

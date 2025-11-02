@@ -91,8 +91,7 @@ describe('UT: Attack System Cards', () => {
       // Opponent must discard 2 cards (5 - 3 = 2)
       const discardResult = engine.executeMove(attackResult.newState!, {
         type: 'discard_to_hand_size',
-        cards: ['Copper', 'Estate'],
-        target_size: 3
+        cards: ['Copper', 'Estate']
       });
 
       expect(discardResult.success).toBe(true);
@@ -157,7 +156,7 @@ describe('UT: Attack System Cards', () => {
           {
             ...state.players[0],
             hand: ['Witch', 'Copper'],
-            deck: ['Silver', 'Gold', 'Estate'],
+            drawPile: ['Silver', 'Gold', 'Estate'],
             actions: 1
           },
           state.players[1]
@@ -262,7 +261,7 @@ describe('UT: Attack System Cards', () => {
           {
             ...state.players[0],
             hand: ['Bureaucrat'],
-            deck: ['Copper', 'Estate'],
+            drawPile: ['Copper', 'Estate'],
             actions: 1
           },
           state.players[1]
@@ -275,7 +274,7 @@ describe('UT: Attack System Cards', () => {
       });
 
       expect(result.success).toBe(true);
-      expect(result.newState!.players[0].deck[0]).toBe('Silver');
+      expect(result.newState!.players[0].drawPile[0]).toBe('Silver');
       expect(result.newState!.supply.get('Silver')).toBe(39);
     });
 
@@ -301,7 +300,7 @@ describe('UT: Attack System Cards', () => {
           {
             ...state.players[1],
             hand: ['Copper', 'Silver', 'Estate', 'Duchy'],
-            deck: ['Gold']
+            drawPile: ['Gold']
           }
         ]
       };
@@ -318,7 +317,7 @@ describe('UT: Attack System Cards', () => {
       });
 
       expect(topdeckResult.success).toBe(true);
-      expect(topdeckResult.newState!.players[1].deck[0]).toBe('Estate');
+      expect(topdeckResult.newState!.players[1].drawPile[0]).toBe('Estate');
       expect(topdeckResult.newState!.players[1].hand).not.toContain('Estate');
     });
 
@@ -345,7 +344,7 @@ describe('UT: Attack System Cards', () => {
           {
             ...state.players[1],
             hand: ['Copper', 'Silver', 'Gold', 'Smithy'], // No Victory cards
-            deck: ['Estate']
+            drawPile: ['Estate']
           }
         ]
       };
@@ -379,7 +378,7 @@ describe('UT: Attack System Cards', () => {
           {
             ...state.players[0],
             hand: ['Spy', 'Copper'],
-            deck: ['Silver', 'Estate'],
+            drawPile: ['Silver', 'Estate'],
             actions: 1
           },
           state.players[1]
@@ -413,12 +412,12 @@ describe('UT: Attack System Cards', () => {
           {
             ...state.players[0],
             hand: ['Spy'],
-            deck: ['Copper', 'Estate'],
+            drawPile: ['Copper', 'Estate'],
             actions: 1
           },
           {
             ...state.players[1],
-            deck: ['Silver', 'Gold']
+            drawPile: ['Silver', 'Gold']
           }
         ]
       };
@@ -451,12 +450,12 @@ describe('UT: Attack System Cards', () => {
           {
             ...state.players[0],
             hand: ['Spy'],
-            deck: ['Copper', 'Estate'],
+            drawPile: ['Copper', 'Estate'],
             actions: 1
           },
           {
             ...state.players[1],
-            deck: ['Gold', 'Silver']
+            drawPile: ['Gold', 'Silver']
           }
         ]
       };
@@ -469,9 +468,9 @@ describe('UT: Attack System Cards', () => {
       // Attacker decides on own card: discard
       const decision1 = engine.executeMove(spyResult.newState!, {
         type: 'spy_decision',
-        player: 0,
+        playerIndex: 0,
         card: 'Copper',
-        decision: 'discard'
+        choice: false
       });
 
       expect(decision1.newState!.players[0].discardPile).toContain('Copper');
@@ -479,12 +478,12 @@ describe('UT: Attack System Cards', () => {
       // Attacker decides on opponent's card: keep
       const decision2 = engine.executeMove(decision1.newState!, {
         type: 'spy_decision',
-        player: 1,
+        playerIndex: 1,
         card: 'Gold',
-        decision: 'keep'
+        choice: true
       });
 
-      expect(decision2.newState!.players[1].deck[0]).toBe('Gold'); // Stayed on top
+      expect(decision2.newState!.players[1].drawPile[0]).toBe('Gold'); // Stayed on top
     });
   });
 
@@ -510,7 +509,7 @@ describe('UT: Attack System Cards', () => {
           },
           {
             ...state.players[1],
-            deck: ['Silver', 'Copper', 'Estate', 'Gold']
+            drawPile: ['Silver', 'Copper', 'Estate', 'Gold']
           }
         ]
       };
@@ -546,7 +545,7 @@ describe('UT: Attack System Cards', () => {
           },
           {
             ...state.players[1],
-            deck: ['Silver', 'Copper', 'Estate']
+            drawPile: ['Silver', 'Copper', 'Estate']
           }
         ]
       };
@@ -559,7 +558,6 @@ describe('UT: Attack System Cards', () => {
       // Attacker selects Silver to trash
       const trashResult = engine.executeMove(thiefResult.newState!, {
         type: 'select_treasure_to_trash',
-        player: 1,
         card: 'Silver'
       });
 
