@@ -37,6 +37,7 @@ export interface PendingEffect {
   maxTrash?: number;
   maxGainCost?: number;
   trashedCard?: CardName;
+  targetPlayer?: number;
 }
 
 export interface GameState {

@@ -997,41 +997,29 @@ export class GameEngine {
       // No Silver in supply
     }
 
-    // Attack: each other player topdecks a Victory card from hand
-    const attackedState = resolveAttack(newState, (s, playerIndex) => {
-      const targetPlayer = s.players[playerIndex];
-      const victoryCards = targetPlayer.hand.filter(c => isVictoryCard(c));
+    // Set pending effect for opponent to topdeck a Victory card
+    // The attack resolution will happen via reveal_and_topdeck move
+    const opponentIndex = (newState.currentPlayer + 1) % newState.players.length;
+    const opponentPlayer = newState.players[opponentIndex];
+    const victoryCards = opponentPlayer.hand.filter(c => isVictoryCard(c));
 
-      if (victoryCards.length === 0) {
-        // Reveal hand (no Victory cards)
-        return {
-          ...s,
-          gameLog: [...s.gameLog, `Player ${playerIndex + 1} revealed hand (no Victory cards)`]
-        };
-      }
-
-      // Topdeck first Victory card found
-      const victoryCard = victoryCards[0];
-      const newHand = [...targetPlayer.hand];
-      const cardIndex = newHand.indexOf(victoryCard);
-      if (cardIndex !== -1) {
-        newHand.splice(cardIndex, 1);
-      }
-
+    if (victoryCards.length === 0) {
+      // No Victory cards - attack resolves immediately
       return {
-        ...s,
-        players: s.players.map((p, i) =>
-          i === playerIndex
-            ? { ...p, hand: newHand, drawPile: [victoryCard, ...p.drawPile] }
-            : p
-        ),
-        gameLog: [...s.gameLog, `Player ${playerIndex + 1} topdecked ${victoryCard} (Bureaucrat attack)`]
+        ...newState,
+        gameLog: [...newState.gameLog, `Player ${opponentIndex + 1} revealed hand (no Victory cards)`, `Player ${newState.currentPlayer + 1} played Bureaucrat`]
       };
-    });
+    }
 
+    // Have opponent choose a Victory card to topdeck
     return {
-      ...attackedState,
-      gameLog: [...attackedState.gameLog, `Player ${attackedState.currentPlayer + 1} played Bureaucrat`]
+      ...newState,
+      pendingEffect: {
+        card: 'Bureaucrat',
+        effect: 'reveal_and_topdeck',
+        targetPlayer: opponentIndex
+      },
+      gameLog: [...newState.gameLog, `Player ${newState.currentPlayer + 1} played Bureaucrat (opponent must topdeck Victory card)`]
     };
   }
 
@@ -1381,10 +1369,12 @@ export class GameEngine {
       newState = secondPlay;
     }
 
-    // Clear pending effect
+    // Clear Throne Room's pending effect (but keep any pending effects from the card itself)
     return {
       ...newState,
-      pendingEffect: undefined
+      pendingEffect: newState.pendingEffect && newState.pendingEffect.card !== 'Throne Room'
+        ? newState.pendingEffect
+        : undefined
     };
   }
 
@@ -1514,11 +1504,16 @@ export class GameEngine {
 
   private handleRevealAndTopdeck(state: GameState, card: CardName): GameState {
     // Move a Victory card from hand to top of deck (Bureaucrat attack)
+    if (!state.pendingEffect || state.pendingEffect.card !== 'Bureaucrat') {
+      throw new Error('No Bureaucrat effect pending');
+    }
+
     if (!isVictoryCard(card)) {
       throw new Error(`${card} is not a Victory card`);
     }
 
-    const targetPlayerIndex = (state.currentPlayer + 1) % state.players.length;
+    // Use targetPlayer from pending effect if available, otherwise calculate
+    const targetPlayerIndex = state.pendingEffect.targetPlayer ?? (state.currentPlayer + 1) % state.players.length;
     const player = state.players[targetPlayerIndex];
 
     if (!player.hand.includes(card)) {
@@ -1539,6 +1534,7 @@ export class GameEngine {
           ? { ...p, hand: newHand, drawPile: [card, ...p.drawPile] }
           : p
       ),
+      pendingEffect: undefined,
       gameLog: [...state.gameLog, `Player ${targetPlayerIndex + 1} topdecked ${card} (Bureaucrat attack)`]
     };
   }
