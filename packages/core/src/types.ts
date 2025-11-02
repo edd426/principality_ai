@@ -31,6 +31,14 @@ export interface PlayerState {
   readonly coins: number;
 }
 
+export interface PendingEffect {
+  card: CardName;
+  effect: string;
+  maxTrash?: number;
+  maxGainCost?: number;
+  trashedCard?: CardName;
+}
+
 export interface GameState {
   readonly players: ReadonlyArray<PlayerState>;
   readonly supply: ReadonlyMap<CardName, number>;
@@ -40,6 +48,7 @@ export interface GameState {
   readonly seed: string;
   readonly gameLog: ReadonlyArray<string>;
   readonly trash: ReadonlyArray<CardName>;
+  readonly pendingEffect?: PendingEffect;
 }
 
 export interface Move {
