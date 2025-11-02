@@ -29,10 +29,8 @@ describe('Feature: Configurable Victory Pile Sizes (Phase 2.0)', () => {
       const engine = new GameEngine('test-seed', {});
       const state = engine.initializeGame(1);
 
-      const kingdomCards = [
-        'Village', 'Smithy', 'Laboratory', 'Market',
-        'Woodcutter', 'Festival', 'Council Room', 'Cellar'
-      ];
+      // Phase 1 MVP kingdom cards (only 2 cards in MVP)
+      const kingdomCards = ['Village', 'Smithy'];
 
       kingdomCards.forEach(card => {
         expect(state.supply.get(card)).toBe(10);

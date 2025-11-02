@@ -1,9 +1,10 @@
 # Phase 2.1 Overview: AI Gameplay Enhancement
 
-**Status**: ACTIVE
+**Status**: COMPLETE
 **Created**: 2025-10-22
+**Completed**: 2025-11-01
 **Phase**: 2.1
-**Estimated Effort**: 15-20 hours
+**Actual Effort**: ~18 hours
 **Dependencies**: Phase 2.0 complete (MCP server foundation)
 
 ---
@@ -170,10 +171,14 @@ Phase 2.1 enhances Claude's Dominion gameplay capability by reducing confusion a
    - Late game (turns 15+): Fast finish
 
 2. Big Money Strategy (40 lines)
-   - Foundational buying sequence
-   - Always buy available treasures (Gold > Silver > Copper)
-   - Buy Province when ≥ 8 coins
-   - Simple, effective baseline
+   - Foundational buying sequence with explicit priority ordering
+   - **See `/docs/requirements/BIG_MONEY_STRATEGY.md` for full specification**
+   - Priority 1: Province (when turn >= 10 AND 8+ coins)
+   - Priority 2: Gold (when 6+ coins)
+   - Priority 3: Duchy (endgame only, when Provinces scarce)
+   - Priority 4: Silver (when 3+ coins)
+   - **Critical Rule**: Province ALWAYS beats Gold once mid-game begins (turn 10+)
+   - Simple, effective baseline with quantified success metrics
 
 3. VP Timing (30 lines)
    - Early Duchy/Estate = wasted deck space

@@ -1,6 +1,134 @@
 import { GameState, PlayerState, Move, GameResult, Victory, CardName, GameOptions } from './types';
-import { getCard, isActionCard, isTreasureCard } from './cards';
+import { getCard, isActionCard, isTreasureCard, isVictoryCard } from './cards';
 import { SeededRandom, createStartingDeck, createDefaultSupply, calculateScore, getAllPlayerCards } from './utils';
+
+// @decision: Helper functions for Phase 4 card mechanics
+// Placed outside GameEngine class for better separation of concerns
+
+// @blocker: Phase 4 tests have typos in property names (cards-trashing.test.ts:213,262,341)
+// - Tests use `players[0].discard` but should be `players[0].discardPile`
+// - Existing tests (game.test.ts) correctly use `discardPile`
+// - Cannot change types without breaking existing passing tests
+// Need: test-architect to fix typos in cards-trashing.test.ts
+//
+// Also: cards-trashing.test.ts:488 expects `GameResult.message` which doesn't exist in types
+// This may be intentional expectation for Moneylender with no Copper case
+
+/**
+ * Trash cards from current player's hand to the trash pile
+ */
+function trashCards(state: GameState, cards: ReadonlyArray<CardName>): GameState {
+  const currentPlayer = state.players[state.currentPlayer];
+
+  // Validate all cards are in hand
+  const handCounts = new Map<CardName, number>();
+  currentPlayer.hand.forEach(card => {
+    handCounts.set(card, (handCounts.get(card) || 0) + 1);
+  });
+
+  const trashCounts = new Map<CardName, number>();
+  cards.forEach(card => {
+    trashCounts.set(card, (trashCounts.get(card) || 0) + 1);
+  });
+
+  for (const [card, count] of trashCounts) {
+    if ((handCounts.get(card) || 0) < count) {
+      throw new Error(`Cannot trash ${count} ${card}(s), only have ${handCounts.get(card) || 0} in hand`);
+    }
+  }
+
+  // Remove cards from hand
+  const newHand = [...currentPlayer.hand];
+  cards.forEach(cardToTrash => {
+    const index = newHand.indexOf(cardToTrash);
+    if (index !== -1) {
+      newHand.splice(index, 1);
+    }
+  });
+
+  return {
+    ...state,
+    trash: [...state.trash, ...cards],
+    players: state.players.map((p, i) =>
+      i === state.currentPlayer ? { ...p, hand: newHand } : p
+    )
+  };
+}
+
+/**
+ * Gain a card from supply to specified destination
+ */
+function gainCard(
+  state: GameState,
+  card: CardName,
+  destination: 'hand' | 'discard' | 'topdeck',
+  playerIndex?: number
+): GameState {
+  const targetPlayerIndex = playerIndex ?? state.currentPlayer;
+  const supply = new Map(state.supply);
+  const availableCount = supply.get(card) || 0;
+
+  if (availableCount === 0) {
+    throw new Error(`${card} not available in supply`);
+  }
+
+  supply.set(card, availableCount - 1);
+  const targetPlayer = state.players[targetPlayerIndex];
+
+  let newPlayer: PlayerState;
+  if (destination === 'hand') {
+    newPlayer = { ...targetPlayer, hand: [...targetPlayer.hand, card] };
+  } else if (destination === 'topdeck') {
+    newPlayer = { ...targetPlayer, drawPile: [card, ...targetPlayer.drawPile] };
+  } else {
+    newPlayer = { ...targetPlayer, discardPile: [...targetPlayer.discardPile, card] };
+  }
+
+  return {
+    ...state,
+    supply,
+    players: state.players.map((p, i) => (i === targetPlayerIndex ? newPlayer : p))
+  };
+}
+
+/**
+ * Check if a player has Moat and can reveal it to block an attack
+ */
+function checkForMoatReveal(state: GameState, defendingPlayerIndex: number): boolean {
+  const defendingPlayer = state.players[defendingPlayerIndex];
+  // @hint: In full implementation, this would prompt the player to choose
+  // For now, auto-reveal Moat if in hand (optimal strategy)
+  return defendingPlayer.hand.includes('Moat');
+}
+
+/**
+ * Apply an attack effect to all other players (excluding attacker)
+ * Skips players who reveal Moat
+ */
+function resolveAttack(
+  state: GameState,
+  attackEffect: (state: GameState, playerIndex: number) => GameState
+): GameState {
+  let newState = state;
+
+  for (let i = 0; i < state.players.length; i++) {
+    if (i === state.currentPlayer) continue; // Skip attacker
+
+    // Check for Moat - if revealed, skip this player
+    if (checkForMoatReveal(newState, i)) {
+      newState = {
+        ...newState,
+        gameLog: [...newState.gameLog, `Player ${i + 1} revealed Moat and blocked the attack`]
+      };
+      continue;
+    }
+
+    // Apply attack effect to this player
+    newState = attackEffect(newState, i);
+  }
+
+  return newState;
+}
 
 export class GameEngine {
   private random: SeededRandom;
@@ -38,7 +166,8 @@ export class GameEngine {
       phase: 'action',
       turnNumber: 1,
       seed: this.seed,
-      gameLog: ['Game started']
+      gameLog: ['Game started'],
+      trash: []
     };
   }
 
@@ -100,6 +229,18 @@ export class GameEngine {
         }
         return this.handleCellarDiscard(state, move.cards);
 
+      case 'trash_cards':
+        if (!move.cards) {
+          throw new Error('Must specify cards to trash');
+        }
+        return this.handleTrashCards(state, move.cards);
+
+      case 'gain_card':
+        if (!move.card) {
+          throw new Error('Must specify card to gain');
+        }
+        return this.handleGainCard(state, move.card, move.destination || 'discard');
+
       default:
         throw new Error(`Unknown move type: ${(move as any).type}`);
     }
@@ -117,6 +258,13 @@ export class GameEngine {
     }
 
     const card = getCard(cardName);
+
+    // Handle special Phase 4 cards that need custom logic
+    if (card.effect.special) {
+      return this.handleSpecialCard(state, cardName, card.effect.special);
+    }
+
+    // Standard card effect processing
     const newHand = [...player.hand];
     const cardIndex = newHand.indexOf(cardName);
     if (cardIndex !== -1) {
@@ -373,6 +521,395 @@ export class GameEngine {
       ...state,
       players: newPlayers,
       gameLog: [...state.gameLog, `Player ${state.currentPlayer + 1} discarded ${cardsToDiscard.length} cards for Cellar`]
+    };
+  }
+
+  private handleTrashCards(state: GameState, cards: ReadonlyArray<CardName>): GameState {
+    // @hint: Context needed - which card triggered this trash?
+    // For now, apply trashing with validation in trashCards helper
+    return trashCards(state, cards);
+  }
+
+  private handleGainCard(state: GameState, card: CardName, destination: 'hand' | 'discard' | 'topdeck'): GameState {
+    // @hint: Context needed - which card triggered this gain? (Remodel, Mine, Workshop, etc.)
+    // For now, just gain the card
+    return gainCard(state, card, destination);
+  }
+
+  private handleSpecialCard(state: GameState, cardName: CardName, special: string): GameState {
+    const player = state.players[state.currentPlayer];
+
+    // Remove card from hand and put in play (common for all special cards)
+    const newHand = [...player.hand];
+    const cardIndex = newHand.indexOf(cardName);
+    if (cardIndex !== -1) {
+      newHand.splice(cardIndex, 1);
+    }
+    const newInPlay = [...player.inPlay, cardName];
+
+    let baseState: GameState = {
+      ...state,
+      players: state.players.map((p, i) =>
+        i === state.currentPlayer
+          ? { ...p, hand: newHand, inPlay: newInPlay, actions: Math.max(0, p.actions - 1) }
+          : p
+      )
+    };
+
+    // Apply standard effects first (cards, actions, coins, buys)
+    const card = getCard(cardName);
+    const currentPlayer = baseState.players[baseState.currentPlayer];
+
+    let updatedPlayer = currentPlayer;
+    if (card.effect.cards || card.effect.actions || card.effect.coins || card.effect.buys) {
+      const cardsToDraw = card.effect.cards || 0;
+      let finalHand = [...currentPlayer.hand];
+      let finalDrawPile = [...currentPlayer.drawPile];
+      let finalDiscardPile = [...currentPlayer.discardPile];
+
+      if (cardsToDraw > 0) {
+        const drawResult = this.drawCards(finalDrawPile, finalDiscardPile, finalHand, cardsToDraw);
+        finalHand = drawResult.newHand;
+        finalDrawPile = drawResult.newDeck;
+        finalDiscardPile = drawResult.newDiscard;
+      }
+
+      updatedPlayer = {
+        ...currentPlayer,
+        hand: finalHand,
+        drawPile: finalDrawPile,
+        discardPile: finalDiscardPile,
+        actions: currentPlayer.actions + (card.effect.actions || 0),
+        coins: currentPlayer.coins + (card.effect.coins || 0),
+        buys: currentPlayer.buys + (card.effect.buys || 0)
+      };
+
+      baseState = {
+        ...baseState,
+        players: baseState.players.map((p, i) => (i === baseState.currentPlayer ? updatedPlayer : p))
+      };
+    }
+
+    // Handle special effects
+    switch (special) {
+      // === Trashing Cards ===
+      case 'trash_up_to_4': // Chapel
+        // Chapel allows trashing up to 4 cards - handled by subsequent trash_cards move
+        return {
+          ...baseState,
+          gameLog: [...baseState.gameLog, `Player ${baseState.currentPlayer + 1} played Chapel (may trash up to 4 cards)`]
+        };
+
+      case 'trash_copper_gain_coins': // Moneylender
+        return this.handleMoneylender(baseState);
+
+      case 'trash_and_gain': // Remodel
+        return {
+          ...baseState,
+          gameLog: [...baseState.gameLog, `Player ${baseState.currentPlayer + 1} played Remodel (trash 1 card, gain +$2 cost)`]
+        };
+
+      case 'trash_treasure_gain_treasure': // Mine
+        return {
+          ...baseState,
+          gameLog: [...baseState.gameLog, `Player ${baseState.currentPlayer + 1} played Mine (trash Treasure, gain Treasure +$3 to hand)`]
+        };
+
+      // === Gaining Cards ===
+      case 'gain_card_up_to_4': // Workshop
+        return {
+          ...baseState,
+          gameLog: [...baseState.gameLog, `Player ${baseState.currentPlayer + 1} played Workshop (gain card up to $4)`]
+        };
+
+      case 'trash_self_gain_card': // Feast
+        return this.handleFeast(baseState);
+
+      // === Attack Cards ===
+      case 'attack_discard_to_3': // Militia
+        return this.handleMilitia(baseState);
+
+      case 'attack_gain_curse': // Witch
+        return this.handleWitch(baseState);
+
+      case 'gain_silver_attack_topdeck_victory': // Bureaucrat
+        return this.handleBureaucrat(baseState);
+
+      case 'attack_reveal_top_card': // Spy
+        return {
+          ...baseState,
+          gameLog: [...baseState.gameLog, `Player ${baseState.currentPlayer + 1} played Spy (reveal top card for all players)`]
+        };
+
+      case 'attack_reveal_2_trash_treasure': // Thief
+        return {
+          ...baseState,
+          gameLog: [...baseState.gameLog, `Player ${baseState.currentPlayer + 1} played Thief (reveal 2, trash treasure)`]
+        };
+
+      // === Reaction ===
+      case 'reaction_block_attack': // Moat
+        return {
+          ...baseState,
+          gameLog: [...baseState.gameLog, `Player ${baseState.currentPlayer + 1} played Moat`]
+        };
+
+      // === Special Cards ===
+      case 'play_action_twice': // Throne Room
+        return {
+          ...baseState,
+          gameLog: [...baseState.gameLog, `Player ${baseState.currentPlayer + 1} played Throne Room (play action twice)`]
+        };
+
+      case 'reveal_until_2_treasures': // Adventurer
+        return this.handleAdventurer(baseState);
+
+      case 'may_put_deck_into_discard': // Chancellor
+        return this.handleChancellor(baseState);
+
+      case 'draw_to_7_set_aside_actions': // Library
+        return this.handleLibrary(baseState);
+
+      default:
+        return baseState;
+    }
+  }
+
+  private handleMoneylender(state: GameState): GameState {
+    const player = state.players[state.currentPlayer];
+
+    if (player.hand.includes('Copper')) {
+      // Trash Copper and gain +$3
+      const trashedState = trashCards(state, ['Copper']);
+      const updatedPlayer = {
+        ...trashedState.players[trashedState.currentPlayer],
+        coins: trashedState.players[trashedState.currentPlayer].coins + 3
+      };
+
+      return {
+        ...trashedState,
+        players: trashedState.players.map((p, i) =>
+          i === trashedState.currentPlayer ? updatedPlayer : p
+        ),
+        gameLog: [...trashedState.gameLog, `Player ${trashedState.currentPlayer + 1} trashed Copper for +$3`]
+      };
+    } else {
+      return {
+        ...state,
+        gameLog: [...state.gameLog, `Player ${state.currentPlayer + 1} played Moneylender (no Copper to trash)`]
+      };
+    }
+  }
+
+  private handleFeast(state: GameState): GameState {
+    // Trash Feast from play area (not hand, since it's already in play)
+    return {
+      ...state,
+      trash: [...state.trash, 'Feast'],
+      players: state.players.map((p, i) =>
+        i === state.currentPlayer
+          ? { ...p, inPlay: p.inPlay.filter(c => c !== 'Feast') }
+          : p
+      ),
+      gameLog: [...state.gameLog, `Player ${state.currentPlayer + 1} played Feast (trashed, may gain card up to $5)`]
+    };
+  }
+
+  private handleMilitia(state: GameState): GameState {
+    // Militia already gave +$2 coins in standard effects
+    // Now apply attack: each other player discards down to 3 cards
+    const attackedState = resolveAttack(state, (s, playerIndex) => {
+      const targetPlayer = s.players[playerIndex];
+      if (targetPlayer.hand.length <= 3) {
+        return s; // No need to discard
+      }
+
+      // Discard down to 3 (for now, discard from end of hand)
+      const toDiscard = targetPlayer.hand.length - 3;
+      const newHand = [...targetPlayer.hand].slice(0, 3);
+      const discarded = [...targetPlayer.hand].slice(3);
+
+      return {
+        ...s,
+        players: s.players.map((p, i) =>
+          i === playerIndex
+            ? { ...p, hand: newHand, discardPile: [...p.discardPile, ...discarded] }
+            : p
+        ),
+        gameLog: [...s.gameLog, `Player ${playerIndex + 1} discarded ${toDiscard} cards (Militia attack)`]
+      };
+    });
+
+    return {
+      ...attackedState,
+      gameLog: [...attackedState.gameLog, `Player ${attackedState.currentPlayer + 1} played Militia`]
+    };
+  }
+
+  private handleWitch(state: GameState): GameState {
+    // Witch already drew +2 cards in standard effects
+    // Now apply attack: each other player gains a Curse
+    const attackedState = resolveAttack(state, (s, playerIndex) => {
+      try {
+        return gainCard(s, 'Curse', 'discard', playerIndex);
+      } catch {
+        // No Curses left in supply
+        return s;
+      }
+    });
+
+    return {
+      ...attackedState,
+      gameLog: [...attackedState.gameLog, `Player ${attackedState.currentPlayer + 1} played Witch`]
+    };
+  }
+
+  private handleBureaucrat(state: GameState): GameState {
+    // Gain Silver onto deck
+    let newState = state;
+    try {
+      newState = gainCard(newState, 'Silver', 'topdeck');
+    } catch {
+      // No Silver in supply
+    }
+
+    // Attack: each other player topdecks a Victory card from hand
+    const attackedState = resolveAttack(newState, (s, playerIndex) => {
+      const targetPlayer = s.players[playerIndex];
+      const victoryCards = targetPlayer.hand.filter(c => isVictoryCard(c));
+
+      if (victoryCards.length === 0) {
+        // Reveal hand (no Victory cards)
+        return {
+          ...s,
+          gameLog: [...s.gameLog, `Player ${playerIndex + 1} revealed hand (no Victory cards)`]
+        };
+      }
+
+      // Topdeck first Victory card found
+      const victoryCard = victoryCards[0];
+      const newHand = [...targetPlayer.hand];
+      const cardIndex = newHand.indexOf(victoryCard);
+      if (cardIndex !== -1) {
+        newHand.splice(cardIndex, 1);
+      }
+
+      return {
+        ...s,
+        players: s.players.map((p, i) =>
+          i === playerIndex
+            ? { ...p, hand: newHand, drawPile: [victoryCard, ...p.drawPile] }
+            : p
+        ),
+        gameLog: [...s.gameLog, `Player ${playerIndex + 1} topdecked ${victoryCard} (Bureaucrat attack)`]
+      };
+    });
+
+    return {
+      ...attackedState,
+      gameLog: [...attackedState.gameLog, `Player ${attackedState.currentPlayer + 1} played Bureaucrat`]
+    };
+  }
+
+  private handleAdventurer(state: GameState): GameState {
+    const player = state.players[state.currentPlayer];
+    let currentDeck = [...player.drawPile];
+    let currentDiscard = [...player.discardPile];
+    const revealed: CardName[] = [];
+    const treasures: CardName[] = [];
+
+    // Reveal cards until 2 Treasures found
+    while (treasures.length < 2) {
+      // Reshuffle if needed
+      if (currentDeck.length === 0) {
+        if (currentDiscard.length === 0) break; // No more cards
+        currentDeck = [...this.random.shuffle(currentDiscard)];
+        currentDiscard = [];
+      }
+
+      if (currentDeck.length > 0) {
+        const card = currentDeck[0];
+        currentDeck = currentDeck.slice(1);
+        revealed.push(card);
+
+        if (isTreasureCard(card)) {
+          treasures.push(card);
+        }
+      } else {
+        break;
+      }
+    }
+
+    // Put Treasures in hand, discard others
+    const others = revealed.filter(c => !treasures.includes(c));
+
+    return {
+      ...state,
+      players: state.players.map((p, i) =>
+        i === state.currentPlayer
+          ? {
+              ...p,
+              hand: [...p.hand, ...treasures],
+              drawPile: currentDeck,
+              discardPile: [...currentDiscard, ...others]
+            }
+          : p
+      ),
+      gameLog: [...state.gameLog, `Player ${state.currentPlayer + 1} revealed ${revealed.length} cards, found ${treasures.length} Treasures (Adventurer)`]
+    };
+  }
+
+  private handleChancellor(state: GameState): GameState {
+    // Chancellor already gave +$2 coins in standard effects
+    // For now, auto-decline deck-to-discard option (requires user choice)
+    return {
+      ...state,
+      gameLog: [...state.gameLog, `Player ${state.currentPlayer + 1} played Chancellor (+$2)`]
+    };
+  }
+
+  private handleLibrary(state: GameState): GameState {
+    const player = state.players[state.currentPlayer];
+    let currentHand = [...player.hand];
+    let currentDeck = [...player.drawPile];
+    let currentDiscard = [...player.discardPile];
+    const setAside: CardName[] = [];
+
+    // Draw until hand has 7 cards
+    while (currentHand.length < 7) {
+      // Reshuffle if needed
+      if (currentDeck.length === 0) {
+        if (currentDiscard.length === 0) break; // No more cards
+        currentDeck = [...this.random.shuffle(currentDiscard)];
+        currentDiscard = [];
+      }
+
+      if (currentDeck.length > 0) {
+        const card = currentDeck[0];
+        currentDeck = currentDeck.slice(1);
+
+        if (isActionCard(card)) {
+          // Set aside Action cards (for now, auto set-aside all Actions)
+          setAside.push(card);
+        } else {
+          currentHand.push(card);
+        }
+      } else {
+        break;
+      }
+    }
+
+    // Discard set-aside cards
+    currentDiscard = [...currentDiscard, ...setAside];
+
+    return {
+      ...state,
+      players: state.players.map((p, i) =>
+        i === state.currentPlayer
+          ? { ...p, hand: currentHand, drawPile: currentDeck, discardPile: currentDiscard }
+          : p
+      ),
+      gameLog: [...state.gameLog, `Player ${state.currentPlayer + 1} drew to 7 cards (Library), set aside ${setAside.length} Actions`]
     };
   }
 

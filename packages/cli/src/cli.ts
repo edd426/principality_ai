@@ -1,5 +1,5 @@
 import * as readline from 'readline';
-import { GameEngine, GameState, Move, getCard } from '@principality/core';
+import { GameEngine, GameState, Move, getCard, RulesBasedAI } from '@principality/core';
 import { Display } from './display';
 import { Parser, ParseResult } from './parser';
 import { formatVPDisplay, formatVPDisplayExpanded } from './vp-calculator';
@@ -28,14 +28,20 @@ export class PrincipalityCLI {
   private rl: readline.Interface;
   private isRunning: boolean;
   private options: CLIOptions;
+  private ai: RulesBasedAI;
+  private numPlayers: number;
 
   constructor(seed?: string, players: number = 1, options: CLIOptions = {}) {
     const gameSeed = seed || this.generateRandomSeed();
     this.options = options;
+    this.numPlayers = players;
 
     // Initialize engine with options
     this.engine = new GameEngine(gameSeed, { victoryPileSize: options.victoryPileSize });
     this.gameState = this.engine.initializeGame(players);
+
+    // Initialize AI with same seed for deterministic behavior
+    this.ai = new RulesBasedAI(gameSeed);
 
     // Initialize display and parser with stable numbers option
     this.display = new Display({ stableNumbers: options.stableNumbers });
@@ -89,24 +95,32 @@ export class PrincipalityCLI {
           }
         }
 
-        // Get valid moves
-        const validMoves = this.engine.getValidMoves(this.gameState);
-        this.display.displayAvailableMoves(validMoves);
+        // Check if current player is AI (for multiplayer: player 0 is human, player 1+ are AI)
+        const isAIPlayer = this.numPlayers > 1 && this.gameState.currentPlayer > 0;
 
-        // Get user input
-        const input = await this.promptUser();
+        if (isAIPlayer) {
+          // AI auto-executes its move
+          this.executeAIMove();
+        } else {
+          // Human player - get input
+          const validMoves = this.engine.getValidMoves(this.gameState);
+          this.display.displayAvailableMoves(validMoves);
 
-        if (!input) {
-          continue;
+          // Get user input
+          const input = await this.promptUser();
+
+          if (!input) {
+            continue;
+          }
+
+          // Parse input with options
+          const parseResult = this.parser.parseInput(input, validMoves, {
+            stableNumbers: this.options.stableNumbers
+          });
+
+          // Handle parse result
+          await this.handleParseResult(parseResult);
         }
-
-        // Parse input with options
-        const parseResult = this.parser.parseInput(input, validMoves, {
-          stableNumbers: this.options.stableNumbers
-        });
-
-        // Handle parse result
-        await this.handleParseResult(parseResult);
       } catch (error) {
         // Handle any unexpected errors gracefully - log but don't throw
         const errorMessage = error instanceof Error ? error.message : 'Unknown error';
@@ -163,6 +177,41 @@ export class PrincipalityCLI {
       this.gameState = result.newState;
     } else {
       this.display.displayMoveResult(false, result.error);
+    }
+  }
+
+  /**
+   * Execute an AI move (called in multiplayer when AI player's turn)
+   */
+  private executeAIMove(): void {
+    const player = this.gameState.currentPlayer;
+    const decision = this.ai.decideBestMove(this.gameState, player);
+
+    // Display the AI's decision
+    console.log(`\n💭 AI (Player ${player + 1}) decision: ${decision.reasoning}`);
+    console.log(`   Moving: ${this.formatMove(decision.move)}\n`);
+
+    // Execute the move
+    this.executeMove(decision.move);
+  }
+
+  /**
+   * Format a move for display
+   */
+  private formatMove(move: Move): string {
+    switch (move.type) {
+      case 'play_action':
+        return `Play ${move.card}`;
+      case 'play_treasure':
+        return `Play ${move.card}`;
+      case 'buy':
+        return `Buy ${move.card}`;
+      case 'end_phase':
+        return 'End phase';
+      case 'discard_for_cellar':
+        return `Discard ${move.cards?.length ?? 0} cards`;
+      default:
+        return 'Unknown move';
     }
   }
 

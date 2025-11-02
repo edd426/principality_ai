@@ -163,15 +163,22 @@ describe('Feature 1: Multiplayer Game Engine', () => {
   describe('UT 1.5: Player State Isolation - Hand Changes', () => {
     test('should not affect P1 hand when P0 hand changes', () => {
       // @req: FR 1.3 - Changes to P0 hand don't affect P1
-      // @input: initializeGame(2), executeMove(play_treasure, 'Copper')
+      // @input: initializeGame(2), transition to buy phase, executeMove(play_treasure, 'Copper')
       // @output: P0 hand modified, P1 hand unchanged
       // @level: Unit
 
       const state1 = engine.initializeGame(2);
-      const p1HandBefore = state1.players[1].hand;
 
-      // Execute move for Player 0
-      const result = engine.executeMove(state1, { type: 'play_treasure', card: 'Copper' });
+      // Transition to buy phase first
+      const actionPhaseEnd = engine.executeMove(state1, { type: 'end_phase' });
+      expect(actionPhaseEnd.success).toBe(true);
+      if (!actionPhaseEnd.newState) throw new Error('Failed to end action phase');
+
+      const stateBuyPhase = actionPhaseEnd.newState;
+      const p1HandBefore = stateBuyPhase.players[1].hand;
+
+      // Execute move for Player 0 (play treasure)
+      const result = engine.executeMove(stateBuyPhase, { type: 'play_treasure', card: 'Copper' });
 
       expect(result.success).toBe(true);
       expect(result.newState).toBeDefined();
@@ -180,7 +187,7 @@ describe('Feature 1: Multiplayer Game Engine', () => {
         const state2 = result.newState;
 
         // P0 hand should change
-        expect(state2.players[0].hand).not.toBe(state1.players[0].hand);
+        expect(state2.players[0].hand).not.toBe(stateBuyPhase.players[0].hand);
 
         // P1 hand should be unchanged (same reference)
         expect(state2.players[1].hand).toBe(p1HandBefore);
@@ -192,12 +199,19 @@ describe('Feature 1: Multiplayer Game Engine', () => {
       // @assert: Original state1 unmodified after creating state2
 
       const state1 = engine.initializeGame(2);
-      const p0HandBefore = state1.players[0].hand;
 
-      engine.executeMove(state1, { type: 'play_treasure', card: 'Copper' });
+      // Transition to buy phase first
+      const actionPhaseEnd = engine.executeMove(state1, { type: 'end_phase' });
+      expect(actionPhaseEnd.success).toBe(true);
+      if (!actionPhaseEnd.newState) throw new Error('Failed to end action phase');
 
-      // Original state should be unchanged
-      expect(state1.players[0].hand).toBe(p0HandBefore);
+      const stateBuyPhase = actionPhaseEnd.newState;
+      const p0HandBefore = stateBuyPhase.players[0].hand;
+
+      engine.executeMove(stateBuyPhase, { type: 'play_treasure', card: 'Copper' });
+
+      // Original buy phase state should be unchanged
+      expect(stateBuyPhase.players[0].hand).toBe(p0HandBefore);
     });
   });
 

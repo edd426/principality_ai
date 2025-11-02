@@ -1,4 +1,13 @@
-import { GameState, PlayerState, Move, Victory, getCard } from '@principality/core';
+import {
+  GameState,
+  PlayerState,
+  Move,
+  Victory,
+  getCard,
+  getMoveDescriptionCompact,
+  groupSupplyByType,
+  calculateVictoryPoints
+} from '@principality/core';
 import { formatVPDisplay } from './vp-calculator';
 import { getStableNumber } from './stable-numbers';
 
@@ -68,7 +77,7 @@ export class Display {
   displayAvailableMoves(moves: Move[]): void {
     console.log('Available Moves:');
     moves.forEach((move, index) => {
-      const moveDescription = this.describeMoveCompact(move);
+      const moveDescription = getMoveDescriptionCompact(move);
 
       if (this.options.stableNumbers) {
         // Show stable numbers
@@ -117,46 +126,29 @@ export class Display {
    */
   displaySupply(state: GameState): void {
     console.log('\nSupply:');
-    const supplyArray = Array.from(state.supply.entries());
-
-    // Group by type for better display
-    const treasures: [string, number][] = [];
-    const victory: [string, number][] = [];
-    const kingdom: [string, number][] = [];
-
-    supplyArray.forEach(([name, count]) => {
-      if (['Copper', 'Silver', 'Gold'].includes(name)) {
-        treasures.push([name, count]);
-      } else if (['Estate', 'Duchy', 'Province'].includes(name)) {
-        victory.push([name, count]);
-      } else {
-        kingdom.push([name, count]);
-      }
-    });
+    const { treasures, victory, kingdom } = groupSupplyByType(state);
 
     if (treasures.length > 0) {
-      console.log('  Treasures: ' + this.formatSupplyGroup(treasures));
+      console.log('  Treasures: ' + this.formatSupplyGroupFromPiles(treasures));
     }
     if (victory.length > 0) {
-      console.log('  Victory:   ' + this.formatSupplyGroup(victory));
+      console.log('  Victory:   ' + this.formatSupplyGroupFromPiles(victory));
     }
     if (kingdom.length > 0) {
-      console.log('  Kingdom:   ' + this.formatSupplyGroup(kingdom));
+      console.log('  Kingdom:   ' + this.formatSupplyGroupFromPiles(kingdom));
     }
     console.log('');
   }
 
   /**
-   * Format a group of supply piles
+   * Format a group of supply piles from SupplyPile objects
    */
-  private formatSupplyGroup(piles: [string, number][]): string {
-    return piles.map(([name, count]) => {
-      try {
-        const card = getCard(name as any);
-        return `${name} ($${card.cost}, ${count})`;
-      } catch {
-        // Handle unknown cards gracefully (e.g., in tests)
-        return `${name} (${count})`;
+  private formatSupplyGroupFromPiles(piles: Array<{name: string; remaining: number; cost?: number}>): string {
+    return piles.map(pile => {
+      if (pile.cost !== undefined) {
+        return `${pile.name} ($${pile.cost}, ${pile.remaining})`;
+      } else {
+        return `${pile.name} (${pile.remaining})`;
       }
     }).join(', ');
   }
@@ -228,27 +220,6 @@ export class Display {
     console.log('  quit         - Exit the game');
     console.log('  exit         - Exit the game (same as quit)');
     console.log('');
-  }
-
-  /**
-   * Create a compact description of a move
-   */
-  private describeMoveCompact(move: Move): string {
-    switch (move.type) {
-      case 'play_action':
-        return `Play ${move.card}`;
-      case 'play_treasure':
-        return `Play ${move.card}`;
-      case 'buy':
-        const card = getCard(move.card!);
-        return `Buy ${move.card} ($${card.cost})`;
-      case 'end_phase':
-        return 'End Phase';
-      case 'discard_for_cellar':
-        return 'Discard cards for Cellar';
-      default:
-        return 'Unknown move';
-    }
   }
 
   /**

@@ -1,5 +1,5 @@
 import { GameState, Move, CardName } from './types';
-import { getCard, isActionCard, isTreasureCard } from './cards';
+import { isActionCard, isTreasureCard } from './cards';
 
 export interface AIDecision {
   move: Move;
@@ -76,25 +76,24 @@ export class RulesBasedAI {
   private decideBuyPhase(gameState: GameState, playerIndex: number, _player: any): AIDecision {
     const player_state = gameState.players[playerIndex];
 
-    // First, check if we should play treasures to increase coins
+    // @blocker-fix: FR 3.1, FR 3.2 - Play ALL treasures before purchase decisions
+    // Strategy: Check if hand contains treasures (ANY cards, counting duplicates)
+    // If yes, play the first one. This handles duplicates correctly.
     const treasureCards = player_state.hand.filter((card: CardName) => isTreasureCard(card));
 
-    // If we have treasure cards and haven't played them all, play them
-    // This is implicit in the strategy - we always play treasures before buying
+    // If hand contains treasures, ALWAYS play one
+    // We don't track "which treasures have been played" because that fails with duplicates
+    // Instead, we simply check "are there treasures in hand?" on each decision cycle
     if (treasureCards.length > 0) {
-      // Find the first treasure not yet in play
-      const inPlayTreasures = new Set(player_state.inPlay.filter((c: CardName) => isTreasureCard(c)));
-      const unplayedTreasure = treasureCards.find((card: CardName) => !inPlayTreasures.has(card));
-
-      if (unplayedTreasure) {
-        return {
-          move: { type: 'play_treasure', card: unplayedTreasure },
-          reasoning: `Play ${unplayedTreasure} for coins`
-        };
-      }
+      // Play the first treasure in hand
+      const treasureToPlay = treasureCards[0];
+      return {
+        move: { type: 'play_treasure', card: treasureToPlay },
+        reasoning: `Play ${treasureToPlay} for coins`
+      };
     }
 
-    // Now decide what to buy
+    // Now decide what to buy (only reached when hand has NO treasures)
     if (player_state.buys <= 0) {
       return {
         move: { type: 'end_phase' },
@@ -102,11 +101,38 @@ export class RulesBasedAI {
       };
     }
 
-    // Check game state for endgame detection
+    // Check game state for mid-game and endgame detection
     const emptyPiles = Array.from(gameState.supply.values()).filter(count => count === 0).length;
-    const isEndgame = emptyPiles >= 2 || (gameState.supply.get('Province') || 0) <= 2;
+    const provincesLeft = gameState.supply.get('Province') || 0;
 
-    // Big Money strategy
+    // Mid-game: Start buying victory points
+    // Primary trigger: Turn 10+ (Big Money threshold)
+    // Secondary triggers: Game nearing end earlier than expected
+    //   - Provinces critically low (<=2) at turn 8+, OR
+    //   - ANY pile empty at turn 8+ (signals game acceleration)
+    const isMidGame = gameState.turnNumber >= 10 ||
+                      (gameState.turnNumber >= 8 && provincesLeft <= 2) ||
+                      (gameState.turnNumber >= 8 && emptyPiles >= 1);
+
+    // Endgame: Focus heavily on victory points (Provinces nearly gone OR multiple piles empty)
+    const isEndgame = provincesLeft <= 3 || emptyPiles >= 3;
+
+    // Big Money strategy with correct priority:
+    // 1. Province (if mid-game+ AND affordable) - HIGHEST PRIORITY
+    // 2. Gold (if affordable) - Build economy
+    // 3. Duchy (if endgame AND affordable) - Backup victory points
+    // 4. Silver (if affordable) - Minimum economy
+    // 5. Estate (if very late endgame) - Grab any VP
+
+    // FIRST: Province in mid-game or later (turn 10+)
+    if (player_state.coins >= 8 && provincesLeft > 0 && isMidGame) {
+      return {
+        move: { type: 'buy', card: 'Province' },
+        reasoning: `Big Money: Province (8 coins, 6 VP) - Turn ${gameState.turnNumber}, ${provincesLeft} left`
+      };
+    }
+
+    // SECOND: Gold for economy building (only if NOT ready for Province yet)
     if (player_state.coins >= 6 && (gameState.supply.get('Gold') || 0) > 0) {
       return {
         move: { type: 'buy', card: 'Gold' },
@@ -114,13 +140,15 @@ export class RulesBasedAI {
       };
     }
 
-    if (player_state.coins >= 8 && (gameState.supply.get('Province') || 0) > 0 && isEndgame) {
+    // THIRD: Duchy in endgame as backup victory points
+    if (player_state.coins >= 5 && (gameState.supply.get('Duchy') || 0) > 0 && isEndgame) {
       return {
-        move: { type: 'buy', card: 'Province' },
-        reasoning: 'Endgame: Buy Province for victory points'
+        move: { type: 'buy', card: 'Duchy' },
+        reasoning: `Endgame: Duchy (5 coins, 3 VP) - Provinces at ${provincesLeft}, ${emptyPiles} empty piles`
       };
     }
 
+    // FOURTH: Silver for minimum economy
     if (player_state.coins >= 3 && (gameState.supply.get('Silver') || 0) > 0) {
       return {
         move: { type: 'buy', card: 'Silver' },
@@ -128,17 +156,11 @@ export class RulesBasedAI {
       };
     }
 
-    if (player_state.coins >= 5 && (gameState.supply.get('Duchy') || 0) > 0 && isEndgame) {
+    // FIFTH: Estate in very late endgame (any VP is better than nothing)
+    if (player_state.coins >= 2 && (gameState.supply.get('Estate') || 0) > 0 && isEndgame) {
       return {
-        move: { type: 'buy', card: 'Duchy' },
-        reasoning: 'Endgame: Buy Duchy for 3 VP'
-      };
-    }
-
-    if (player_state.coins >= 8 && (gameState.supply.get('Province') || 0) > 0) {
-      return {
-        move: { type: 'buy', card: 'Province' },
-        reasoning: 'Buy Province for 6 VP'
+        move: { type: 'buy', card: 'Estate' },
+        reasoning: `Late endgame: Estate (2 coins, 1 VP) - ${emptyPiles} empty piles`
       };
     }
 
@@ -147,52 +169,5 @@ export class RulesBasedAI {
       move: { type: 'end_phase' },
       reasoning: 'No profitable purchases available'
     };
-  }
-
-  /**
-   * Get valid moves for a specific player (used for validation)
-   */
-  getValidMoves(gameState: GameState, playerIndex: number): Move[] {
-    const player = gameState.players[playerIndex];
-    const moves: Move[] = [];
-
-    switch (gameState.phase) {
-      case 'action':
-        if (player.actions > 0) {
-          const actionCards = player.hand.filter((card: CardName) => isActionCard(card));
-          actionCards.forEach(card => {
-            moves.push({ type: 'play_action', card });
-          });
-        }
-        const treasureCards = player.hand.filter((card: CardName) => isTreasureCard(card));
-        treasureCards.forEach(card => {
-          moves.push({ type: 'play_treasure', card });
-        });
-        moves.push({ type: 'end_phase' });
-        break;
-
-      case 'buy':
-        const treasures = player.hand.filter((card: CardName) => isTreasureCard(card));
-        treasures.forEach(card => {
-          moves.push({ type: 'play_treasure', card });
-        });
-
-        if (player.buys > 0) {
-          for (const [cardName, count] of gameState.supply) {
-            if (count > 0 && player.coins >= getCard(cardName).cost) {
-              moves.push({ type: 'buy', card: cardName });
-            }
-          }
-        }
-
-        moves.push({ type: 'end_phase' });
-        break;
-
-      case 'cleanup':
-        moves.push({ type: 'end_phase' });
-        break;
-    }
-
-    return moves;
   }
 }

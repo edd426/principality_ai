@@ -1,0 +1,133 @@
+import { GameEngine, GameState, RulesBasedAI } from '@principality/core';
+
+/**
+ * Phase 4 E2E Tests: Attack/Defense Gameplay
+ * @req: Test full games with attack and Moat defense
+ * @level: E2E
+ * @count: 5 tests total
+ */
+
+describe('E2E: Attack/Defense Gameplay', () => {
+  let engine: GameEngine;
+  let ai: RulesBasedAI;
+
+  beforeEach(() => {
+    engine = new GameEngine('e2e-attack-test');
+    ai = new RulesBasedAI('e2e-attack-test');
+  });
+
+  test('E2E-ATTACK-1: Militia vs Moat defense', () => {
+    const state = engine.initializeGame(2);
+
+    let currentState = state;
+    let militiaAttacks = 0;
+    let moatBlocks = 0;
+    let turnCount = 0;
+
+    while (!currentState.gameOver && turnCount < 30) {
+      const move = ai.decideBestMove(currentState, currentState.currentPlayer);
+      const result = engine.executeMove(currentState, move.move);
+
+      if (!result.success) break;
+
+      // Track Militia attacks and Moat blocks
+      if (move.move.card === 'Militia') militiaAttacks++;
+      if (move.move.type === 'reveal_reaction' && move.move.card === 'Moat') moatBlocks++;
+
+      currentState = result.newState!;
+      turnCount++;
+    }
+
+    expect(currentState.gameOver).toBe(true);
+    // Verify attacks occurred
+    expect(militiaAttacks + moatBlocks).toBeGreaterThan(0);
+  });
+
+  test('E2E-ATTACK-2: Witch spam strategy', () => {
+    const state = engine.initializeGame(2);
+
+    const testState: GameState = {
+      ...state,
+      phase: 'action',
+      currentPlayer: 0,
+      supply: new Map([...state.supply, ['Curse', 10]]),
+      players: [
+        { ...state.players[0], hand: ['Witch', 'Witch'], actions: 2 },
+        { ...state.players[1], hand: ['Copper', 'Copper'] }
+      ]
+    };
+
+    // Play 2 Witches
+    const witch1 = engine.executeMove(testState, { type: 'play_action', card: 'Witch' });
+    const witch2 = engine.executeMove(witch1.newState!, { type: 'play_action', card: 'Witch' });
+
+    // Opponent gains 2 Curses
+    expect(witch2.newState!.players[1].discard.filter(c => c === 'Curse').length).toBe(2);
+    expect(witch2.newState!.supply.get('Curse')).toBe(8);
+  });
+
+  test('E2E-ATTACK-3: Thief steal strategy', () => {
+    const state = engine.initializeGame(2);
+
+    const testState: GameState = {
+      ...state,
+      phase: 'action',
+      currentPlayer: 0,
+      players: [
+        { ...state.players[0], hand: ['Thief'], actions: 1 },
+        { ...state.players[1], deck: ['Gold', 'Silver', 'Copper', 'Estate'] }
+      ]
+    };
+
+    const thief = engine.executeMove(testState, { type: 'play_action', card: 'Thief' });
+    const trash = engine.executeMove(thief.newState!, { type: 'select_treasure_to_trash', player: 1, card: 'Gold' });
+    const gain = engine.executeMove(trash.newState!, { type: 'gain_trashed_card', card: 'Gold' });
+
+    expect(gain.newState!.trash).toContain('Gold');
+    expect(gain.newState!.players[0].discard).toContain('Gold');
+    // Opponent weakened, attacker strengthened
+  });
+
+  test('E2E-ATTACK-4: Full attack game (Militia + Witch + Thief)', () => {
+    const state = engine.initializeGame(2);
+
+    let currentState = state;
+    let turnCount = 0;
+
+    while (!currentState.gameOver && turnCount < 30) {
+      const move = ai.decideBestMove(currentState, currentState.currentPlayer);
+      const result = engine.executeMove(currentState, move.move);
+
+      if (!result.success) break;
+
+      currentState = result.newState!;
+      turnCount++;
+    }
+
+    expect(currentState.gameOver).toBe(true);
+    // Verify game completed without errors
+    expect(turnCount).toBeLessThan(30);
+  });
+
+  test('E2E-ATTACK-5: Bureaucrat late-game disruption', () => {
+    const state = engine.initializeGame(2);
+
+    const lateGameState: GameState = {
+      ...state,
+      phase: 'action',
+      currentPlayer: 0,
+      turnNumber: 15,
+      supply: new Map([...state.supply, ['Province', 3]]), // Late game
+      players: [
+        { ...state.players[0], hand: ['Bureaucrat'], actions: 1, deck: ['Copper'] },
+        { ...state.players[1], hand: ['Province', 'Duchy', 'Copper'], deck: ['Gold'] }
+      ]
+    };
+
+    const bureaucrat = engine.executeMove(lateGameState, { type: 'play_action', card: 'Bureaucrat' });
+    const topdeck = engine.executeMove(bureaucrat.newState!, { type: 'reveal_and_topdeck', card: 'Province' });
+
+    expect(topdeck.newState!.players[1].deck[0]).toBe('Province');
+    // Province delayed from being drawn immediately
+  });
+});

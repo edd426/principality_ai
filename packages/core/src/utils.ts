@@ -51,19 +51,57 @@ export function createDefaultSupply(options?: { victoryPileSize?: number }): Rea
     ['Estate', victoryPileSize],
     ['Duchy', victoryPileSize],
     ['Province', victoryPileSize],
+    ['Curse', 10],
 
-    // Kingdom cards (MVP set - 2 action cards only)
+    // Kingdom cards (Phase 1)
     ['Village', 10],
-    ['Smithy', 10]
+    ['Smithy', 10],
+    ['Laboratory', 10],
+    ['Market', 10],
+    ['Woodcutter', 10],
+    ['Festival', 10],
+    ['Council Room', 10],
+    ['Cellar', 10],
+
+    // Phase 4: Trashing System
+    ['Chapel', 10],
+    ['Remodel', 10],
+    ['Mine', 10],
+    ['Moneylender', 10],
+
+    // Phase 4: Gaining System
+    ['Workshop', 10],
+    ['Feast', 10],
+
+    // Phase 4: Attack System
+    ['Militia', 10],
+    ['Witch', 10],
+    ['Bureaucrat', 10],
+    ['Spy', 10],
+    ['Thief', 10],
+
+    // Phase 4: Reaction System
+    ['Moat', 10],
+
+    // Phase 4: Special Cards
+    ['Throne Room', 10],
+    ['Adventurer', 10],
+    ['Chancellor', 10],
+    ['Library', 10],
+    ['Gardens', 10]
   ]);
 }
 
 export function calculateScore(cards: ReadonlyArray<CardName>): number {
   let score = 0;
+  const deckSize = cards.length;
+
   for (const cardName of cards) {
     if (cardName === 'Estate') score += 1;
     else if (cardName === 'Duchy') score += 3;
     else if (cardName === 'Province') score += 6;
+    else if (cardName === 'Curse') score -= 1;
+    else if (cardName === 'Gardens') score += Math.floor(deckSize / 10);
   }
   return score;
 }

@@ -1,7 +1,8 @@
 # Phase 3 Feature Specifications: Multiplayer Foundation
 
-**Status**: DRAFT
+**Status**: COMPLETE
 **Created**: 2025-10-28
+**Completed**: 2025-11-01
 **Phase**: 3
 **Test Count**: 90+ tests (50 unit, 25 integration, 15 E2E)
 **Owner**: requirements-architect
@@ -288,23 +289,41 @@ class RulesBasedAI {
 
 **Requirement**: AI follows Big Money strategy when selecting moves
 
-**Specification**:
+**Full Strategy Specification**: See `/docs/requirements/BIG_MONEY_STRATEGY.md` for complete decision tree, turn milestones, and success metrics.
+
+**Summary**:
 
 **Action Phase** (deciding which action cards to play):
-- If Village in hand: Play Village first (allows more card plays)
-- If Smithy in hand: Play Smithy (draw cards)
-- If multiple action cards: Play highest-value cards first (more cards drawn)
-- If no action cards: End action phase
+- **Priority 1**: Village (enables more action plays: +2 actions, +1 card)
+- **Priority 2**: Smithy (card draw: +3 cards)
+- **Priority 3**: Other action cards (play first available)
+- **Priority 4**: End phase (no action cards available)
 
-**Buy Phase** (deciding what to buy):
-1. **High-value treasures** (if money allows):
-   - Gold (cost 6): Buy if available and 6+ coins
-   - Silver (cost 3): Buy if available and 3+ coins and <6 coins
-2. **Victory cards** (late game):
-   - Province (cost 8): Buy if available and 8+ coins AND game is ending (3+ piles empty)
-   - Duchy (cost 5): Buy if available and 5+ coins AND game state has 6+ total piles emptied
-   - Estate (cost 2): Buy if available and 2+ coins AND endgame imminent
-3. **Fallback**: Buy cheapest available card if no better option
+**Buy Phase** (deciding what to buy) - **Evaluated in strict priority order**:
+
+**Priority 1: Province** (Mid/Late Game Victory Path)
+- **Condition**: coins >= 8 AND Province available AND mid-game-or-later
+- **Mid-Game Threshold** (any one triggers):
+  - Turn number >= 10 (time-based)
+  - OR Provinces remaining <= 6 (scarcity-based)
+  - OR Any supply pile empty (endgame approaching)
+- **Critical**: **Province ALWAYS beats Gold** once mid-game threshold met
+
+**Priority 2: Gold** (Economy Maximization)
+- **Condition**: coins >= 6 AND Gold available
+- **Note**: Only evaluated if Priority 1 condition fails
+
+**Priority 3: Duchy** (Endgame VP Fallback)
+- **Condition**: coins >= 5 AND Duchy available AND endgame-imminent
+- **Endgame Threshold** (any one triggers):
+  - Provinces remaining <= 3 (Province pile nearly exhausted)
+  - OR Supply piles empty >= 3 (alternative end condition imminent)
+
+**Priority 4: Silver** (Economy Building)
+- **Condition**: coins >= 3 AND Silver available
+
+**Priority 5: End Phase** (No Profitable Purchase)
+- **Condition**: No higher priority condition met
 
 **Cleanup Phase**:
 - End phase automatically (no choice)
@@ -314,25 +333,46 @@ class RulesBasedAI {
 // Scenario 1: Action phase with Village and Smithy
 gameState.players[1].hand = ['Village', 'Smithy', 'Copper'];
 ai.decideBestMove(gameState, 1)
-// Returns: play Village (enables more action plays)
+// Returns: play Village (Priority 1: enables more action plays)
 
-// Scenario 2: Buy phase with 6 coins
-gameState.players[1].coins = 6;
+// Scenario 2: Buy phase, turn 10+, 8 coins, BOTH Gold and Province available
+gameState.turn = 10;
+gameState.players[1].coins = 8;
+gameState.supply.get('Province') > 0;  // Available
+gameState.supply.get('Gold') > 0;      // Also available!
+ai.decideBestMove(gameState, 1)
+// Returns: buy Province (Priority 1 beats Priority 2, mid-game threshold met)
+// ⚠️ CRITICAL: Province chosen over Gold despite Gold being "cheaper"
+
+// Scenario 3: Buy phase, turn 10+, 7 coins, Province unaffordable
+gameState.turn = 10;
+gameState.players[1].coins = 7;  // Not enough for Province
+gameState.supply.get('Province') > 0;
 gameState.supply.get('Gold') > 0;
 ai.decideBestMove(gameState, 1)
-// Returns: buy Gold (follows Big Money priority)
+// Returns: buy Gold (Priority 1 fails: 7 < 8, Priority 2 succeeds)
 
-// Scenario 3: Buy phase with 3 coins, no Gold available
+// Scenario 4: Buy phase, early game (turn < 10), 8 coins, Province available
+gameState.turn = 8;  // Before mid-game threshold
+gameState.players[1].coins = 8;
+gameState.supply.get('Province') > 0;
+gameState.supply.get('Gold') > 0;
+ai.decideBestMove(gameState, 1)
+// Returns: buy Gold (Priority 1 fails: turn < 10, Priority 2 succeeds)
+
+// Scenario 5: Buy phase, endgame, 5 coins, Duchy available
+gameState.turn = 20;
+gameState.players[1].coins = 5;
+gameState.supply.get('Province') = 2;  // Nearly exhausted
+gameState.supply.get('Duchy') > 0;
+ai.decideBestMove(gameState, 1)
+// Returns: buy Duchy (Priority 3: endgame fallback, Province scarce)
+
+// Scenario 6: Buy phase, 3 coins, Silver available
 gameState.players[1].coins = 3;
 gameState.supply.get('Silver') > 0;
 ai.decideBestMove(gameState, 1)
-// Returns: buy Silver (next priority)
-
-// Scenario 4: Endgame, 8+ coins, Province available
-gameState.supply.get('Province') > 0;
-emptiedPiles === 2;  // Near end
-ai.decideBestMove(gameState, 1)
-// Returns: buy Province (win condition)
+// Returns: buy Silver (Priority 4: economy building)
 ```
 
 **Test Count**: 12 unit tests (3 action plays, 5 buy decisions, 2 cleanup, 2 edge cases)
@@ -398,7 +438,7 @@ decision1.move.card === decision2.move.card
 - Curses: Curse (0 cost, -1 VP) [avoid]
 - Actions: Smithy (4 cost, +3 cards), Village (3 cost, +1 card, +2 actions)
 
-**Behavior**: AI evaluates all cards and makes appropriate decisions
+**Behavior**: AI evaluates all cards and makes decisions following Big Money priority tree (see `/docs/requirements/BIG_MONEY_STRATEGY.md`)
 
 **Test Count**: 2 unit tests
 

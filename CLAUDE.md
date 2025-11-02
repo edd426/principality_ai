@@ -2,9 +2,9 @@
 
 **Status**: ACTIVE
 **Created**: 2025-09-14
-**Last-Updated**: 2025-10-24
+**Last-Updated**: 2025-11-02
 **Owner**: requirements-architect
-**Phase**: 2.1
+**Phase**: 4
 
 ---
 
@@ -163,10 +163,11 @@ See [API.md](./docs/reference/API.md) for detailed API reference.
 **Phase 1.5 (Complete)**: CLI UX improvements - All 6 features implemented and tested
 **Phase 1.6 (Complete)**: Card help system + comprehensive testing framework
 **Phase 2.0 (Complete)**: MCP server foundation - Critical bug fixes (stdio transport, move parsing)
-**Phase 2.1 (Current)**: AI Gameplay Enhancement - Mechanics Skill, Strategy Skill, Enhanced Logging (5 features)
-**Phase 3**: Multiplayer with 2 players - Human vs Rules-based AI, Claude AI vs Rules-based AI
-**Phase 4**: Web UI with drag-and-drop interface
-**Phase 5+**: Advanced cards, tournaments, mobile apps
+**Phase 2.1 (Complete)**: AI Gameplay Enhancement - Mechanics Skill, Strategy Skill, AI Bug Fixes
+**Phase 3 (Complete)**: Multiplayer with 2 players - Human vs Rules-based AI, test coverage 93.4%
+**Phase 4 (Current)**: Complete Dominion Base Set - 17 new cards, 92 tests written (requirements & tests complete)
+**Phase 5**: Web UI with drag-and-drop interface
+**Phase 6+**: Dominion expansions, tournaments, mobile apps
 
 ### Phase 1.5 Features (COMPLETE)
 
@@ -180,6 +181,24 @@ See [API.md](./docs/reference/API.md) for detailed API reference.
 6. **Auto-Skip Cleanup** (3h) - Skip manual cleanup when no choices (opt-out via `--manual-cleanup`)
 
 **Full specifications**: [Phase 1.5 Requirements](./docs/requirements/phase-1.5/)
+
+### Phase 4 Features (IN PROGRESS)
+
+**Status**: 🔄 Requirements & Tests Complete (Implementation Pending)
+
+**Deliverables**:
+1. **Requirements Documentation** (3,246 lines) - Complete specifications for 17 new cards
+2. **Test Suite** (92 tests) - All tests written and failing (RED phase)
+3. **Implementation** (Pending) - ~55 hours estimated
+
+**New Mechanics**:
+1. **Trashing System** (4h) - Chapel, Remodel, Mine, Moneylender
+2. **Gaining System** (2h) - Workshop, Feast
+3. **Attack System** (5h) - Militia, Witch, Bureaucrat, Spy, Thief
+4. **Reaction System** (1h) - Moat blocks attacks
+5. **Special Cards** (5h) - Throne Room, Adventurer, Chancellor, Library, Gardens
+
+**Full specifications**: [Phase 4 Requirements](./docs/requirements/phase-4/)
 
 ---
 

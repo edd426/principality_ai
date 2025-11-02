@@ -742,6 +742,7 @@ describe('Feature 3: game_execute and game_session Tools', () => {
 
       mockGetState.mockReturnValue(buyPhaseState);
       mockGameEngine.getValidMoves.mockReturnValue([
+        { type: 'buy', card: 'Copper' },
         { type: 'buy', card: 'Province' },
         { type: 'end_phase', card: undefined }
       ]);

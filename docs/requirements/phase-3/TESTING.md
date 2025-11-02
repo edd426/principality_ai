@@ -1,7 +1,8 @@
 # Phase 3 Testing Specifications: Multiplayer Foundation
 
-**Status**: DRAFT
+**Status**: COMPLETE
 **Created**: 2025-10-28
+**Completed**: 2025-11-01
 **Phase**: 3
 **Test Count**: 90+ tests (50 unit, 25 integration, 15 E2E)
 **Coverage Target**: 95%+
@@ -434,10 +435,11 @@ describe('Feature X: Component', () => {
 ```typescript
 // @req: FR 2.5 - AI supports all MVP cards
 // @input: Hand with each card type
-// @output: AI makes reasonable decision
+// @output: AI produces valid decision following priority tree (see BIG_MONEY_STRATEGY.md)
 // @level: Unit
-// @assert: For each card, AI produces valid decision
+// @assert: For each card, AI produces valid decision (passes GameEngine.executeMove())
 // @assert: No crashes or errors
+// @assert: Decision follows Big Money priority ordering (treasures played before purchases, etc.)
 // @cards: Copper, Silver, Gold, Estate, Duchy, Province, Smithy, Village
 // @edge: Curse handling
 ```

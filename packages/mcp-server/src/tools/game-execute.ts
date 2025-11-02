@@ -4,7 +4,22 @@
  * Atomically validates and executes a single move with actionable error messages
  */
 
-import { GameEngine, GameState, Move, isActionCard, isTreasureCard } from '@principality/core';
+import {
+  GameEngine,
+  GameState,
+  Move,
+  isActionCard,
+  isTreasureCard,
+  parseMove,
+  isMoveValid,
+  groupHand,
+  isGameOver,
+  getGameOverReason,
+  countEmptyPiles,
+  generateSuggestion,
+  analyzeRejectionReason,
+  getCardCost
+} from '@principality/core';
 import { GameExecuteRequest, GameExecuteResponse } from '../types/tools';
 import { Logger } from '../logger';
 
@@ -39,8 +54,8 @@ export class GameExecuteTool {
     }
 
     // Check if game is over (before parsing move)
-    if (this.isGameOver(state)) {
-      const gameOverReason = this.getGameOverReason(state);
+    if (isGameOver(state)) {
+      const gameOverReason = getGameOverReason(state);
       this.logger?.warn('Move blocked - game over', {
         move,
         turn: state.turnNumber,
@@ -48,7 +63,7 @@ export class GameExecuteTool {
         gameOverReason: gameOverReason,
         attemptedAfterGameEnd: true,
         provinceCount: state.supply.get('Province') || 0,
-        emptyPilesCount: this.countEmptyPiles(state)
+        emptyPilesCount: countEmptyPiles(state)
       });
       return {
         success: false,
@@ -63,17 +78,19 @@ export class GameExecuteTool {
     }
 
     // Parse move string
-    const parsedMove = this.parseMove(move, state);
-    if (!parsedMove) {
+    const parseResult = parseMove(move, state);
+    if (!parseResult.success || !parseResult.move) {
       this.logger?.warn('Failed to parse move', { move, phase: state.phase });
       return {
         success: false,
         error: {
-          message: `Cannot parse move: "${move}". Invalid format.`,
+          message: parseResult.error || `Cannot parse move: "${move}". Invalid format.`,
           suggestion: 'Examples: "play 0" (action), "play_treasure Copper" (buy phase), "buy Village", "end"'
         }
       };
     }
+
+    const parsedMove = parseResult.move;
 
     // Handle batch treasure playing specially (before standard validation)
     // Batch moves bypass validation since they're not in standard validMoves list
@@ -83,11 +100,11 @@ export class GameExecuteTool {
 
     // Validate move before executing
     const validMoves = this.gameEngine.getValidMoves(state);
-    const isValid = this.isMoveValid(parsedMove, validMoves);
+    const isValid = isMoveValid(parsedMove, validMoves);
 
     if (!isValid) {
       // Determine reason for rejection (for logging)
-      const rejection = this.analyzeRejectionReason(parsedMove, validMoves, state);
+      const rejection = analyzeRejectionReason(parsedMove, validMoves, state);
 
       this.logger?.warn('Invalid move attempted', {
         move,
@@ -96,16 +113,24 @@ export class GameExecuteTool {
         reason: rejection.reason,
         details: rejection.details
       });
+
+      // Auto-return state for error recovery
+      const gameState = this.formatStateForAutoReturn(state);
+      const formattedValidMoves = this.formatValidMovesForAutoReturn(state);
+
       return {
         success: false,
         error: {
           message: `Invalid move: "${move}" is not legal in current game state.`,
-          suggestion: this.generateSuggestion(parsedMove, validMoves, state),
+          suggestion: generateSuggestion(parsedMove, validMoves, state),
           details: {
             currentPhase: state.phase,
             playerHand: state.players[state.currentPlayer].hand.length
           }
-        }
+        },
+        gameState: gameState,
+        validMoves: formattedValidMoves,
+        gameOver: gameState.gameOver
       };
     }
 
@@ -270,7 +295,7 @@ export class GameExecuteTool {
       }
 
       // Log game-end event if game is over
-      if (this.isGameOver(finalStateAfterAutoSkip)) {
+      if (isGameOver(finalStateAfterAutoSkip)) {
         const emptyPiles: string[] = [];
         finalStateAfterAutoSkip.supply.forEach((quantity, cardName) => {
           if (quantity === 0) {
@@ -278,9 +303,7 @@ export class GameExecuteTool {
           }
         });
 
-        const gameOverReason = finalStateAfterAutoSkip.supply.get('Province') === 0
-          ? 'Province pile empty'
-          : `${emptyPiles.length} supply piles empty`;
+        const gameOverReason = getGameOverReason(finalStateAfterAutoSkip);
 
         this.logger?.info('Game ended', {
           turn: finalStateAfterAutoSkip.turnNumber,
@@ -423,282 +446,7 @@ export class GameExecuteTool {
     };
   }
 
-  private parseMove(moveStr: string, state: GameState): Move | null {
-    const trimmed = moveStr.toLowerCase().trim();
-    const player = state.players[state.currentPlayer];
 
-    // Parse "play N" or "play_action N" - determine actual card type
-    if (trimmed.startsWith('play ')) {
-      const indexStr = trimmed.substring(5).trim();
-      const index = parseInt(indexStr);
-
-      if (!isNaN(index) && index >= 0 && index < player.hand.length) {
-        const cardName = player.hand[index];
-
-        // Determine actual move type based on card type
-        if (isActionCard(cardName)) {
-          return {
-            type: 'play_action',
-            card: cardName
-          };
-        } else if (isTreasureCard(cardName)) {
-          return {
-            type: 'play_treasure',
-            card: cardName
-          };
-        }
-        // Unknown card type - fail gracefully
-        return null;
-      }
-      return null;
-    }
-
-    // Parse "play_action CARD" syntax
-    if (trimmed.startsWith('play_action ')) {
-      const cardName = trimmed.substring('play_action '.length).trim();
-      const normalizedName = cardName.charAt(0).toUpperCase() + cardName.slice(1);
-
-      if (player.hand.includes(normalizedName) && isActionCard(normalizedName)) {
-        return {
-          type: 'play_action',
-          card: normalizedName
-        };
-      }
-      return null;
-    }
-
-    // Parse "play_treasure all" - batch play all treasures
-    if (trimmed === 'play_treasure all' || trimmed === 'play treasure all') {
-      return {
-        type: 'play_all_treasures'
-      };
-    }
-
-    // Parse "play_treasure CARD" or "play treasure CARD"
-    if (trimmed.startsWith('play_treasure ') || trimmed.startsWith('play treasure ')) {
-      const cardName = trimmed.includes('_')
-        ? trimmed.substring('play_treasure '.length).trim()
-        : trimmed.substring('play treasure '.length).trim();
-
-      // Capitalize card name to match hand
-      const normalizedName = cardName.charAt(0).toUpperCase() + cardName.slice(1);
-
-      if (player.hand.includes(normalizedName)) {
-        return {
-          type: 'play_treasure',
-          card: normalizedName
-        };
-      }
-      return null;
-    }
-
-    // Parse "buy CARD"
-    if (trimmed.startsWith('buy ')) {
-      const cardName = trimmed.substring(4).trim();
-      // Capitalize card name to match supply keys
-      const normalizedName = cardName.charAt(0).toUpperCase() + cardName.slice(1);
-
-      if (state.supply.has(normalizedName)) {
-        return {
-          type: 'buy',
-          card: normalizedName
-        };
-      }
-      return null;
-    }
-
-    // Parse "end" or "end phase"
-    if (trimmed === 'end' || trimmed === 'end phase' || trimmed === 'end_phase') {
-      return {
-        type: 'end_phase'
-      };
-    }
-
-    return null;
-  }
-
-  private isMoveValid(move: Move, validMoves: Move[]): boolean {
-    return validMoves.some(vm =>
-      vm.type === move.type && vm.card === move.card
-    );
-  }
-
-  /**
-   * Analyze why a move was rejected (for detailed logging)
-   * Returns reason and details for diagnostics
-   */
-  private analyzeRejectionReason(
-    move: Move,
-    validMoves: Move[],
-    state: GameState
-  ): { reason: string; details: any } {
-    const moveType = move.type;
-    const validOfType = validMoves.filter(m => m.type === moveType);
-
-    // Check if there are NO valid moves of this type
-    if (validOfType.length === 0) {
-      if (moveType === 'buy') {
-        const player = state.players[state.currentPlayer];
-        return {
-          reason: 'No valid purchases available',
-          details: {
-            playerCoins: player.coins || 0,
-            cardCost: move.card ? this.getCardCost(move.card) : null,
-            availableCards: Array.from(state.supply.keys()).slice(0, 5)
-          }
-        };
-      }
-      if (moveType === 'play_action') {
-        return {
-          reason: 'No valid action plays available',
-          details: { wrongPhase: state.phase !== 'action' }
-        };
-      }
-      if (moveType === 'play_treasure') {
-        return {
-          reason: 'No valid treasure plays available',
-          details: { phase: state.phase }
-        };
-      }
-    }
-
-    // Move type has valid options but this specific card/move is not valid
-    if (moveType === 'buy' && move.card) {
-      const player = state.players[state.currentPlayer];
-      const cardCost = this.getCardCost(move.card);
-      if (cardCost && player.coins! < cardCost) {
-        return {
-          reason: 'Insufficient coins',
-          details: {
-            playerCoins: player.coins,
-            cardCost: cardCost,
-            deficit: cardCost - (player.coins || 0)
-          }
-        };
-      }
-      if (!state.supply.has(move.card)) {
-        return {
-          reason: 'Card not in supply',
-          details: { card: move.card }
-        };
-      }
-      if (state.supply.get(move.card) === 0) {
-        return {
-          reason: 'Card pile empty',
-          details: { card: move.card }
-        };
-      }
-    }
-
-    if ((moveType === 'play_action' || moveType === 'play_treasure') && move.card) {
-      const player = state.players[state.currentPlayer];
-      if (!player.hand.includes(move.card)) {
-        return {
-          reason: 'Card not in hand',
-          details: { card: move.card, handSize: player.hand.length }
-        };
-      }
-    }
-
-    return {
-      reason: 'Unknown rejection reason',
-      details: { moveType, card: move.card }
-    };
-  }
-
-  /**
-   * Get cost of a card (simplified - real implementation would use card definitions)
-   */
-  private getCardCost(cardName: string | undefined): number | null {
-    if (!cardName) return null;
-
-    const cardCosts: { [key: string]: number } = {
-      'Copper': 0,
-      'Silver': 3,
-      'Gold': 6,
-      'Estate': 2,
-      'Duchy': 5,
-      'Province': 8,
-      'Village': 3,
-      'Smithy': 4,
-      'Market': 5,
-      'Militia': 4,
-      'Cellar': 2,
-      'Workshop': 3,
-      'Remodel': 4,
-      'Chapel': 2,
-      'Throne Room': 4,
-      'Woodcutter': 3
-    };
-
-    return cardCosts[cardName] || null;
-  }
-
-  private generateSuggestion(move: Move, validMoves: Move[], state: GameState): string {
-    const moveType = move.type;
-    const validOfType = validMoves.filter(m => m.type === moveType);
-
-    if (moveType === 'play_action') {
-      if (validOfType.length === 0) {
-        if (state.phase === 'buy') {
-          return `Cannot play action cards in buy phase. You must be in action phase. Try "play_treasure Copper" to play treasures or "buy CARD" to make a purchase.`;
-        }
-        return `No valid action plays available. Try "end" to move to next phase.`;
-      }
-
-      const validCards = validOfType.map(m => m.card).join(', ');
-      const player = state.players[state.currentPlayer];
-      const validIndices = player.hand
-        .map((card, idx) => validOfType.some(m => m.card === card) ? idx : -1)
-        .filter(idx => idx !== -1)
-        .join(', ');
-
-      return `Valid plays: ${validCards}. Use "play 0", "play 1", etc.`;
-    }
-
-    if (moveType === 'play_treasure') {
-      if (validOfType.length === 0) {
-        if (state.phase === 'action') {
-          return `Cannot play treasures in action phase. You're in action phase - play action cards or "end" to move to buy phase.`;
-        }
-        return `No treasures in hand to play. Try "buy CARD" to make a purchase or "end" to move to cleanup.`;
-      }
-
-      const validCards = validOfType.map(m => m.card).join(', ');
-      return `Valid treasures to play: ${validCards}. Use "play_treasure CARD" format, e.g., "play_treasure Copper"`;
-    }
-
-    if (moveType === 'buy') {
-      if (validOfType.length === 0) {
-        if (state.phase === 'action') {
-          return `Cannot buy in action phase. Play action cards or use "end" to move to buy phase.`;
-        }
-        return `No valid purchases available. You may not have enough coins. Try "end" to move to cleanup phase.`;
-      }
-
-      const validCards = validOfType.map(m => m.card).join(', ');
-      return `Valid purchases: ${validCards}. Use "buy CARD" format, e.g., "buy Province"`;
-    }
-
-    if (moveType === 'end_phase') {
-      return `Use "end" to move to the next phase (${this.getNextPhaseName(state.phase)}).`;
-    }
-
-    return 'Use game_observe() to see valid moves.';
-  }
-
-  private getNextPhaseName(currentPhase: string): string {
-    switch (currentPhase) {
-      case 'action':
-        return 'buy phase';
-      case 'buy':
-        return 'cleanup phase';
-      case 'cleanup':
-        return 'next player\'s action phase';
-      default:
-        return 'next phase';
-    }
-  }
 
   getMoveHistory(lastN?: number): typeof this.moveHistory {
     if (!lastN) return this.moveHistory;
@@ -718,7 +466,7 @@ export class GameExecuteTool {
     });
 
     // Count empty piles (for win condition tracking)
-    const emptyPileCount = this.countEmptyPiles(state);
+    const emptyPileCount = countEmptyPiles(state);
 
     // Deck zone breakdown
     const deckZones = {
@@ -788,72 +536,19 @@ export class GameExecuteTool {
     };
   }
 
-  /**
-   * Check if game is over (same logic as game-observe isGameOver)
-   */
-  private isGameOver(state: GameState): boolean {
-    let emptyPiles = 0;
-
-    state.supply.forEach(quantity => {
-      if (quantity === 0) emptyPiles++;
-    });
-
-    const provincesEmpty = state.supply.get('Province') === 0;
-    return provincesEmpty || emptyPiles >= 3;
-  }
-
-  /**
-   * Get human-readable reason why game ended
-   */
-  private getGameOverReason(state: GameState): string {
-    const provincesEmpty = state.supply.get('Province') === 0;
-    if (provincesEmpty) {
-      return 'Province pile is empty';
-    }
-
-    let emptyPiles: string[] = [];
-    state.supply.forEach((quantity, cardName) => {
-      if (quantity === 0) {
-        emptyPiles.push(cardName);
-      }
-    });
-
-    if (emptyPiles.length >= 3) {
-      return `${emptyPiles.length} supply piles are empty: ${emptyPiles.slice(0, 3).join(', ')}${emptyPiles.length > 3 ? ' and more' : ''}`;
-    }
-
-    return 'Unknown game end condition';
-  }
-
-  /**
-   * Count empty piles in supply
-   */
-  private countEmptyPiles(state: GameState): number {
-    let emptyPiles = 0;
-    state.supply.forEach(quantity => {
-      if (quantity === 0) emptyPiles++;
-    });
-    return emptyPiles;
-  }
 
   /**
    * Format state for auto-return (similar to "standard" detail level in game_observe)
    */
   private formatStateForAutoReturn(state: GameState): any {
     const activePlayer = state.players[state.currentPlayer];
-    const gameOverFlag = this.isGameOver(state);
-
-    // Group hand by card name
-    const groupedHand: Record<string, number> = {};
-    activePlayer.hand.forEach(cardName => {
-      groupedHand[cardName] = (groupedHand[cardName] || 0) + 1;
-    });
+    const gameOverFlag = isGameOver(state);
 
     return {
       phase: state.phase,
       turnNumber: state.turnNumber,
       activePlayer: state.currentPlayer,
-      hand: groupedHand,
+      hand: groupHand(activePlayer.hand),
       currentCoins: activePlayer.coins || 0,
       currentActions: activePlayer.actions || 0,
       currentBuys: activePlayer.buys || 0,

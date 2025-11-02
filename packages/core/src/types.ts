@@ -1,6 +1,6 @@
 export type CardName = string;
 
-export type CardType = 'treasure' | 'victory' | 'action' | 'curse';
+export type CardType = 'treasure' | 'victory' | 'action' | 'curse' | 'action-attack' | 'action-reaction';
 
 export type Phase = 'action' | 'buy' | 'cleanup';
 
@@ -39,12 +39,20 @@ export interface GameState {
   readonly turnNumber: number;
   readonly seed: string;
   readonly gameLog: ReadonlyArray<string>;
+  readonly trash: ReadonlyArray<CardName>;
 }
 
 export interface Move {
-  type: 'play_action' | 'play_treasure' | 'play_all_treasures' | 'buy' | 'end_phase' | 'discard_for_cellar';
+  type: 'play_action' | 'play_treasure' | 'play_all_treasures' | 'buy' | 'end_phase' | 'discard_for_cellar' |
+        'trash_cards' | 'gain_card' | 'reveal_reaction' | 'discard_to_hand_size' |
+        'reveal_and_topdeck' | 'spy_decision' | 'select_treasure_to_trash' |
+        'gain_trashed_card' | 'select_action_for_throne' | 'chancellor_decision' |
+        'library_set_aside';
   card?: CardName;
   cards?: ReadonlyArray<CardName>;
+  playerIndex?: number;
+  destination?: 'hand' | 'discard' | 'topdeck';
+  choice?: boolean;
 }
 
 export interface GameResult {
