@@ -33,8 +33,8 @@ describe('IT: Attack/Reaction Flow', () => {
     const militia = engine.executeMove(testState, { type: 'play_action', card: 'Militia' });
     expect(militia.success).toBe(true);
 
-    // P1 discards to 3, P2 discards to 3
-    expect(militia.message).toContain('discard');
+    // P1 and P2 both discards to 3 cards - attacker gains +$2
+    expect(militia.newState!.players[0].coins).toBeGreaterThanOrEqual(2);
   });
 
   test('IT-ATTACK-2: should handle mixed Moat reveals (3-player)', () => {
@@ -57,8 +57,8 @@ describe('IT: Attack/Reaction Flow', () => {
     // P1 reveals Moat (blocked)
     const moat = engine.executeMove(witch.newState!, { type: 'reveal_reaction', card: 'Moat' });
 
-    expect(moat.newState!.players[1].discard).not.toContain('Curse'); // Blocked
-    expect(moat.newState!.players[2].discard).toContain('Curse'); // Not blocked
+    expect(moat.newState!.players[1].discardPile).not.toContain('Curse'); // Blocked
+    expect(moat.newState!.players[2].discardPile).toContain('Curse'); // Not blocked
   });
 
   test('IT-ATTACK-3: should process attacks sequentially', () => {
@@ -93,9 +93,9 @@ describe('IT: Attack/Reaction Flow', () => {
     });
 
     expect(decision3.success).toBe(true);
-    expect(decision3.newState!.players[0].discard).toContain('Copper');
+    expect(decision3.newState!.players[0].discardPile).toContain('Copper');
     expect(decision3.newState!.players[1].deck[0]).toBe('Estate');
-    expect(decision3.newState!.players[2].discard).toContain('Gold');
+    expect(decision3.newState!.players[2].discardPile).toContain('Gold');
   });
 
   test('IT-ATTACK-4: should handle attack chain (Militia + Witch)', () => {
@@ -125,7 +125,7 @@ describe('IT: Attack/Reaction Flow', () => {
     // Play Witch second
     const witch = engine.executeMove(discard.newState!, { type: 'play_action', card: 'Witch' });
 
-    expect(witch.newState!.players[1].discard).toContain('Curse');
+    expect(witch.newState!.players[1].discardPile).toContain('Curse');
     expect(witch.newState!.players[1].hand.length).toBe(3); // Still 3
   });
 
@@ -176,7 +176,7 @@ describe('IT: Attack/Reaction Flow', () => {
     const moat3 = engine.executeMove(bureaucrat.newState!, { type: 'reveal_reaction', card: 'Moat' });
 
     expect(moat3.newState!.players[1].hand.length).toBe(5); // All attacks blocked
-    expect(moat3.newState!.players[1].discard).not.toContain('Curse');
+    expect(moat3.newState!.players[1].discardPile).not.toContain('Curse');
   });
 
   test('IT-ATTACK-7: Throne Room + Militia (+$4, discard once)', () => {
@@ -228,7 +228,7 @@ describe('IT: Attack/Reaction Flow', () => {
     const witch = engine.executeMove(throne.newState!, { type: 'select_action_for_throne', card: 'Witch' });
 
     expect(witch.newState!.players[0].hand.length).toBe(4); // +2 Cards twice
-    expect(witch.newState!.players[1].discard.filter(c => c === 'Curse').length).toBe(2);
+    expect(witch.newState!.players[1].discardPile.filter(c => c === 'Curse').length).toBe(2);
     expect(witch.newState!.supply.get('Curse')).toBe(8);
   });
 

@@ -61,8 +61,8 @@ describe('IT: Throne Room Combinations', () => {
     const gain1 = engine.executeMove(feast.newState!, { type: 'gain_card', card: 'Duchy' });
     const gain2 = engine.executeMove(gain1.newState!, { type: 'gain_card', card: 'Market' });
 
-    expect(gain2.newState!.players[0].discard).toContain('Duchy');
-    expect(gain2.newState!.players[0].discard).toContain('Market');
+    expect(gain2.newState!.players[0].discardPile).toContain('Duchy');
+    expect(gain2.newState!.players[0].discardPile).toContain('Market');
   });
 
   test('IT-THRONE-3: Throne Room + Throne Room + Smithy (4x)', () => {
@@ -121,8 +121,8 @@ describe('IT: Throne Room Combinations', () => {
     const gain1 = engine.executeMove(workshop.newState!, { type: 'gain_card', card: 'Smithy' });
     const gain2 = engine.executeMove(gain1.newState!, { type: 'gain_card', card: 'Silver' });
 
-    expect(gain2.newState!.players[0].discard).toContain('Smithy');
-    expect(gain2.newState!.players[0].discard).toContain('Silver');
+    expect(gain2.newState!.players[0].discardPile).toContain('Smithy');
+    expect(gain2.newState!.players[0].discardPile).toContain('Silver');
   });
 
   test('IT-THRONE-6: Throne Room + Adventurer (4 Treasures)', () => {

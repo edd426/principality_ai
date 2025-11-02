@@ -245,7 +245,7 @@ describe('IT: Trash Pile Mechanics', () => {
 
     // Feast should remain in trash (not moved to discard)
     expect(cleanup.newState!.trash).toContain('Feast');
-    expect(cleanup.newState!.players[0].discard).not.toContain('Feast');
+    expect(cleanup.newState!.players[0].discardPile).not.toContain('Feast');
     expect(cleanup.newState!.players[0].inPlay).not.toContain('Feast');
   });
 });

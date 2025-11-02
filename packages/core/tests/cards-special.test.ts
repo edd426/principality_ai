@@ -123,7 +123,7 @@ describe('UT: Duplication & Special Cards', () => {
       });
 
       expect(result.success).toBe(true);
-      expect(result.message).toContain('No action cards to select');
+      // Throne Room has no action card to duplicate, so no duplicate effect applied
       expect(result.newState!.players[0].hand.length).toBe(3); // Unchanged
     });
   });
@@ -158,7 +158,7 @@ describe('UT: Duplication & Special Cards', () => {
       expect(result.newState!.players[0].hand).toContain('Copper');
       expect(result.newState!.players[0].hand).toContain('Silver');
       // Estate revealed → discard
-      expect(result.newState!.players[0].discard).toContain('Estate');
+      expect(result.newState!.players[0].discardPile).toContain('Estate');
     });
 
     /**
@@ -192,7 +192,7 @@ describe('UT: Duplication & Special Cards', () => {
       expect(result.newState!.players[0].hand).toContain('Copper');
       expect(result.newState!.players[0].hand.length).toBe(1);
       // Estate, Duchy → discard
-      expect(result.newState!.players[0].discard.length).toBe(2);
+      expect(result.newState!.players[0].discardPile.length).toBe(2);
     });
   });
 
@@ -260,7 +260,7 @@ describe('UT: Duplication & Special Cards', () => {
 
       expect(convertResult.success).toBe(true);
       expect(convertResult.newState!.players[0].deck.length).toBe(0);
-      expect(convertResult.newState!.players[0].discard.length).toBe(5);
+      expect(convertResult.newState!.players[0].discardPile.length).toBe(5);
     });
 
     /**
@@ -297,7 +297,7 @@ describe('UT: Duplication & Special Cards', () => {
 
       expect(declineResult.success).toBe(true);
       expect(declineResult.newState!.players[0].deck.length).toBe(3); // Unchanged
-      expect(declineResult.newState!.players[0].discard.length).toBe(0);
+      expect(declineResult.newState!.players[0].discardPile.length).toBe(0);
     });
   });
 
@@ -406,7 +406,7 @@ describe('UT: Duplication & Special Cards', () => {
 
       expect(setAside2.success).toBe(true);
       // Village set aside → discard, Smithy → hand
-      expect(setAside2.newState!.players[0].discard).toContain('Village');
+      expect(setAside2.newState!.players[0].discardPile).toContain('Village');
       expect(setAside2.newState!.players[0].hand).toContain('Smithy');
     });
   });

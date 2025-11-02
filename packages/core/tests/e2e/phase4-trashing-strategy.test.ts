@@ -52,11 +52,11 @@ describe('E2E: Trashing Strategy', () => {
     // Verify Chapel creates smaller deck
     const p0Cards = currentState.players[0].hand.length +
                     currentState.players[0].deck.length +
-                    currentState.players[0].discard.length;
+                    currentState.players[0].discardPile.length;
 
     const p1Cards = currentState.players[1].hand.length +
                     currentState.players[1].deck.length +
-                    currentState.players[1].discard.length;
+                    currentState.players[1].discardPile.length;
 
     // Chapel player should have fewer cards (thinner deck)
     expect(p0Cards).toBeLessThan(p1Cards);
@@ -116,7 +116,7 @@ describe('E2E: Trashing Strategy', () => {
     const gainSmithy = engine.executeMove(trashEstate.newState!, { type: 'gain_card', card: 'Smithy' });
 
     expect(gainSmithy.newState!.trash).toContain('Estate');
-    expect(gainSmithy.newState!.players[0].discard).toContain('Smithy');
+    expect(gainSmithy.newState!.players[0].discardPile).toContain('Smithy');
 
     // Later: Remodel Silver → Gold
     const remodelState2: GameState = {
@@ -134,6 +134,6 @@ describe('E2E: Trashing Strategy', () => {
     const gainGold = engine.executeMove(trashSilver.newState!, { type: 'gain_card', card: 'Gold' });
 
     expect(gainGold.newState!.trash).toContain('Silver');
-    expect(gainGold.newState!.players[0].discard).toContain('Gold');
+    expect(gainGold.newState!.players[0].discardPile).toContain('Gold');
   });
 });

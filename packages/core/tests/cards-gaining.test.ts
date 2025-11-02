@@ -54,7 +54,7 @@ describe('UT: Gaining System Cards', () => {
       });
 
       expect(gainResult.success).toBe(true);
-      expect(gainResult.newState!.players[0].discard).toContain('Smithy');
+      expect(gainResult.newState!.players[0].discardPile).toContain('Smithy');
       expect(gainResult.newState!.supply.get('Smithy')).toBe(initialSmithyCount - 1);
     });
 
@@ -165,7 +165,7 @@ describe('UT: Gaining System Cards', () => {
       });
 
       expect(gainResult.success).toBe(true);
-      expect(gainResult.newState!.players[0].discard).toContain('Duchy');
+      expect(gainResult.newState!.players[0].discardPile).toContain('Duchy');
     });
 
     /**
@@ -245,7 +245,7 @@ describe('UT: Gaining System Cards', () => {
 
       // Feast should be in trash, NOT in discard
       expect(cleanupResult.newState!.trash).toContain('Feast');
-      expect(cleanupResult.newState!.players[0].discard).not.toContain('Feast');
+      expect(cleanupResult.newState!.players[0].discardPile).not.toContain('Feast');
     });
   });
 });

@@ -210,7 +210,7 @@ describe('UT: Trashing System Cards', () => {
 
       expect(gainResult.success).toBe(true);
       expect(gainResult.newState!.trash).toContain('Estate');
-      expect(gainResult.newState!.players[0].discard).toContain('Smithy');
+      expect(gainResult.newState!.players[0].discardPile).toContain('Smithy');
     });
 
     /**
@@ -259,7 +259,7 @@ describe('UT: Trashing System Cards', () => {
       });
 
       expect(validGain.success).toBe(true);
-      expect(validGain.newState!.players[0].discard).toContain('Duchy');
+      expect(validGain.newState!.players[0].discardPile).toContain('Duchy');
     });
 
     /**
@@ -338,7 +338,7 @@ describe('UT: Trashing System Cards', () => {
       expect(gainResult.success).toBe(true);
       expect(gainResult.newState!.trash).toContain('Copper');
       expect(gainResult.newState!.players[0].hand).toContain('Silver');
-      expect(gainResult.newState!.players[0].discard).not.toContain('Silver');
+      expect(gainResult.newState!.players[0].discardPile).not.toContain('Silver');
     });
 
     /**
@@ -485,7 +485,8 @@ describe('UT: Trashing System Cards', () => {
       expect(playResult.success).toBe(true);
       expect(playResult.newState!.trash.length).toBe(0);
       expect(playResult.newState!.players[0].coins).toBe(0);
-      expect(playResult.message).toContain('No Copper to trash');
+      // Moneylender has no effect when no Copper in hand - verify state unchanged
+      expect(playResult.newState!.players[0].hand).toEqual(['Moneylender', 'Silver', 'Gold']);
     });
 
     /**

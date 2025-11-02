@@ -62,7 +62,7 @@ describe('E2E: Attack/Defense Gameplay', () => {
     const witch2 = engine.executeMove(witch1.newState!, { type: 'play_action', card: 'Witch' });
 
     // Opponent gains 2 Curses
-    expect(witch2.newState!.players[1].discard.filter(c => c === 'Curse').length).toBe(2);
+    expect(witch2.newState!.players[1].discardPile.filter(c => c === 'Curse').length).toBe(2);
     expect(witch2.newState!.supply.get('Curse')).toBe(8);
   });
 
@@ -84,7 +84,7 @@ describe('E2E: Attack/Defense Gameplay', () => {
     const gain = engine.executeMove(trash.newState!, { type: 'gain_trashed_card', card: 'Gold' });
 
     expect(gain.newState!.trash).toContain('Gold');
-    expect(gain.newState!.players[0].discard).toContain('Gold');
+    expect(gain.newState!.players[0].discardPile).toContain('Gold');
     // Opponent weakened, attacker strengthened
   });
 

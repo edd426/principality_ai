@@ -82,8 +82,8 @@ describe('IT: Curse Mechanics', () => {
 
     const witch = engine.executeMove(testState, { type: 'play_action', card: 'Witch' });
 
-    expect(witch.newState!.players[1].discard).toContain('Curse');
-    expect(witch.newState!.players[2].discard).toContain('Curse');
+    expect(witch.newState!.players[1].discardPile).toContain('Curse');
+    expect(witch.newState!.players[2].discardPile).toContain('Curse');
     expect(witch.newState!.supply.get('Curse')).toBe(18); // 20 - 2
   });
 });

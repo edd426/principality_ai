@@ -133,7 +133,7 @@ describe('UT: Reaction System - Moat', () => {
 
       expect(moatResult.success).toBe(true);
       // No Curse gained (attack blocked)
-      expect(moatResult.newState!.players[1].discard).not.toContain('Curse');
+      expect(moatResult.newState!.players[1].discardPile).not.toContain('Curse');
       expect(moatResult.newState!.supply.get('Curse')).toBe(10); // Unchanged
     });
 

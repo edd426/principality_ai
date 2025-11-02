@@ -50,13 +50,13 @@ describe('IT: Gaining Mechanics', () => {
     const workshop = engine.executeMove(testState, { type: 'play_action', card: 'Workshop' });
     const workshopGain = engine.executeMove(workshop.newState!, { type: 'gain_card', card: 'Smithy' });
 
-    expect(workshopGain.newState!.players[0].discard).toContain('Smithy');
+    expect(workshopGain.newState!.players[0].discardPile).toContain('Smithy');
     expect(workshopGain.newState!.players[0].hand).not.toContain('Smithy');
 
     const feast = engine.executeMove(workshopGain.newState!, { type: 'play_action', card: 'Feast' });
     const feastGain = engine.executeMove(feast.newState!, { type: 'gain_card', card: 'Duchy' });
 
-    expect(feastGain.newState!.players[0].discard).toContain('Duchy');
+    expect(feastGain.newState!.players[0].discardPile).toContain('Duchy');
   });
 
   test('IT-GAIN-3: Mine gains to hand (exception)', () => {
@@ -72,7 +72,7 @@ describe('IT: Gaining Mechanics', () => {
     const gain = engine.executeMove(trash.newState!, { type: 'gain_card', card: 'Silver', destination: 'hand' });
 
     expect(gain.newState!.players[0].hand).toContain('Silver'); // To hand
-    expect(gain.newState!.players[0].discard).not.toContain('Silver');
+    expect(gain.newState!.players[0].discardPile).not.toContain('Silver');
   });
 
   test('IT-GAIN-4: Supply properly decremented', () => {
