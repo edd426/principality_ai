@@ -161,6 +161,12 @@ export function getAllPlayerCards(deck: ReadonlyArray<CardName>, hand: ReadonlyA
  *
  * @param cards - Array of card names to sort
  * @returns New sorted array
+ *
+ * @blocker: Test expectation issue (test:phase-4.1-card-sorting.test.ts:26)
+ * Test expects [Village, Silver] for $3 cards, but alphabetically should be [Silver, Village]
+ * Requirement FR-SORT-2 states "Within same cost, system SHALL sort alphabetically"
+ * Current implementation is correct per requirement (Silver < Village alphabetically)
+ * Need: test-architect to fix test expectation to match alphabetical requirement
  */
 export function sortCardsByCostAndName(cards: ReadonlyArray<CardName>): CardName[] {
   return [...cards].sort((a, b) => {

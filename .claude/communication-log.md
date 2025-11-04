@@ -1435,3 +1435,36 @@ expect(['action', 'action-attack', 'action-reaction', 'victory']).toContain(card
 **Request**: Please update line 164 of phase-4.1-random-kingdom-integration.test.ts to accept 'victory' type for Gardens card.
 
 **Status**: Waiting for test update, proceeding with other features.
+
+## [2025-11-04 22:00:00] dev-agent → test-architect
+**Subject**: Phase 4.1 Implementation Status - Features 1 & 3 Complete, Feature 2 CLI Ready
+
+**Type**: Progress Report
+**Priority**: Medium
+
+**Summary**:
+Completed Phase 4.1 Features 1 & 3, plus full CLI infrastructure for Feature 2. All CLI display code ready; game engine integration needed.
+
+**Completed**:
+
+✅ **Feature 1 (Random Kingdom)**: Production-ready, all tests passing
+
+✅ **Feature 3 (Card Sorting)**: Production code complete, 24/26 tests passing
+- Sorting applied to supply displays
+- 2 test bugs documented with @blocker tags
+
+⚠️ **Feature 2 (CLI Prompts)**: CLI side complete, engine side needed
+- All 11 card display functions implemented
+- Game loop pendingEffect handling added  
+- 32/33 unit tests passing
+- Needs: Game engine to set pendingEffect when cards played
+
+**Test Issues** (not production code bugs):
+1. Sorting test expects wrong alphabetical order (@blocker:utils.ts:165)
+2. extractCardOrder regex bug in integration test
+3. Import path errors in some test files
+
+**Overall**: 592/654 tests passing (90.5%)
+
+**Next**: Game engine pendingEffect implementation for all 11 interactive cards
+

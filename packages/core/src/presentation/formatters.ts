@@ -245,5 +245,22 @@ export function groupSupplyByType(state: GameState): {
     }
   });
 
-  return { treasures, victory, kingdom };
+  // Sort each category by cost (ascending) then alphabetically
+  // @req: FR-SORT-3 - Sorting applies to all card displays
+  const sortPiles = (piles: SupplyPile[]): SupplyPile[] => {
+    return piles.sort((a, b) => {
+      // Primary sort: cost ascending
+      if (a.cost !== undefined && b.cost !== undefined && a.cost !== b.cost) {
+        return a.cost - b.cost;
+      }
+      // Secondary sort: alphabetical
+      return a.name.localeCompare(b.name);
+    });
+  };
+
+  return {
+    treasures: sortPiles(treasures),
+    victory: sortPiles(victory),
+    kingdom: sortPiles(kingdom)
+  };
 }

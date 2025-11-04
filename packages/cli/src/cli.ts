@@ -102,7 +102,14 @@ export class PrincipalityCLI {
           // AI auto-executes its move
           this.executeAIMove();
         } else {
-          // Human player - get input
+          // Human player - check for pending effect (interactive card prompts)
+          if (this.gameState.pendingEffect) {
+            // Card requires interactive choice - display prompt
+            await this.handlePendingEffect(this.gameState);
+            continue; // Loop back to check game state after handling effect
+          }
+
+          // Normal move selection
           const validMoves = this.engine.getValidMoves(this.gameState);
           this.display.displayAvailableMoves(validMoves);
 
@@ -161,6 +168,58 @@ export class PrincipalityCLI {
           this.display.displayError(result.error);
         }
         break;
+    }
+  }
+
+  /**
+   * Handle pending effect (interactive card prompts)
+   * Called when a card requires player decision (Cellar, Chapel, etc.)
+   *
+   * @req: FR-CLI-1 through FR-CLI-6 - Interactive prompts for action cards
+   */
+  private async handlePendingEffect(state: GameState): Promise<void> {
+    const pendingEffect = state.pendingEffect;
+    if (!pendingEffect) {
+      return; // Safety check
+    }
+
+    // Get valid moves for this pending effect
+    const validMoves = this.engine.getValidMoves(state);
+
+    // Display the interactive prompt
+    this.display.displayPendingEffectPrompt(state, validMoves);
+
+    // Get user selection
+    while (true) {
+      const input = await this.promptUser();
+
+      if (!input || !input.trim()) {
+        continue;
+      }
+
+      // Parse numeric selection
+      const selection = parseInt(input.trim(), 10);
+
+      // Validate selection
+      if (isNaN(selection) || selection < 1 || selection > validMoves.length) {
+        console.log(`✗ Error: Invalid selection. Please enter 1-${validMoves.length}`);
+        continue;
+      }
+
+      // Execute the selected move
+      const selectedMove = validMoves[selection - 1];
+      const result = this.engine.executeMove(state, selectedMove);
+
+      if (result.success && result.newState) {
+        // Get the last log entry to show what happened
+        const lastLog = result.newState.gameLog[result.newState.gameLog.length - 1];
+        this.display.displayMoveResult(true, lastLog);
+        this.gameState = result.newState;
+        break; // Exit loop - move successful
+      } else {
+        this.display.displayMoveResult(false, result.error);
+        // Stay in loop to get new input
+      }
     }
   }
 

@@ -39,6 +39,7 @@ export interface PendingEffect {
   trashedCard?: CardName;
   targetPlayer?: number;
   throneRoomDouble?: boolean;
+  destination?: 'hand' | 'discard' | 'topdeck';  // For Mine and other cards that gain to specific location
 }
 
 export interface GameState {
