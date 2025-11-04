@@ -18,7 +18,10 @@ import {
   countEmptyPiles,
   generateSuggestion,
   analyzeRejectionReason,
-  getCardCost
+  getCardCost,
+  calculateScore,
+  getAllPlayerCards,
+  CardName
 } from '@principality/core';
 import { GameExecuteRequest, GameExecuteResponse } from '../types/tools';
 import { Logger } from '../logger';
@@ -305,12 +308,76 @@ export class GameExecuteTool {
 
         const gameOverReason = getGameOverReason(finalStateAfterAutoSkip);
 
+        // Calculate final scores and detailed breakdowns
+        const finalScores: number[] = [];
+        const vpBreakdowns: Record<string, any> = {};
+        const deckCompositions: Record<string, any> = {};
+
+        finalStateAfterAutoSkip.players.forEach((player, index) => {
+          const allCards = getAllPlayerCards(player.drawPile, player.hand, player.discardPile);
+          const score = calculateScore(allCards);
+          finalScores.push(score);
+
+          // Count victory points by card type
+          const vpBreakdown: Record<string, number> = {};
+          let estateCount = 0, duchyCount = 0, provinceCount = 0, curseCount = 0, gardensCount = 0;
+
+          allCards.forEach(card => {
+            if (card === 'Estate') estateCount++;
+            else if (card === 'Duchy') duchyCount++;
+            else if (card === 'Province') provinceCount++;
+            else if (card === 'Curse') curseCount++;
+            else if (card === 'Gardens') gardensCount++;
+          });
+
+          if (estateCount > 0) vpBreakdown['Estate'] = estateCount * 1;
+          if (duchyCount > 0) vpBreakdown['Duchy'] = duchyCount * 3;
+          if (provinceCount > 0) vpBreakdown['Province'] = provinceCount * 6;
+          if (curseCount > 0) vpBreakdown['Curse'] = curseCount * -1;
+          if (gardensCount > 0) {
+            const gardensVP = gardensCount * Math.floor(allCards.length / 10);
+            vpBreakdown['Gardens'] = gardensVP;
+          }
+          vpBreakdown['total'] = score;
+
+          vpBreakdowns[`player${index}`] = vpBreakdown;
+
+          // Count all cards in deck
+          const deckComposition: Record<string, number> = {};
+          allCards.forEach(card => {
+            deckComposition[card] = (deckComposition[card] || 0) + 1;
+          });
+          deckCompositions[`player${index}`] = deckComposition;
+        });
+
+        // Determine winner
+        const maxScore = Math.max(...finalScores);
+        const winners = finalScores
+          .map((score, index) => ({ score, index }))
+          .filter(p => p.score === maxScore)
+          .map(p => p.index);
+
+        const winner = winners.length === 1 ? winners[0] : null;
+
+        // Convert supply to object for logging
+        const supplyAtEnd: Record<string, number> = {};
+        finalStateAfterAutoSkip.supply.forEach((quantity, cardName) => {
+          supplyAtEnd[cardName] = quantity;
+        });
+
         this.logger?.info('Game ended', {
           turn: finalStateAfterAutoSkip.turnNumber,
           phase: finalStateAfterAutoSkip.phase,
           reason: gameOverReason,
           emptyPiles: emptyPiles,
-          totalEmptyPileCount: emptyPiles.length
+          totalEmptyPileCount: emptyPiles.length,
+          finalScores: finalScores,
+          vpBreakdowns: vpBreakdowns,
+          deckCompositions: deckCompositions,
+          supplyAtEnd: supplyAtEnd,
+          winner: winner,
+          tie: winners.length > 1,
+          winners: winners.length > 1 ? winners : undefined
         });
       }
 
