@@ -3,6 +3,10 @@
  * Validates game state formatting, output display, and console operations
  */
 
+// @req: UTIL-DISPLAY - CLI display formatting and game state rendering
+// @edge: Complete game state display; console operations; state validation
+// @why: Core utility for rendering game information to players during gameplay
+
 import { Display } from '../src/display';
 import { GameState, Move, Victory } from '@principality/core';
 import {

@@ -13,6 +13,10 @@
  * - Performance: < 5ms calculation
  */
 
+// @req: R1.5-05 - Victory points display in game header
+// @edge: VP scattered across hand/draw/discard/in-play; update after buying; performance <5ms
+// @why: Players need to track progress; was missing from Phase 1 and critical for gameplay awareness
+
 import { PlayerState } from '@principality/core';
 import { GameStateBuilder, PerformanceHelper } from './utils/test-utils';
 import { VictoryPointsTestUtils } from './utils/phase1-5-utils';

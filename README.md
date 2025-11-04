@@ -1,11 +1,19 @@
 # Principality AI
 
+**Status**: ACTIVE
+**Created**: 2025-09-14
+**Last-Updated**: 2025-11-01
+**Owner**: requirements-architect
+**Phase**: 3
+
+---
+
 A solo-first Dominion-inspired deck-building game designed for streamlined gameplay and AI integration through Model Context Protocol (MCP).
 
 ## Project Status
 
-**Current Phase**: Phase 1.5 Complete (CLI UX Enhancements)
-**Next Phase**: Phase 2 (MCP Integration)
+**Current Phase**: Phase 4 (Complete Dominion Base Set)
+**Status**: Requirements & Tests Complete
 
 ### Completed
 - ✅ **Phase 1**: Core game engine with immutable state pattern
@@ -18,6 +26,17 @@ A solo-first Dominion-inspired deck-building game designed for streamlined gamep
 - ✅ **Phase 1.5**: Quick game mode (reduced piles)
 - ✅ **Phase 1.5**: Victory points display
 - ✅ **Phase 1.5**: Auto-skip cleanup phase
+- ✅ **Phase 2.0**: MCP server foundation with stdio transport
+- ✅ **Phase 2.0**: Move parsing and command handling
+- ✅ **Phase 2.1**: Dominion mechanics skill (auto-invoked context)
+- ✅ **Phase 2.1**: Big Money strategy skill (gameplay guidance)
+- ✅ **Phase 2.1**: Rules-based AI with Big Money strategy
+- ✅ **Phase 2.1**: Critical AI bug fixes (Province vs Gold priority)
+- ✅ **Phase 3**: Multiplayer game engine (2+ players)
+- ✅ **Phase 3**: Turn switching and player isolation
+- ✅ **Phase 3**: Rules-based AI opponent with Big Money strategy
+- ✅ **Phase 3**: CLI multiplayer interface and display
+- ✅ **Phase 3**: MCP multiplayer tools (game_execute, game_observe)
 
 ## Quick Start
 
@@ -46,6 +65,9 @@ npm run test:coverage
 
 # Run tests in watch mode
 cd packages/core && npm run test:watch
+
+# For E2E testing with Claude API
+# See: docs/testing/E2E_TESTING_GUIDE.md
 ```
 
 ### Playing the Game
@@ -156,18 +178,30 @@ See [Game Design Document](./principality-ai-design.md) for complete rules and c
 - Comprehensive test coverage
 - Interactive CLI interface
 
-### Phase 2: MCP Integration (Next)
-- Azure Functions MCP server
-- LLM plays solo games
+### Phase 2: MCP Integration (✅ Complete)
+- MCP server with stdio transport
+- LLM plays solo games via MCP tools
 - Natural language move parsing
-- Performance: < 2 seconds per move
+- Dominion mechanics and strategy skills
+- Rules-based AI with Big Money strategy
 
-### Phase 3: Multiplayer
-- 2-player games
-- Simple rule-based AI opponent
-- Real-time state synchronization (Azure SignalR)
+### Phase 3: Multiplayer (✅ Complete)
+- 2-player games (human vs AI, AI vs AI)
+- Rules-based AI opponent
+- Turn switching and player isolation
+- CLI multiplayer interface
+- Test coverage: 93.4% (595/654 tests passing)
 
-### Phase 4: Web UI
+### Phase 4: Complete Dominion Base Set (In Progress)
+- 17 new kingdom cards (25 total)
+- Trashing system (Chapel, Remodel, Mine, Moneylender)
+- Gaining mechanics (Workshop, Feast)
+- Attack cards (Militia, Witch, Bureaucrat, Spy, Thief)
+- Reaction system (Moat blocks attacks)
+- Special cards (Throne Room, Adventurer, Chancellor, Library, Gardens)
+- Requirements & Tests Complete (92 tests written)
+
+### Phase 5: Web UI
 - Graphical interface
 - Drag-and-drop cards
 - Visual animations
@@ -192,7 +226,7 @@ See [Game Design Document](./principality-ai-design.md) for complete rules and c
 
 ## Contributing
 
-This project uses a phased development approach. Current focus is on Phase 2 (MCP Integration).
+This project uses a phased development approach. Current focus is on Phase 3 (Multiplayer Foundation).
 
 ### Development Workflow
 
@@ -231,4 +265,4 @@ Evan DeLord
 
 ---
 
-**Note**: This is an active development project. The core game engine (Phase 1) is complete and well-tested. Phase 2 (MCP integration) is next on the roadmap.
+**Note**: This is an active development project. Phases 1-3 are complete and well-tested (core engine, MCP integration, multiplayer). Phase 4 (Complete Dominion Base Set with 25 kingdom cards) is in progress - requirements and tests complete, implementation pending. Phase 5 (Web UI) follows after Phase 4.

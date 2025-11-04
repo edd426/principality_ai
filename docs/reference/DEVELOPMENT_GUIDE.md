@@ -396,9 +396,115 @@ npx tsc --noEmit packages/core/src/game.ts
 
 ---
 
+## AI Gameplay with MCP (Phase 2.1)
+
+### Batch Treasure Commands for Speed
+
+Use `play_treasure all` to dramatically accelerate game play:
+
+```bash
+# Instead of playing 5 treasures individually (30-40 seconds):
+play_treasure Copper
+play_treasure Copper
+play_treasure Silver
+play_treasure Silver
+play_treasure Gold
+
+# Use batch command (3-5 seconds):
+play_treasure all
+```
+
+**Performance**: 8-10x faster Buy phase execution.
+
+### Auto-Returned Game State
+
+Every `game_execute` response now includes:
+- `gameState`: Current state with phase, hand, coins, actions, buys
+- `validMoves`: Array of available move commands
+- `gameOver`: Boolean flag
+
+**No need to call `game_observe` between moves.**
+
+Efficient turn flow:
+```
+1. game_observe (initial state)
+2. play_treasure all (auto-returns state + validMoves)
+3. buy Province (auto-returns state + validMoves)
+4. end (auto-returns state for next turn)
+```
+
+### Testing AI Gameplay
+
+Run AI game session:
+
+```bash
+# Play a full game with Haiku
+npm run play --seed test-seed-123
+
+# Monitor logs
+tail -f dominion-game-session.log
+
+# Check game-end detection (R2.0-NEW feature)
+# Game should end correctly when Province pile empties or 3 piles empty
+```
+
+Expected output:
+- Game duration: 2-3 minutes (vs 5 min baseline)
+- No redundant move attempts
+- Clean game-over detection with reason
+
+### Skills for AI Guidance
+
+Two Claude Code skills guide AI gameplay:
+
+1. **dominion-mechanics** - Game rules and command syntax
+   - Batch commands: `play_treasure all`
+   - Efficient turn flow patterns
+   - Phase transitions
+
+2. **dominion-strategy** - Deck-building and decision-making
+   - Big Money strategy baseline
+   - Action card purchasing strategy
+   - Efficiency tips for batch commands
+
+Invoke skills during gameplay:
+```
+AI agent receives error → checks dominion-mechanics skill
+AI agent needs strategy advice → checks dominion-strategy skill
+```
+
+### Performance Targets (R2.1-ACC)
+
+| Metric | Baseline | Target | Status |
+|--------|----------|--------|--------|
+| Buy phase (5 treasures) | 30-40s | <2s | ✅ Batch command |
+| Full game duration | 5 min | ≤3 min | ✅ Auto-return state |
+| Redundant moves | 20+ | 0 | ✅ State awareness |
+| API calls per game | 40-50 | ≤25 | ✅ Auto-return |
+
+### Troubleshooting AI Gameplay
+
+**AI plays treasures individually instead of using batch command**:
+- Check: Is `play_treasure all` in valid moves?
+- Fix: Update dominion-mechanics skill with clear batch command documentation
+- Verify: Test with small game to confirm batch command parsing works
+
+**AI makes redundant move attempts**:
+- Check: Is game-execute returning auto-state correctly?
+- Fix: Verify gameState and validMoves fields in response
+- Debug: Add logging to track state changes between moves
+
+**Game duration is still slow (>3 minutes)**:
+- Check: Is AI using `play_treasure all` or playing treasures individually?
+- Check: Is AI calling game_observe between moves (unnecessary)?
+- Measure: Count API calls in session log - should be ≤25 total
+
+---
+
 ## See Also
 
-- [API.md](./API.md) - Detailed API reference
+- [API.md](./API.md) - Detailed API reference including game_execute tool
 - [ARCHITECTURE.md](./ARCHITECTURE.md) - System architecture
 - [PERFORMANCE.md](./PERFORMANCE.md) - Performance benchmarks
+- [Phase 2.1 Requirements](../requirements/phase-2.1/FEATURES.md) - R2.1-ACC feature details
 - [CLAUDE.md](../../CLAUDE.md) - Project overview

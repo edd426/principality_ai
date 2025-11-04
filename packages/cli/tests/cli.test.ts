@@ -295,6 +295,164 @@ describe('PrincipalityCLI', () => {
 
       expect(consoleCapture.contains('Thanks for playing!')).toBe(true);
     });
+
+    describe('Phase 1.6: cards command handler', () => {
+      /**
+       * Test CARDS-CLI-1: CLI Handles Cards Command
+       *
+       * @req: Phase 1.6 Feature 2 - CLI must recognize and execute 'cards' command
+       * @edge: Basic command execution
+       * @why: Users need to view available cards during gameplay
+       *
+       * Expected Behavior:
+       * - User types: "cards"
+       * - Output displays: Card catalog table
+       * - Output contains: "AVAILABLE CARDS" header
+       * - Output contains: All 15 cards
+       */
+      test('CARDS-CLI-1: should handle cards command', async () => {
+        // @req: CLI routes 'cards' command to handler
+        // @edge: Single command execution
+        // @hint: Add 'cards' case to CLI.handleCommand() switch
+        cli = new PrincipalityCLI('seed');
+        mockReadline.setInputs(['cards', 'quit']);
+
+        await cli.start();
+
+        // Should display card catalog
+        expect(consoleCapture.contains('AVAILABLE CARDS')).toBe(true);
+        // Should show some cards
+        expect(consoleCapture.contains('Village')).toBe(true);
+        expect(consoleCapture.contains('Copper')).toBe(true);
+      });
+
+      /**
+       * Test CARDS-CLI-2: Cards Command Displays Formatted Table
+       *
+       * @req: Output must be readable table with all columns
+       * @edge: Table formatting, alignment, headers
+       * @why: Players need clear, scannable card information
+       *
+       * Expected Behavior:
+       * - Header: "AVAILABLE CARDS"
+       * - Columns: Name, Cost, Type, Effect
+       * - Separator line with dashes
+       * - All 15 cards listed
+       */
+      test('CARDS-CLI-2: should display formatted table with all columns', async () => {
+        // @req: Table format with headers and separators
+        // @edge: Multi-line output | formatting consistency
+        // @hint: Output from handleCardsCommand() should include all parts
+        cli = new PrincipalityCLI('seed');
+        mockReadline.setInputs(['cards', 'quit']);
+
+        await cli.start();
+
+        const output = consoleCapture.getAllOutput();
+
+        // Verify table structure
+        expect(output).toContain('AVAILABLE CARDS');
+        expect(output).toContain('Name');
+        expect(output).toContain('Cost');
+        expect(output).toContain('Type');
+        expect(output).toContain('Effect');
+
+        // Verify pipe separators (table format)
+        expect(output.split('\n').some(line => line.includes('|'))).toBe(true);
+      });
+
+      /**
+       * Test CARDS-CLI-3: Cards Command Does Not Modify Game State
+       *
+       * @req: Informational commands must not affect gameplay
+       * @edge: State immutability during command execution
+       * @why: Players should be able to look at cards without consequences
+       *
+       * Expected Behavior:
+       * - Game state unchanged after cards command
+       * - Player hand unchanged
+       * - Phase unchanged
+       * - Turn number unchanged
+       */
+      test('CARDS-CLI-3: should not modify game state', async () => {
+        // @req: Informational commands preserve game state
+        // @edge: State immutability | no side effects
+        // @hint: handleCardsCommand() is read-only, no state mutation
+        cli = new PrincipalityCLI('test-seed-123');
+        const initialSeed = cli['gameState'].seed;
+        const initialPhase = cli['gameState'].phase;
+        const initialTurn = cli['gameState'].turnNumber;
+
+        mockReadline.setInputs(['cards', 'quit']);
+
+        await cli.start();
+
+        // State should be unchanged
+        expect(cli['gameState'].seed).toBe(initialSeed);
+        expect(cli['gameState'].phase).toBe(initialPhase);
+        expect(cli['gameState'].turnNumber).toBe(initialTurn);
+      });
+
+      /**
+       * Test CARDS-CLI-4: Cards Command Works After Other Commands
+       *
+       * @req: Multiple commands execute sequentially without interference
+       * @edge: Command interleaving, state consistency
+       * @why: Players should be able to use cards command anytime
+       *
+       * Expected Behavior:
+       * - Execute help command
+       * - Execute cards command
+       * - Execute hand command
+       * - All succeed without interference
+       */
+      test('CARDS-CLI-4: should work interleaved with other commands', async () => {
+        // @req: Cards command non-intrusive | works with other commands
+        // @edge: Sequential commands | state between commands
+        // @hint: Each command execution independent
+        cli = new PrincipalityCLI('seed');
+        mockReadline.setInputs(['help', 'cards', 'hand', 'quit']);
+
+        await cli.start();
+
+        const output = consoleCapture.getAllOutput();
+
+        // All commands should execute
+        expect(output).toContain('Available Commands:'); // from help
+        expect(output).toContain('AVAILABLE CARDS'); // from cards
+        expect(output).toContain('Hand:'); // from hand
+      });
+
+      /**
+       * Test CARDS-CLI-5: Cards Command Available During All Phases
+       *
+       * @req: Command accessible during action, buy, and cleanup phases
+       * @edge: All game phases
+       * @why: Players may need card reference at any time
+       *
+       * Expected Behavior:
+       * - Cards command works during action phase
+       * - Cards command works during buy phase
+       * - Cards command works during cleanup phase
+       * - Output identical in all phases
+       */
+      test('CARDS-CLI-5: should work during any game phase', async () => {
+        // @req: Phase-independent command
+        // @edge: All game phases | phase transitions
+        // @hint: handleCardsCommand() doesn't depend on phase
+        cli = new PrincipalityCLI('seed');
+
+        // Execute multiple commands to simulate game progression
+        mockReadline.setInputs(['cards', '1', 'cards', 'quit']);
+
+        await cli.start();
+
+        // Should successfully display cards
+        const output = consoleCapture.getAllOutput();
+        const cardCount = (output.match(/AVAILABLE CARDS/g) || []).length;
+        expect(cardCount).toBeGreaterThanOrEqual(1); // At least shown once
+      });
+    });
   });
 
   describe('readline integration', () => {
@@ -510,13 +668,13 @@ describe('PrincipalityCLI', () => {
       });
     });
 
-    describe('Quick game mode', () => {
-      test('should support quick game flag', () => {
-        // Phase 1.5: Quick game implemented via CLI options
-        cli = new PrincipalityCLI('seed', 1, { quickGame: true });
+    describe('Configurable victory pile size', () => {
+      test('should support configurable victory pile size', () => {
+        // Phase 2.0: Configurable victory piles via victoryPileSize option
+        cli = new PrincipalityCLI('seed', 1, { victoryPileSize: 4 });
 
         expect(cli).toBeDefined();
-        expect(cli['options'].quickGame).toBe(true);
+        expect(cli['options'].victoryPileSize).toBe(4);
       });
     });
 

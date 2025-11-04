@@ -13,6 +13,10 @@
  * - NFR-6.2: Performance < 100ms
  */
 
+// @req: R1.5-06 - Auto-skip cleanup phase when no choices required
+// @edge: Cleanup requires input → pause; manual-cleanup flag disables; performance <100ms
+// @why: Eliminates tedious manual input for no-choice phases; speeds up testing and gameplay
+
 import { GameEngine, GameState, Move } from '@principality/core';
 import { GameStateBuilder, PerformanceHelper } from './utils/test-utils';
 

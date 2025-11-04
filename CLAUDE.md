@@ -1,5 +1,13 @@
 # CLAUDE.md
 
+**Status**: ACTIVE
+**Created**: 2025-09-14
+**Last-Updated**: 2025-11-02
+**Owner**: requirements-architect
+**Phase**: 4
+
+---
+
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## Project Overview
@@ -34,6 +42,100 @@ See [DEVELOPMENT_GUIDE.md](./docs/reference/DEVELOPMENT_GUIDE.md#project-structu
 
 See [DEVELOPMENT_GUIDE.md](./docs/reference/DEVELOPMENT_GUIDE.md) for detailed workflows and testing.
 
+---
+
+## Development Standards: Test-Driven Development (TDD)
+
+**🚨 MANDATORY**: All code changes follow Test-Driven Development (TDD).
+
+### TDD Philosophy
+
+This project maintains high quality through TDD:
+- Tests are written **first** (before implementation)
+- Tests define the contract (what "done" means)
+- Implementation follows tests
+- Tests prevent regressions forever
+
+### Feature Development Workflow
+
+**For NEW FEATURES**:
+```
+1. Requirements defined (FEATURES.md, TESTING.md)
+   ↓
+2. Tests written (test-architect)
+   ↓
+3. All tests FAIL (red phase)
+   ↓
+4. Implementation written (dev-agent)
+   ↓
+5. All tests PASS (green phase)
+   ↓
+6. Refactoring if needed (tests still pass)
+```
+
+### Bug Fix Workflow
+
+**For BUGS**:
+```
+1. Bug discovered / reported
+   ↓
+2. Test written that reproduces bug (test-architect)
+   ↓
+3. Test FAILS (validates bug exists)
+   ↓
+4. Bug fix implemented (dev-agent)
+   ↓
+5. Test PASSES (validates fix works)
+   ↓
+6. Test stays in suite forever (prevents regression)
+```
+
+### Agent Responsibilities
+
+**test-architect**:
+- Implement all tests FIRST (before development)
+- Create tests that validate requirements
+- Ensure edge cases are covered
+- Target 95%+ coverage
+
+**dev-agent**:
+- Implement code to PASS existing tests
+- Refuse code-only requests (push back with reason)
+- Can suggest tests if missing
+- Verify no regressions
+
+**requirements-architect**:
+- Ensure requirements are clear before testing
+- Review TDD compliance
+- Document test specifications
+
+### When Tests Are Missing
+
+**If dev-agent receives code without tests**:
+> "Tests required before implementation. Per project TDD standard:
+> - For features: Requirements → Tests → Implementation
+> - For bugs: Tests → Bug Fix
+>
+> Please submit tests first."
+
+**If test-architect receives implementation request**:
+> "Implementation cannot proceed without tests. Submit test specifications first."
+
+### Quality Metrics
+
+- **All tests must pass** before PR submission
+- **Coverage must be 95%+** (enforced by CI)
+- **Zero regressions** (existing tests continue passing)
+- **Performance targets met** (as defined in tests)
+
+### Documentation
+
+- Test specifications defined in: `docs/requirements/phase-X/TESTING.md`
+- Test location: `packages/{core,cli}/tests/`
+- Coverage report: `npm run test -- --coverage`
+
+---
+
 ## Core Architecture
 
 **Game Engine**: Immutable state pattern with functional updates
@@ -59,10 +161,13 @@ See [API.md](./docs/reference/API.md) for detailed API reference.
 
 **Phase 1 (Complete)**: CLI-based solo sandbox game with core 8 kingdom cards
 **Phase 1.5 (Complete)**: CLI UX improvements - All 6 features implemented and tested
-**Phase 2**: MCP server integration for LLM gameplay
-**Phase 3**: Multiplayer with simple AI opponents
-**Phase 4**: Web UI with drag-and-drop interface
-**Phase 5+**: Advanced cards, tournaments, mobile apps
+**Phase 1.6 (Complete)**: Card help system + comprehensive testing framework
+**Phase 2.0 (Complete)**: MCP server foundation - Critical bug fixes (stdio transport, move parsing)
+**Phase 2.1 (Complete)**: AI Gameplay Enhancement - Mechanics Skill, Strategy Skill, AI Bug Fixes
+**Phase 3 (Complete)**: Multiplayer with 2 players - Human vs Rules-based AI, test coverage 93.4%
+**Phase 4 (Current)**: Complete Dominion Base Set - 17 new cards, 92 tests written (requirements & tests complete)
+**Phase 5**: Web UI with drag-and-drop interface
+**Phase 6+**: Dominion expansions, tournaments, mobile apps
 
 ### Phase 1.5 Features (COMPLETE)
 
@@ -76,6 +181,24 @@ See [API.md](./docs/reference/API.md) for detailed API reference.
 6. **Auto-Skip Cleanup** (3h) - Skip manual cleanup when no choices (opt-out via `--manual-cleanup`)
 
 **Full specifications**: [Phase 1.5 Requirements](./docs/requirements/phase-1.5/)
+
+### Phase 4 Features (IN PROGRESS)
+
+**Status**: 🔄 Requirements & Tests Complete (Implementation Pending)
+
+**Deliverables**:
+1. **Requirements Documentation** (3,246 lines) - Complete specifications for 17 new cards
+2. **Test Suite** (92 tests) - All tests written and failing (RED phase)
+3. **Implementation** (Pending) - ~55 hours estimated
+
+**New Mechanics**:
+1. **Trashing System** (4h) - Chapel, Remodel, Mine, Moneylender
+2. **Gaining System** (2h) - Workshop, Feast
+3. **Attack System** (5h) - Militia, Witch, Bureaucrat, Spy, Thief
+4. **Reaction System** (1h) - Moat blocks attacks
+5. **Special Cards** (5h) - Throne Room, Adventurer, Chancellor, Library, Gardens
+
+**Full specifications**: [Phase 4 Requirements](./docs/requirements/phase-4/)
 
 ---
 
@@ -95,21 +218,54 @@ See [API.md](./docs/reference/API.md) for detailed API reference.
 
 ## Documentation Guidelines for Agents
 
-⚠️ **CRITICAL**: Before creating or modifying ANY .md file, follow these rules:
+⚠️ **CRITICAL ENFORCEMENT**: Root directory accepts ONLY these files:
+- `README.md` (project overview)
+- `CLAUDE.md` (developer instructions)
+- `CONTRIBUTING.md` (optional, if exists)
+
+**ANY other .md file at root violates project policy** and will be flagged for reorganization. See audit results: `.claude/audits/documentation/AUDIT_SUMMARY.md`
 
 ### Before Creating New Files
 1. **Check for existing files first**: Search docs/, .claude/, and root for similar content
 2. **Consult the system**: Read [docs/DOCUMENTATION_SYSTEM.md](./docs/DOCUMENTATION_SYSTEM.md) for structure
-3. **Use correct location**:
+3. **Verify root policy**: Will this violate the "max 3 files at root" rule?
+4. **Use correct location**:
    - Permanent docs → `docs/` (reference, guides, requirements)
    - Session notes → `.claude/sessions/{date}/`
-   - Agent communication → `.claude/communication/`
+   - Agent communication → **In code/tests via @ tags** (see `.claude/AGENT_COMMUNICATION.md`)
    - Root → **ONLY** README.md, CLAUDE.md, CONTRIBUTING.md
+
+### Correct File Placement (Examples from Recent Audit Fix)
+
+✅ **GOOD** - Correct locations:
+- E2E testing guide → `docs/testing/E2E_TESTING_GUIDE.md`
+- Quick start for tests → `docs/testing/E2E_TESTING_QUICK_START.md`
+- Session implementation notes → `.claude/sessions/YYYY-MM-DD/e2e-implementation-summary.md`
+- Interactive gameplay guide → `docs/reference/INTERACTIVE_GAMEPLAY_SETUP.md`
+- Session debugging notes → `.claude/sessions/YYYY-MM-DD/mcp-gameplay-debugging.md`
+
+❌ **BAD** - Violations (now fixed):
+- E2E_TESTING_GUIDE.md at root
+- QUICK_START.md at root
+- IMPLEMENTATION_SUMMARY.md at root
+- MCP_GAMEPLAY_DEBUGGING.md at root
+
+### Preventing Content Redundancy
+
+⚠️ **DUPLICATION CHECK** before creating setup/installation instructions:
+
+**Single source of truth for:**
+- Game installation → `README.md` (keep minimal)
+- Development setup → `docs/reference/DEVELOPMENT_GUIDE.md`
+- E2E testing setup → `docs/testing/E2E_TESTING_GUIDE.md`
+
+**Rule**: If setup instructions exist, LINK to them. Do NOT copy-paste across files.
+
+See `.claude/audits/documentation/AUDIT_SUMMARY.md` for redundancy analysis.
 
 ### File Size Limits
 - Root .md files: **< 400 lines**
 - Requirements docs: **< 800 lines**
-- Communication logs: **< 500 lines** (rotate monthly)
 - Session notes: **< 300 lines**
 - Reference docs: **< 1000 lines**
 
@@ -127,9 +283,24 @@ Every new .md file must start with:
 - **Create new** only if genuinely new topic or existing file would exceed limit
 - **Split file** if updating would exceed size limit
 
-### Enforcement
-- Root directory accepts ONLY: README.md, CLAUDE.md, CONTRIBUTING.md
-- Any other .md file at root will be flagged for reorganization
-- Communication logs automatically rotate at 500 lines
+### Documentation Quality Standards
+
+See `.claude/audits/documentation/` for authoritative framework and audit results:
+- `DOC_QUALITY_BEST_PRACTICES.md` - Industry-standard framework (5 quality dimensions)
+- `AUDIT_SUMMARY.md` - Quick reference with anti-patterns
+- `2025-10-24-doc-quality-audit.md` - Detailed audit of project documentation
+
+**Key anti-patterns to avoid:**
+1. ❌ **Root directory clutter** - Max 3 files only
+2. ❌ **Content duplication** - Single source of truth required
+3. ❌ **Missing metadata** - All docs need Status, Created, Last-Updated, Owner, Phase
+4. ❌ **Backup folders** - Don't leave backup directories in active repo
+5. ❌ **Unclear file purposes** - Use clear names and proper locations
+
+### Agent Communication System
+- test-architect and dev-agent communicate via **@ tags in code/tests**
+- No separate communication files needed
+- Minimal token format optimized for agent parsing
+- **See**: `.claude/AGENT_COMMUNICATION.md` for full protocol
 
 **See Full System**: [docs/DOCUMENTATION_SYSTEM.md](./docs/DOCUMENTATION_SYSTEM.md)

@@ -1,6 +1,6 @@
 export type CardName = string;
 
-export type CardType = 'treasure' | 'victory' | 'action';
+export type CardType = 'treasure' | 'victory' | 'action' | 'curse' | 'action-attack' | 'action-reaction';
 
 export type Phase = 'action' | 'buy' | 'cleanup';
 
@@ -31,6 +31,16 @@ export interface PlayerState {
   readonly coins: number;
 }
 
+export interface PendingEffect {
+  card: CardName;
+  effect: string;
+  maxTrash?: number;
+  maxGainCost?: number;
+  trashedCard?: CardName;
+  targetPlayer?: number;
+  throneRoomDouble?: boolean;
+}
+
 export interface GameState {
   readonly players: ReadonlyArray<PlayerState>;
   readonly supply: ReadonlyMap<CardName, number>;
@@ -39,12 +49,21 @@ export interface GameState {
   readonly turnNumber: number;
   readonly seed: string;
   readonly gameLog: ReadonlyArray<string>;
+  readonly trash: ReadonlyArray<CardName>;
+  readonly pendingEffect?: PendingEffect;
 }
 
 export interface Move {
-  type: 'play_action' | 'play_treasure' | 'buy' | 'end_phase' | 'discard_for_cellar';
+  type: 'play_action' | 'play_treasure' | 'play_all_treasures' | 'buy' | 'end_phase' | 'discard_for_cellar' |
+        'trash_cards' | 'gain_card' | 'reveal_reaction' | 'discard_to_hand_size' |
+        'reveal_and_topdeck' | 'spy_decision' | 'select_treasure_to_trash' |
+        'gain_trashed_card' | 'select_action_for_throne' | 'chancellor_decision' |
+        'library_set_aside';
   card?: CardName;
   cards?: ReadonlyArray<CardName>;
+  playerIndex?: number;
+  destination?: 'hand' | 'discard' | 'topdeck';
+  choice?: boolean;
 }
 
 export interface GameResult {
@@ -60,5 +79,7 @@ export interface Victory {
 }
 
 export interface GameOptions {
-  quickGame?: boolean;
+  victoryPileSize?: number; // Number of Estate/Duchy/Province cards (default: 4)
+  kingdomCards?: ReadonlyArray<CardName>; // Kingdom cards to include in supply (default: Phase 1 cards)
+  allCards?: boolean; // Include all Phase 4 cards (ignores kingdomCards if true)
 }

@@ -851,6 +851,104 @@ if (!result.success) {
 
 ---
 
+## MCP Tools API (Phase 2)
+
+### game_execute Tool
+
+Executes a move and automatically returns updated game state.
+
+#### Request
+
+```typescript
+interface GameExecuteRequest {
+  move: string;                        // Move command (e.g., "play_treasure all", "buy Province")
+  return_detail?: 'minimal' | 'full';  // Optional detail level (default: standard auto-return)
+  reasoning?: string;                  // Optional brief rationale for strategy analysis
+}
+```
+
+#### Response
+
+```typescript
+interface GameExecuteResponse {
+  success: boolean;                    // Move execution success
+  message?: string;                    // Human-readable result
+  gameState?: any;                     // Current state (standard detail level) - Auto-returned
+  validMoves?: string[];               // Available move commands - Auto-returned
+  gameOver?: boolean;                  // Game end status - Auto-returned
+  error?: {
+    message: string;
+    suggestion?: string;               // Recovery hint
+    details?: any;
+  };
+}
+```
+
+#### Supported Commands
+
+**Individual Moves**:
+- `play_treasure Copper` - Play a treasure card by name (Buy phase)
+- `play_action Village` - Play an action card by name (Action phase)
+- `buy Silver` - Buy a card from supply (Buy phase)
+- `end` - End current phase
+
+**Batch Commands** (R2.1-ACC):
+- `play_treasure all` - Play ALL treasures in hand at once (Buy phase only)
+  - Returns: `"Played 5 treasure(s) → 10 coins"`
+  - Performance: <2 seconds for 5 cards
+
+#### Key Feature: Auto-Returned State
+
+Every response automatically includes:
+- **gameState**: Current game state (standard detail: phase, hand, coins, actions, buys)
+- **validMoves**: Array of available commands for next move
+- **gameOver**: Boolean flag (true if game has ended)
+
+**Benefit**: Eliminates need for manual `game_observe` calls between moves. Reduces API calls by ~50%.
+
+#### Example: Efficient Turn Flow
+
+```
+Request 1: { move: "play_treasure all" }
+Response 1: {
+  success: true,
+  message: "Played 5 treasure(s) → 10 coins",
+  gameState: { phase: "buy", currentCoins: 10, ... },
+  validMoves: ["buy Province", "buy Gold", "end"],
+  gameOver: false
+}
+
+Request 2: { move: "buy Province" }
+Response 2: {
+  success: true,
+  message: "Purchased Province",
+  gameState: { phase: "buy", currentCoins: 2, ... },
+  validMoves: ["end"],
+  gameOver: false
+}
+```
+
+Note: NO manual game_observe call needed between requests.
+
+#### Error Handling
+
+Failed moves still return state for recovery:
+
+```
+Request: { move: "buy Province" }  // Only have 3 coins
+Response: {
+  success: false,
+  error: {
+    message: "Insufficient coins to buy Province",
+    suggestion: "Try buying Silver instead"
+  },
+  gameState: { ... },  // Current state for recovery
+  validMoves: ["buy Copper", "end"]
+}
+```
+
+---
+
 ## Version History
 
 **1.0.0** (Phase 1 - October 2025)

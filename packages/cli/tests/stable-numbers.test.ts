@@ -13,6 +13,10 @@
  * - Performance: < 5ms overhead
  */
 
+// @req: R1.5-02 - Stable card numbers for AI consistency
+// @edge: Number gaps in numbering; opt-in via flag; hybrid mode not needed
+// @why: AI agents require fixed card numbering for reproducible decision-making
+
 import { Parser } from '../src/parser';
 import { GameStateBuilder, PerformanceHelper } from './utils/test-utils';
 import { Move } from '@principality/core';

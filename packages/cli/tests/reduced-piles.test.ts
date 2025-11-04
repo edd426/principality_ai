@@ -1,595 +1,199 @@
 /**
- * Test Suite: Reduced Supply Pile Sizes Feature (Phase 1.5)
+ * Test Suite: Configurable Victory Pile Sizes (Phase 2.0)
  *
- * Requirements: CLI_PHASE2_REQUIREMENTS.md - Feature 4
- * Validates --quick-game flag and pile size configuration
- *
- * Key Requirements:
- * - `--quick-game` flag reduces VICTORY cards only (Estate, Duchy, Province)
- * - Victory piles: 12 → 8
- * - Kingdom cards: Stay at 10 (Villages NOT reduced)
- * - Treasures: Unchanged (60 Copper, 40 Silver, 30 Gold)
- * - Game end conditions work identically
+ * Tests victory pile configuration system
+ * Default: 4 cards per pile (Estate, Duchy, Province)
+ * Customizable: via game-config.json or victoryPileSize option
  */
 
-import { GameEngine, GameState } from '@principality/core';
-import { GameStateBuilder } from './utils/test-utils';
-import { QuickGameTestUtils } from './utils/phase1-5-utils';
+// @req: R2.0 - Configurable victory pile sizes for game speed control
+// @edge: Default to 4 for 40% faster games; configurable via game-config.json
+// @why: Faster testing and gameplay without hardcoded values
 
-describe('Feature 4: Reduced Supply Pile Sizes', () => {
-  describe('Quick Game Flag Parsing (FR-4.1)', () => {
-    test('should recognize --quick-game flag', () => {
-      const flags = parseCommandLineFlags(['--quick-game']);
+import { GameEngine } from '@principality/core';
 
-      expect(flags.quickGame).toBe(true);
-    });
-
-    test('should recognize --quick shorthand', () => {
-      const flags = parseCommandLineFlags(['--quick']);
-
-      expect(flags.quickGame).toBe(true);
-    });
-
-    test('should default to false without flag', () => {
-      const flags = parseCommandLineFlags([]);
-
-      expect(flags.quickGame).toBe(false);
-    });
-
-    test('should handle flag with other options', () => {
-      const flags = parseCommandLineFlags(['--seed=12345', '--quick-game', '--stable-numbers']);
-
-      expect(flags.quickGame).toBe(true);
-      expect(flags.seed).toBe('12345');
-      expect(flags.stableNumbers).toBe(true);
-    });
-  });
-
-  describe('Victory Pile Reduction (FR-4.2)', () => {
-    test('UT-4.1: should reduce victory piles to 8 with --quick-game', () => {
+describe('Feature: Configurable Victory Pile Sizes (Phase 2.0)', () => {
+  describe('Default Configuration', () => {
+    test('should default to 4 victory cards per pile', () => {
       // Arrange
-      const options = { quickGame: true };
-
-      // Act
-      const supply = initializeSupply(options);
+      const engine = new GameEngine('test-seed', {});
+      const state = engine.initializeGame(1);
 
       // Assert
-      expect(supply.get('Estate')).toBe(8);
-      expect(supply.get('Duchy')).toBe(8);
-      expect(supply.get('Province')).toBe(8);
+      expect(state.supply.get('Estate')).toBe(4);
+      expect(state.supply.get('Duchy')).toBe(4);
+      expect(state.supply.get('Province')).toBe(4);
     });
 
-    test('should reduce all three victory card types', () => {
-      const supply = initializeSupply({ quickGame: true });
+    test('kingdom cards unchanged (always 10)', () => {
+      const engine = new GameEngine('test-seed', {});
+      const state = engine.initializeGame(1);
 
-      const victoryCards = ['Estate', 'Duchy', 'Province'];
-      victoryCards.forEach(card => {
-        expect(supply.get(card)).toBe(8);
-      });
-    });
-
-    test('should reduce from standard 12 to quick 8', () => {
-      const standardSupply = initializeSupply({ quickGame: false });
-      const quickSupply = initializeSupply({ quickGame: true });
-
-      // Standard has 12
-      expect(standardSupply.get('Estate')).toBe(12);
-      expect(standardSupply.get('Duchy')).toBe(12);
-      expect(standardSupply.get('Province')).toBe(12);
-
-      // Quick has 8
-      expect(quickSupply.get('Estate')).toBe(8);
-      expect(quickSupply.get('Duchy')).toBe(8);
-      expect(quickSupply.get('Province')).toBe(8);
-    });
-  });
-
-  describe('Kingdom Cards Unchanged (FR-4.3)', () => {
-    test('should NOT reduce kingdom card piles', () => {
-      // Arrange
-      const options = { quickGame: true };
-
-      // Act
-      const supply = initializeSupply(options);
-
-      // Assert - ALL kingdom cards stay at 10
-      const kingdomCards = [
-        'Village', 'Smithy', 'Laboratory', 'Market',
-        'Woodcutter', 'Festival', 'Council Room', 'Cellar'
-      ];
+      // Phase 1 MVP kingdom cards (only 2 cards in MVP)
+      const kingdomCards = ['Village', 'Smithy'];
 
       kingdomCards.forEach(card => {
-        expect(supply.get(card)).toBe(10);
+        expect(state.supply.get(card)).toBe(10);
       });
     });
 
-    test('Village should have 10 cards in quick game (not 8)', () => {
-      const supply = initializeSupply({ quickGame: true });
+    test('treasures unchanged', () => {
+      const engine = new GameEngine('test-seed', {});
+      const state = engine.initializeGame(1);
 
-      // Explicitly test Village stays at 10
-      expect(supply.get('Village')).toBe(10);
-      expect(supply.get('Village')).not.toBe(8);
+      expect(state.supply.get('Copper')).toBe(60);
+      expect(state.supply.get('Silver')).toBe(40);
+      expect(state.supply.get('Gold')).toBe(30);
+    });
+  });
+
+  describe('Custom Victory Pile Size', () => {
+    test('should support custom victory pile size', () => {
+      // Arrange
+      const engine = new GameEngine('test-seed', { victoryPileSize: 8 });
+      const state = engine.initializeGame(1);
+
+      // Assert
+      expect(state.supply.get('Estate')).toBe(8);
+      expect(state.supply.get('Duchy')).toBe(8);
+      expect(state.supply.get('Province')).toBe(8);
     });
 
-    test('should maintain kingdom pile consistency in quick game', () => {
-      const standardSupply = initializeSupply({ quickGame: false });
-      const quickSupply = initializeSupply({ quickGame: true });
+    test('should support multiple custom sizes', () => {
+      const sizes = [2, 4, 6, 8, 10, 12];
 
-      const kingdomCards = ['Village', 'Smithy', 'Market'];
+      sizes.forEach(size => {
+        const engine = new GameEngine('test-seed', { victoryPileSize: size });
+        const state = engine.initializeGame(1);
 
-      kingdomCards.forEach(card => {
-        // Both modes have same kingdom pile sizes
-        expect(standardSupply.get(card)).toBe(10);
-        expect(quickSupply.get(card)).toBe(10);
-        expect(quickSupply.get(card)).toBe(standardSupply.get(card));
+        expect(state.supply.get('Province')).toBe(size);
+        expect(state.supply.get('Duchy')).toBe(size);
+        expect(state.supply.get('Estate')).toBe(size);
       });
     });
-  });
 
-  describe('Treasure Piles Unchanged (FR-4.4)', () => {
-    test('UT-4.3: should NOT reduce treasure piles', () => {
-      // Arrange
-      const options = { quickGame: true };
+    test('other piles unchanged with custom sizes', () => {
+      const engine = new GameEngine('test-seed', { victoryPileSize: 6 });
+      const state = engine.initializeGame(1);
 
-      // Act
-      const supply = initializeSupply(options);
+      // Victory cards changed
+      expect(state.supply.get('Province')).toBe(6);
 
-      // Assert
-      expect(supply.get('Copper')).toBe(60);
-      expect(supply.get('Silver')).toBe(40);
-      expect(supply.get('Gold')).toBe(30);
-    });
-
-    test('treasure piles identical in standard and quick game', () => {
-      const standardSupply = initializeSupply({ quickGame: false });
-      const quickSupply = initializeSupply({ quickGame: true });
-
-      expect(quickSupply.get('Copper')).toBe(standardSupply.get('Copper'));
-      expect(quickSupply.get('Silver')).toBe(standardSupply.get('Silver'));
-      expect(quickSupply.get('Gold')).toBe(standardSupply.get('Gold'));
-
-      expect(quickSupply.get('Copper')).toBe(60);
-      expect(quickSupply.get('Silver')).toBe(40);
-      expect(quickSupply.get('Gold')).toBe(30);
+      // But kingdom/treasures stay same
+      expect(state.supply.get('Village')).toBe(10);
+      expect(state.supply.get('Copper')).toBe(60);
     });
   });
 
-  describe('Standard Game Unchanged (FR-4.5)', () => {
-    test('UT-4.4: should use standard sizes without flag', () => {
-      // Arrange
-      const options = { quickGame: false };
+  describe('Game End Conditions', () => {
+    test('game end condition triggered when Province = 0', () => {
+      const engine = new GameEngine('test-seed', { victoryPileSize: 4 });
+      const state = engine.initializeGame(1);
 
-      // Act
-      const supply = initializeSupply(options);
+      // Simulate depleting all 4 Provinces
+      const newSupply = new Map(state.supply);
+      newSupply.set('Province', 0);
+      const newState = { ...state, supply: newSupply };
 
-      // Assert
-      expect(supply.get('Province')).toBe(12);
-      expect(supply.get('Duchy')).toBe(12);
-      expect(supply.get('Estate')).toBe(12);
-      expect(supply.get('Village')).toBe(10);
-      expect(supply.get('Copper')).toBe(60);
+      const victory = engine.checkGameOver(newState);
+      expect(victory.isGameOver).toBe(true);
     });
 
-    test('standard game has full pile counts', () => {
-      const supply = initializeSupply({ quickGame: false });
+    test('game end condition triggered with 3+ empty piles', () => {
+      const engine = new GameEngine('test-seed', { victoryPileSize: 4 });
+      const state = engine.initializeGame(1);
 
-      // Victory cards: 12 each
-      expect(supply.get('Estate')).toBe(12);
-      expect(supply.get('Duchy')).toBe(12);
-      expect(supply.get('Province')).toBe(12);
+      // Empty 3 piles (not Province)
+      const newSupply = new Map(state.supply);
+      newSupply.set('Village', 0);
+      newSupply.set('Smithy', 0);
+      newSupply.set('Market', 0);
+      const newState = { ...state, supply: newSupply };
 
-      // Kingdom cards: 10 each
-      expect(supply.get('Village')).toBe(10);
-      expect(supply.get('Smithy')).toBe(10);
-
-      // Treasures: original counts
-      expect(supply.get('Copper')).toBe(60);
-      expect(supply.get('Silver')).toBe(40);
-      expect(supply.get('Gold')).toBe(30);
-    });
-  });
-
-  describe('Game End Conditions (FR-4.5)', () => {
-    test('should trigger game end when Province pile empty (quick game)', () => {
-      // Arrange
-      const supply = initializeSupply({ quickGame: true });
-      supply.set('Province', 0); // Empty province pile
-
-      // Act
-      const isGameOver = checkGameEndCondition(supply);
-
-      // Assert
-      expect(isGameOver).toBe(true);
+      const victory = engine.checkGameOver(newState);
+      expect(victory.isGameOver).toBe(true);
     });
 
-    test('should trigger game end when 3 piles empty (quick game)', () => {
-      // Arrange
-      const supply = initializeSupply({ quickGame: true });
-      supply.set('Village', 0);
-      supply.set('Smithy', 0);
-      supply.set('Market', 0);
+    test('game continues with < 3 empty piles', () => {
+      const engine = new GameEngine('test-seed', { victoryPileSize: 4 });
+      const state = engine.initializeGame(1);
 
-      // Act
-      const isGameOver = checkGameEndCondition(supply);
+      // Only 2 piles empty
+      const newSupply = new Map(state.supply);
+      newSupply.set('Village', 0);
+      newSupply.set('Smithy', 0);
+      const newState = { ...state, supply: newSupply };
 
-      // Assert
-      expect(isGameOver).toBe(true);
-    });
-
-    test('game end conditions work identically in both modes', () => {
-      // Standard game
-      const standardSupply = initializeSupply({ quickGame: false });
-      standardSupply.set('Province', 0);
-      expect(checkGameEndCondition(standardSupply)).toBe(true);
-
-      // Quick game
-      const quickSupply = initializeSupply({ quickGame: true });
-      quickSupply.set('Province', 0);
-      expect(checkGameEndCondition(quickSupply)).toBe(true);
-
-      // Logic is identical
-    });
-
-    test('game continues when Province pile not empty and < 3 piles empty', () => {
-      const supply = initializeSupply({ quickGame: true });
-
-      // Province pile has cards
-      expect(supply.get('Province')).toBeGreaterThan(0);
-
-      // Only 1 pile empty
-      supply.set('Village', 0);
-
-      const isGameOver = checkGameEndCondition(supply);
-      expect(isGameOver).toBe(false);
-    });
-
-    test('quick game ends when 8 Provinces depleted (not 12)', () => {
-      const supply = initializeSupply({ quickGame: true });
-
-      // Start with 8 Provinces
-      expect(supply.get('Province')).toBe(8);
-
-      // Buy all 8
-      for (let i = 0; i < 8; i++) {
-        const count = supply.get('Province')!;
-        supply.set('Province', count - 1);
-      }
-
-      // Province pile now empty
-      expect(supply.get('Province')).toBe(0);
-
-      // Game ends
-      expect(checkGameEndCondition(supply)).toBe(true);
+      const victory = engine.checkGameOver(newState);
+      expect(victory.isGameOver).toBe(false);
     });
   });
 
-  describe('Welcome Message Display (FR-4.6)', () => {
-    test('should display pile sizes in welcome message when --quick-game active', () => {
-      const welcomeMessage = getWelcomeMessage({ quickGame: true });
+  describe('Performance Impact', () => {
+    test('default 4-pile games end ~33% faster than 6-pile', () => {
+      // With 4 piles: need to deplete 4 cards to trigger condition
+      // With 6 piles: need to deplete 6 cards to trigger condition
+      // Roughly 33% faster with 4
 
-      expect(welcomeMessage).toMatch(/Quick Game/i);
-      expect(welcomeMessage).toMatch(/Victory.*8/);
-      expect(welcomeMessage).toMatch(/Kingdom.*10/);
+      const fourPile = new GameEngine('seed', { victoryPileSize: 4 }).initializeGame(1);
+      const sixPile = new GameEngine('seed', { victoryPileSize: 6 }).initializeGame(1);
+
+      const fourCount = fourPile.supply.get('Province')!;
+      const sixCount = sixPile.supply.get('Province')!;
+
+      expect(fourCount).toBe(4);
+      expect(sixCount).toBe(6);
+      expect(sixCount > fourCount).toBe(true);
     });
 
-    test('should not mention quick game in standard mode', () => {
-      const welcomeMessage = getWelcomeMessage({ quickGame: false });
+    test('custom sizes can be configured for different game speeds', () => {
+      // Fast games: 2-3 piles
+      const fastEngine = new GameEngine('seed', { victoryPileSize: 2 });
+      const fastState = fastEngine.initializeGame(1);
+      expect(fastState.supply.get('Province')).toBe(2);
 
-      expect(welcomeMessage).not.toMatch(/Quick Game/i);
-      expect(welcomeMessage).toMatch(/Victory.*12/);
-    });
+      // Medium games: 4-6 piles (new default is 4)
+      const mediumEngine = new GameEngine('seed', { victoryPileSize: 4 });
+      const mediumState = mediumEngine.initializeGame(1);
+      expect(mediumState.supply.get('Province')).toBe(4);
 
-    test('welcome message explains pile sizes', () => {
-      const welcomeMessage = getWelcomeMessage({ quickGame: true });
-
-      expect(welcomeMessage).toContain('Victory cards: 8');
-      expect(welcomeMessage).toContain('Kingdom cards: 10');
-      expect(welcomeMessage).not.toContain('Victory cards: 12');
-    });
-  });
-
-  describe('Help Documentation (NFR-4.2)', () => {
-    test('should document --quick-game flag in help', () => {
-      const helpText = getHelpText();
-
-      expect(helpText).toContain('--quick-game');
-      expect(helpText).toMatch(/reduce.*pile.*size/i);
-      expect(helpText).toMatch(/faster.*game/i);
-    });
-
-    test('help should explain which piles are reduced', () => {
-      const helpText = getHelpText();
-
-      expect(helpText).toMatch(/victory.*8/i);
-      expect(helpText).toMatch(/Estate.*Duchy.*Province/);
-    });
-
-    test('help should clarify kingdom cards not reduced', () => {
-      const helpText = getHelpText();
-
-      expect(helpText).toMatch(/kingdom.*unchanged|kingdom.*10/i);
+      // Slow games: 8-12 piles (old default was 12)
+      const slowEngine = new GameEngine('seed', { victoryPileSize: 12 });
+      const slowState = slowEngine.initializeGame(1);
+      expect(slowState.supply.get('Province')).toBe(12);
     });
   });
 
-  describe('Edge Cases', () => {
-    test('should handle buying from reduced piles', () => {
-      const supply = initializeSupply({ quickGame: true });
+  describe('Acceptance Criteria', () => {
+    test('AC-2.0: Default supply initializes with 4 victory cards', () => {
+      const engine = new GameEngine('test', {});
+      const state = engine.initializeGame(1);
 
-      // Buy an Estate
-      const initialCount = supply.get('Estate')!;
-      supply.set('Estate', initialCount - 1);
-
-      // Pile decreases correctly
-      expect(supply.get('Estate')).toBe(7); // 8 - 1
+      expect(state.supply.get('Province')).toBe(4);
+      expect(state.supply.get('Duchy')).toBe(4);
+      expect(state.supply.get('Estate')).toBe(4);
     });
 
-    test('should prevent buying when pile empty', () => {
-      const supply = initializeSupply({ quickGame: true });
-      supply.set('Province', 0);
+    test('AC-2.1: victoryPileSize option respected', () => {
+      const engine = new GameEngine('test', { victoryPileSize: 10 });
+      const state = engine.initializeGame(1);
 
-      // Cannot buy from empty pile
-      const canBuyProvince = supply.get('Province')! > 0;
-      expect(canBuyProvince).toBe(false);
+      expect(state.supply.get('Province')).toBe(10);
     });
 
-    test('quick game ends faster with fewer victory cards', () => {
-      const standardSupply = initializeSupply({ quickGame: false });
-      const quickSupply = initializeSupply({ quickGame: true });
+    test('AC-2.2: Game mechanics unchanged (same end conditions)', () => {
+      const engine4 = new GameEngine('seed', { victoryPileSize: 4 });
+      const engine12 = new GameEngine('seed', { victoryPileSize: 12 });
 
-      // Standard: need to deplete 12 Provinces
-      expect(standardSupply.get('Province')).toBe(12);
+      const state4 = engine4.initializeGame(1);
+      const state12 = engine12.initializeGame(1);
 
-      // Quick: need to deplete only 8 Provinces
-      expect(quickSupply.get('Province')).toBe(8);
+      // Both have same kingdom/treasure piles
+      expect(state4.supply.get('Village')).toBe(state12.supply.get('Village'));
+      expect(state4.supply.get('Copper')).toBe(state12.supply.get('Copper'));
 
-      // Quick game requires 33% fewer Province purchases to end
-      const difference = standardSupply.get('Province')! - quickSupply.get('Province')!;
-      expect(difference).toBe(4); // 12 - 8 = 4 fewer cards
-    });
-
-    test('multiplayer quick game has same reduced piles', () => {
-      // 2-player quick game
-      const supply2p = initializeSupply({ quickGame: true, players: 2 });
-
-      // 4-player quick game
-      const supply4p = initializeSupply({ quickGame: true, players: 4 });
-
-      // Both have 8 victory cards (not scaled by player count)
-      expect(supply2p.get('Province')).toBe(8);
-      expect(supply4p.get('Province')).toBe(8);
-    });
-  });
-
-  describe('Acceptance Criteria Validation', () => {
-    test('AC-4.1: Check supply shows reduced victory piles', () => {
-      // Given I start the CLI with --quick-game flag
-      const flags = parseCommandLineFlags(['--quick-game']);
-      expect(flags.quickGame).toBe(true);
-
-      // When I check the supply
-      const supply = initializeSupply(flags);
-
-      // Then I see 8 Provinces, 8 Duchies, 8 Estates
-      expect(supply.get('Province')).toBe(8);
-      expect(supply.get('Duchy')).toBe(8);
-      expect(supply.get('Estate')).toBe(8);
-
-      // And I see 10 of each kingdom card
-      expect(supply.get('Village')).toBe(10);
-      expect(supply.get('Smithy')).toBe(10);
-    });
-
-    test('AC-4.2: Treasures unchanged with --quick-game', () => {
-      // Given I start the CLI with --quick-game flag
-      const supply = initializeSupply({ quickGame: true });
-
-      // When I check the supply
-      // Then I see 60 Copper, 40 Silver, 30 Gold (unchanged)
-      expect(supply.get('Copper')).toBe(60);
-      expect(supply.get('Silver')).toBe(40);
-      expect(supply.get('Gold')).toBe(30);
-    });
-
-    test('AC-4.3: Game end condition triggers identically', () => {
-      // Given I run a quick game to completion
-      const supply = initializeSupply({ quickGame: true });
-
-      // When the game ends (Province empty)
-      supply.set('Province', 0);
-
-      // Then the game end condition still triggers
-      expect(checkGameEndCondition(supply)).toBe(true);
-
-      // And the logic is identical to standard games
-      const standardSupply = initializeSupply({ quickGame: false });
-      standardSupply.set('Province', 0);
-      expect(checkGameEndCondition(standardSupply)).toBe(true);
-    });
-
-    test('AC-4.4: Help documents --quick-game flag', () => {
-      // Given I type npm run play -- --help
-      const helpText = getHelpText();
-
-      // Then I see documentation for --quick-game flag
-      expect(helpText).toContain('--quick-game');
-
-      // And the description explains it reduces pile sizes
-      expect(helpText).toMatch(/reduce.*pile.*size/i);
-
-      // And mentions faster games
-      expect(helpText).toMatch(/faster.*game/i);
-    });
-  });
-
-  describe('Configuration Persistence', () => {
-    test('quick game setting persists throughout game', () => {
-      const initialSupply = initializeSupply({ quickGame: true });
-
-      // Mid-game check
-      expect(initialSupply.get('Province')).toBe(8);
-
-      // After buying some cards
-      initialSupply.set('Province', 6);
-
-      // Still in quick game mode (pile started at 8, not 12)
-      expect(initialSupply.get('Province')).toBe(6);
-      expect(initialSupply.get('Province')).toBeLessThan(12);
-    });
-
-    test('flag does not affect move validation', () => {
-      // Quick game and standard game have identical move validation
-      // Only difference is pile counts, not game logic
-
-      const quickSupply = initializeSupply({ quickGame: true });
-      const standardSupply = initializeSupply({ quickGame: false });
-
-      // Both allow buying Province with $8
-      const provinceCost = 8;
-      expect(provinceCost).toBe(8); // Same in both modes
-
-      // Game mechanics unchanged
+      // Only victory piles differ
+      expect(state4.supply.get('Province')).not.toBe(state12.supply.get('Province'));
     });
   });
 });
-
-// Helper Functions
-
-interface GameOptions {
-  quickGame?: boolean;
-  players?: number;
-  seed?: string;
-  stableNumbers?: boolean;
-}
-
-/**
- * Parse command-line flags
- */
-function parseCommandLineFlags(args: string[]): GameOptions {
-  const options: GameOptions = {
-    quickGame: false,
-    players: 1,
-    seed: undefined,
-    stableNumbers: false
-  };
-
-  args.forEach(arg => {
-    if (arg === '--quick-game' || arg === '--quick') {
-      options.quickGame = true;
-    }
-    if (arg === '--stable-numbers' || arg === '--stable') {
-      options.stableNumbers = true;
-    }
-    if (arg.startsWith('--seed=')) {
-      options.seed = arg.split('=')[1];
-    }
-    if (arg.startsWith('--players=')) {
-      options.players = parseInt(arg.split('=')[1], 10);
-    }
-  });
-
-  return options;
-}
-
-/**
- * Initialize supply with options
- */
-function initializeSupply(options: GameOptions): Map<string, number> {
-  const supply = new Map<string, number>();
-
-  // Victory cards: 12 standard, 8 quick
-  const victoryCount = options.quickGame ? 8 : 12;
-  supply.set('Estate', victoryCount);
-  supply.set('Duchy', victoryCount);
-  supply.set('Province', victoryCount);
-
-  // Kingdom cards: always 10
-  const kingdomCards = [
-    'Village', 'Smithy', 'Laboratory', 'Market',
-    'Woodcutter', 'Festival', 'Council Room', 'Cellar'
-  ];
-  kingdomCards.forEach(card => supply.set(card, 10));
-
-  // Treasures: always same
-  supply.set('Copper', 60);
-  supply.set('Silver', 40);
-  supply.set('Gold', 30);
-
-  return supply;
-}
-
-/**
- * Check if game end condition is met
- */
-function checkGameEndCondition(supply: Map<string, number>): boolean {
-  // Game ends when Province pile empty
-  if (supply.get('Province') === 0) {
-    return true;
-  }
-
-  // Or when any 3 piles empty
-  const emptyPiles = Array.from(supply.values()).filter(count => count === 0);
-  if (emptyPiles.length >= 3) {
-    return true;
-  }
-
-  return false;
-}
-
-/**
- * Get welcome message
- */
-function getWelcomeMessage(options: GameOptions): string {
-  if (options.quickGame) {
-    return `
-=== Welcome to Principality (Quick Game Mode) ===
-
-Quick Game Settings:
-- Victory cards: 8 per pile (Estate, Duchy, Province)
-- Kingdom cards: 10 per pile
-- Treasures: Standard (60 Copper, 40 Silver, 30 Gold)
-
-Games will end faster! Good luck!
-    `;
-  }
-
-  return `
-=== Welcome to Principality ===
-
-Standard Game Settings:
-- Victory cards: 12 per pile
-- Kingdom cards: 10 per pile
-- Treasures: Standard (60 Copper, 40 Silver, 30 Gold)
-
-Good luck!
-  `;
-}
-
-/**
- * Get help text
- */
-function getHelpText(): string {
-  return `
-Principality AI - Command Line Interface
-
-Usage: npm run play -- [options]
-
-Options:
-  --seed=<string>         Game seed for deterministic randomness
-  --players=<number>      Number of players (default: 1)
-  --quick-game, --quick   Reduce victory pile sizes to 8 for faster games
-                          Victory cards (Estate, Duchy, Province): 12 → 8
-                          Kingdom cards stay at 10 (unchanged)
-                          Treasures unchanged
-  --stable-numbers        Enable stable card numbering for AI agents
-  --help                  Show this help message
-
-Examples:
-  npm run play -- --quick-game
-  npm run play -- --seed=12345 --quick-game --stable-numbers
-
-Quick Game Mode:
-  Reduces victory card piles from 12 to 8 cards for 40% faster games.
-  Kingdom cards (like Village) remain at 10.
-  Useful for testing and rapid iteration.
-  `;
-}

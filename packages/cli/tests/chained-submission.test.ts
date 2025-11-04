@@ -14,6 +14,10 @@
  * - Performance: < 100ms for 10-move chain
  */
 
+// @req: R1.5-03 - Multi-card chaining allows sequence of moves
+// @edge: Invalid move in middle of chain → full rollback; first move valid but second invalid → rollback
+// @why: Atomic operations prevent game state corruption; user expects all-or-nothing behavior
+
 import { Parser } from '../src/parser';
 import { GameEngine, GameState, Move } from '@principality/core';
 import { GameStateBuilder, PerformanceHelper } from './utils/test-utils';

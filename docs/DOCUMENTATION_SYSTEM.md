@@ -485,7 +485,75 @@ Agent needs to write information
 
 ---
 
+## 9. Audit Compliance & Quality Standards
+
+**Reference Documentation:**
+- `.claude/audits/documentation/DOC_QUALITY_BEST_PRACTICES.md` - Authoritative framework (Google standards)
+- `.claude/audits/documentation/AUDIT_SUMMARY.md` - Quick reference with anti-patterns
+- `.claude/audits/documentation/2025-10-24-doc-quality-audit.md` - Full audit results
+
+### Five Quality Dimensions
+
+All documentation evaluated on:
+1. **Accuracy** (18/25) - Content matches reality
+2. **Currency** (15/25) - Docs stay up-to-date with code
+3. **Clarity** (16/20) - Content is understandable
+4. **Non-Redundancy** (8/15) - No duplication ⚠️ CRITICAL
+5. **Completeness** (14/15) - All features documented
+
+**Project Score**: 68/100 (FAIR) → Target: 80+ (GOOD)
+
+### Key Anti-Patterns to Avoid
+
+**Anti-Pattern 1: Root Directory Clutter** 🔴 NOW FIXED
+- **Issue**: 7 .md files at root (should be max 3)
+- **Fixed**: Moved E2E_TESTING_GUIDE.md, QUICK_START.md, IMPLEMENTATION_SUMMARY.md, MCP_GAMEPLAY_DEBUGGING.md
+- **Rule**: Only README.md, CLAUDE.md, CONTRIBUTING.md at root
+
+**Anti-Pattern 2: Content Redundancy** 🔴 NOW FIXED
+- **Issue**: E2E setup duplicated in 3 places
+- **Fixed**: Single source in docs/testing/E2E_TESTING_GUIDE.md, others link to it
+- **Rule**: Link to existing docs, do NOT copy-paste
+
+**Anti-Pattern 3: Missing Metadata** 🟡 NOW FIXED
+- **Issue**: Root docs lack Status, Last-Updated, Owner
+- **Fixed**: Added metadata headers to all root files
+- **Rule**: Every .md file needs metadata header
+
+**Anti-Pattern 4: Backup Folders in Active Repo** 🟡 NOW FIXED
+- **Issue**: docs-backup-2025-10-15/ left in repository
+- **Fixed**: Deleted backup directory
+- **Rule**: Backups don't belong in active repo (use .gitignore or external storage)
+
+**Anti-Pattern 5: Unclear File Purposes** 🟡 NOW FIXED
+- **Issue**: Files at root with unclear permanence (session notes vs. permanent docs)
+- **Fixed**: Session notes moved to .claude/sessions/
+- **Rule**: Clear separation between permanent docs (docs/) and session work (.claude/sessions/)
+
+### Enforcement Checklist (Before Every Commit)
+
+**Root Directory Check:**
+☐ Count .md files at root: Should be ≤ 3 (README.md, CLAUDE.md, CONTRIBUTING.md)
+☐ If > 3 files: Identify violators and move to correct location
+
+**Redundancy Check:**
+☐ Search for duplicate setup instructions (installation, E2E testing, development)
+☐ If found: Remove duplicates, keep single source of truth, add links
+
+**Metadata Check:**
+☐ All new .md files have: Status, Created, Last-Updated, Owner, Phase
+☐ All moved .md files have updated metadata
+
+**Quarterly Review:**
+☐ End of each phase: Re-run documentation audit
+☐ Check compliance with 5 quality dimensions
+☐ Update docs/DOCUMENTATION_SYSTEM.md if structure changes
+
+---
+
 **Document Status**: Ready for implementation
 **Assigned To**: requirements-architect agent (or any available agent)
 **Blockers**: None
 **Dependencies**: None
+**Last Updated**: 2025-10-24
+**Audit Status**: CURRENT (as of 2025-10-24)

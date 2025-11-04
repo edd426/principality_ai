@@ -1,5 +1,12 @@
 import { CardName } from './types';
 
+// @blocker: Conflicting test expectations for default supply composition
+// Phase 3 tests (multiplayer-mcp-tools.test.ts) expect: supply.size === 8
+// Phase 4 attack tests (attack-reaction-flow.test.ts) require Phase 4 cards by default
+// Decision: Default now includes ALL Phase 4 cards (Phase 4 is current phase)
+// Consequence: Phase 3 tests must use mvpOnly option or be updated by test-architect
+// Note: Phase 3 tests were written with outdated MVP assumption (2 kingdom cards only)
+
 export class SeededRandom {
   private seed: number;
 
@@ -40,36 +47,112 @@ export function createStartingDeck(): ReadonlyArray<CardName> {
   ];
 }
 
-export function createDefaultSupply(options?: { quickGame?: boolean }): ReadonlyMap<CardName, number> {
-  const victoryPileSize = options?.quickGame ? 8 : 12;
+// Phase 1 kingdom cards - NOTE: Phase 1 spec requires 8 cards, but Phase 3 tests expect only 2
+// MVP set: Village, Smithy (6 basic + 2 kingdom = 8 total)
+export const PHASE1_KINGDOM_CARDS_MVP: ReadonlyArray<CardName> = [
+  'Village', 'Smithy'
+];
 
-  return new Map([
+// Full Phase 1 kingdom cards (all 8)
+export const PHASE1_KINGDOM_CARDS: ReadonlyArray<CardName> = [
+  'Village', 'Smithy', 'Laboratory', 'Market',
+  'Woodcutter', 'Festival', 'Council Room', 'Cellar'
+];
+
+// Phase 4 trashing system cards
+export const PHASE4_TRASHING_CARDS: ReadonlyArray<CardName> = [
+  'Chapel', 'Remodel', 'Mine', 'Moneylender'
+];
+
+// Phase 4 gaining system cards
+export const PHASE4_GAINING_CARDS: ReadonlyArray<CardName> = [
+  'Workshop', 'Feast'
+];
+
+// Phase 4 attack system cards
+export const PHASE4_ATTACK_CARDS: ReadonlyArray<CardName> = [
+  'Militia', 'Witch', 'Bureaucrat', 'Spy', 'Thief'
+];
+
+// Phase 4 reaction system cards
+export const PHASE4_REACTION_CARDS: ReadonlyArray<CardName> = [
+  'Moat'
+];
+
+// Phase 4 special cards
+export const PHASE4_SPECIAL_CARDS: ReadonlyArray<CardName> = [
+  'Throne Room', 'Adventurer', 'Chancellor', 'Library', 'Gardens'
+];
+
+export function createDefaultSupply(options?: { victoryPileSize?: number; kingdomCards?: ReadonlyArray<CardName>; allCards?: boolean; fullPhase1?: boolean; mvpOnly?: boolean }): ReadonlyMap<CardName, number> {
+  const victoryPileSize = options?.victoryPileSize ?? 4;
+
+  // Determine which kingdom cards to include
+  let kingdomCards = options?.kingdomCards;
+  if (options?.allCards === true) {
+    // Include all cards from all phases (Phase 4 full set)
+    kingdomCards = [
+      ...PHASE1_KINGDOM_CARDS,
+      ...PHASE4_TRASHING_CARDS,
+      ...PHASE4_GAINING_CARDS,
+      ...PHASE4_ATTACK_CARDS,
+      ...PHASE4_REACTION_CARDS,
+      ...PHASE4_SPECIAL_CARDS
+    ];
+  } else if (options?.fullPhase1 === true) {
+    // Include all Phase 1 cards (8)
+    kingdomCards = PHASE1_KINGDOM_CARDS;
+  } else if (options?.mvpOnly === true) {
+    // MVP set for Phase 3 compatibility (2 kingdom cards)
+    kingdomCards = PHASE1_KINGDOM_CARDS_MVP;
+  } else if (!kingdomCards) {
+    // Default: All Phase 4 cards (for Phase 4 gameplay)
+    kingdomCards = [
+      ...PHASE1_KINGDOM_CARDS,
+      ...PHASE4_TRASHING_CARDS,
+      ...PHASE4_GAINING_CARDS,
+      ...PHASE4_ATTACK_CARDS,
+      ...PHASE4_REACTION_CARDS,
+      ...PHASE4_SPECIAL_CARDS
+    ];
+  }
+
+  const supply = new Map<CardName, number>([
     // Basic cards (always available)
     ['Copper', 60],
     ['Silver', 40],
     ['Gold', 30],
     ['Estate', victoryPileSize],
     ['Duchy', victoryPileSize],
-    ['Province', victoryPileSize],
-
-    // Kingdom cards (MVP set - all 8 available)
-    ['Village', 10],
-    ['Smithy', 10],
-    ['Laboratory', 10],
-    ['Market', 10],
-    ['Woodcutter', 10],
-    ['Festival', 10],
-    ['Council Room', 10],
-    ['Cellar', 10]
+    ['Province', victoryPileSize]
   ]);
+
+  // Add Curse only if attack cards are present (they generate Curses)
+  const hasAttackCards = kingdomCards.some(card =>
+    PHASE4_ATTACK_CARDS.includes(card)
+  );
+  if (hasAttackCards) {
+    supply.set('Curse', 10);
+  }
+
+  // Add kingdom cards
+  kingdomCards.forEach(card => {
+    supply.set(card, 10);
+  });
+
+  return supply;
 }
 
 export function calculateScore(cards: ReadonlyArray<CardName>): number {
   let score = 0;
+  const deckSize = cards.length;
+
   for (const cardName of cards) {
     if (cardName === 'Estate') score += 1;
     else if (cardName === 'Duchy') score += 3;
     else if (cardName === 'Province') score += 6;
+    else if (cardName === 'Curse') score -= 1;
+    else if (cardName === 'Gardens') score += Math.floor(deckSize / 10);
   }
   return score;
 }
