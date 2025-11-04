@@ -1,4 +1,4 @@
-import { GameState, CardName, Move, PendingEffect } from '../../../core/src/types';
+import { GameState, CardName, Move, PendingEffect } from '@principality/core';
 
 // @req: FR-CLI-1 through FR-CLI-6 - CLI interactive prompts for all 11 action cards
 // @req: FR-CLI-7 - Backward compatibility with AI and MCP

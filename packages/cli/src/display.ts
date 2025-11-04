@@ -187,9 +187,9 @@ export class Display {
   }
 
   /**
-   * Display welcome message
+   * Display welcome message with kingdom card selection
    */
-  displayWelcome(seed: string, victoryPileSize?: number): void {
+  displayWelcome(seed: string, victoryPileSize?: number, state?: GameState): void {
     console.log('\n' + '='.repeat(60));
     console.log('PRINCIPALITY AI - Deck Building Game');
     if (victoryPileSize && victoryPileSize !== 4) {
@@ -197,6 +197,12 @@ export class Display {
     }
     console.log('='.repeat(60));
     console.log(`Game Seed: ${seed}`);
+
+    // Display selected kingdom cards
+    if (state) {
+      this.displayKingdomSelection(state);
+    }
+
     console.log('\nCommands:');
     console.log('  Enter number to select a move');
     console.log('  "hand" - Show your hand');
@@ -204,6 +210,20 @@ export class Display {
     console.log('  "help" - Show this help message');
     console.log('  "quit" or "exit" - End game');
     console.log('='.repeat(60));
+  }
+
+  /**
+   * Display the selected kingdom cards
+   */
+  private displayKingdomSelection(state: GameState): void {
+    const basicCards = ['Copper', 'Silver', 'Gold', 'Estate', 'Duchy', 'Province', 'Curse'];
+    const kingdomCards = Array.from(state.supply.keys())
+      .filter(card => !basicCards.includes(card))
+      .sort();
+
+    if (kingdomCards.length > 0) {
+      console.log(`\nKingdom Cards: ${kingdomCards.join(', ')}`);
+    }
   }
 
   /**

@@ -1,4 +1,4 @@
-import { CardName } from './types';
+import { CardName, GameState, Victory } from './types';
 import { getCard } from './cards';
 
 // @blocker: Conflicting test expectations for default supply composition
@@ -175,4 +175,53 @@ export function sortCardsByCostAndName(cards: ReadonlyArray<CardName>): CardName
     // Secondary sort: alphabetical
     return a.localeCompare(b);
   });
+}
+
+/**
+ * Check if the game is over and calculate winner if so
+ * Game ends when Province pile is empty OR any 3 piles are empty
+ *
+ * @param state - Current game state
+ * @returns Victory object with isGameOver flag and winner info
+ */
+export function checkVictory(state: GameState): Victory {
+  const supply = state.supply;
+
+  // Game ends if Province pile is empty
+  if ((supply.get('Province') || 0) <= 0) {
+    return calculateWinner(state);
+  }
+
+  // Game ends if any 3 piles are empty
+  let emptyPiles = 0;
+  for (const count of supply.values()) {
+    if (count <= 0) emptyPiles++;
+  }
+
+  if (emptyPiles >= 3) {
+    return calculateWinner(state);
+  }
+
+  return { isGameOver: false };
+}
+
+/**
+ * Calculate winner and scores for all players
+ * @param state - Current game state
+ * @returns Victory object with winner and scores
+ */
+function calculateWinner(state: GameState): Victory {
+  const scores = state.players.map(player => {
+    const allCards = getAllPlayerCards(player.drawPile, player.hand, player.discardPile);
+    return calculateScore(allCards);
+  });
+
+  const maxScore = Math.max(...scores);
+  const winner = scores.indexOf(maxScore);
+
+  return {
+    isGameOver: true,
+    winner,
+    scores
+  };
 }

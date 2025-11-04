@@ -60,7 +60,7 @@ export class PrincipalityCLI {
    */
   async start(): Promise<void> {
     this.isRunning = true;
-    this.display.displayWelcome(this.gameState.seed, this.options.victoryPileSize);
+    this.display.displayWelcome(this.gameState.seed, this.options.victoryPileSize, this.gameState);
 
     // Start the game loop
     await this.gameLoop();
