@@ -1,5 +1,5 @@
 import { GameState, PlayerState, Move, GameResult, Victory, CardName, GameOptions } from './types';
-import { getCard, isActionCard, isTreasureCard, isVictoryCard } from './cards';
+import { getCard, isActionCard, isTreasureCard, isVictoryCard, KINGDOM_CARDS } from './cards';
 import { SeededRandom, createStartingDeck, createDefaultSupply, calculateScore, getAllPlayerCards } from './utils';
 
 // @decision: Helper functions for Phase 4 card mechanics
@@ -144,7 +144,72 @@ export class GameEngine {
     this.options = options;
   }
 
-  initializeGame(numPlayers: number = 1): GameState {
+  /**
+   * Validate explicit kingdom cards
+   * Throws error if validation fails
+   *
+   * @param cards - Array of card names to validate
+   */
+  private validateKingdomCards(cards: ReadonlyArray<CardName>): void {
+    // Check card count
+    if (cards.length !== 10) {
+      throw new Error(`kingdomCards must contain exactly 10 cards, got ${cards.length}`);
+    }
+
+    // Check for duplicates
+    const uniqueCards = new Set(cards);
+    if (uniqueCards.size !== cards.length) {
+      throw new Error('kingdomCards must not contain duplicates');
+    }
+
+    // Validate all cards exist and are kingdom cards
+    for (const card of cards) {
+      // Check if card exists
+      try {
+        const cardData = getCard(card);
+        // Check if it's a basic card
+        if (cardData.type === 'treasure' || cardData.type === 'victory' || cardData.type === 'curse') {
+          throw new Error(`${card} is a basic card, not a kingdom card. Only action cards can be in kingdomCards.`);
+        }
+        // Check if it's actually a kingdom card
+        if (!KINGDOM_CARDS[card]) {
+          throw new Error(`Invalid card: ${card} is not a valid kingdom card`);
+        }
+      } catch (e) {
+        if (e instanceof Error && e.message.includes('basic card')) {
+          throw e;
+        }
+        throw new Error(`Invalid card: ${card} is not a valid kingdom card`);
+      }
+    }
+  }
+
+  /**
+   * Select 10 random kingdom cards from the pool of 25 using Fisher-Yates shuffle
+   * Uses a fresh seeded random instance to ensure reproducibility across multiple calls
+   *
+   * @returns Array of 10 randomly selected kingdom card names
+   */
+  private selectRandomKingdom(): CardName[] {
+    // Get all 25 kingdom cards from KINGDOM_CARDS export
+    const kingdomPool = Object.keys(KINGDOM_CARDS);
+
+    // Create a fresh seeded random instance for reproducibility
+    // This ensures the same seed always produces the same kingdom selection
+    const random = new SeededRandom(this.seed);
+
+    // Fisher-Yates shuffle using seeded random
+    const shuffled = [...kingdomPool];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(random.next() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+
+    // Return first 10 cards
+    return shuffled.slice(0, 10);
+  }
+
+  initializeGame(numPlayers: number = 1, options?: GameOptions): GameState {
     const players: PlayerState[] = [];
 
     for (let i = 0; i < numPlayers; i++) {
@@ -162,15 +227,39 @@ export class GameEngine {
       });
     }
 
+    // Merge constructor options with call-time options (call-time takes precedence)
+    const mergedOptions = { ...this.options, ...options };
+
+    // Determine kingdom cards to use
+    let kingdomCards: ReadonlyArray<CardName>;
+    let selectedKingdomCards: ReadonlyArray<CardName> | undefined;
+
+    if (mergedOptions.kingdomCards) {
+      // Explicit kingdom cards specified - validate and use them
+      this.validateKingdomCards(mergedOptions.kingdomCards);
+      kingdomCards = mergedOptions.kingdomCards;
+      selectedKingdomCards = mergedOptions.kingdomCards;
+    } else if (mergedOptions.allCards) {
+      // Use all cards option if specified
+      kingdomCards = mergedOptions.kingdomCards || [];
+      selectedKingdomCards = undefined;
+    } else {
+      // Default: select 10 random kingdom cards
+      const selected = this.selectRandomKingdom();
+      kingdomCards = selected;
+      selectedKingdomCards = selected;
+    }
+
     return {
       players,
-      supply: createDefaultSupply(this.options),
+      supply: createDefaultSupply({ ...mergedOptions, kingdomCards }),
       currentPlayer: 0,
       phase: 'action',
       turnNumber: 1,
       seed: this.seed,
       gameLog: ['Game started'],
-      trash: []
+      trash: [],
+      selectedKingdomCards
     };
   }
 

@@ -1,4 +1,5 @@
 import { CardName } from '../src/types';
+import { sortCardsByCostAndName } from '../src/utils';
 import { getCard } from '../src/cards';
 
 // @req: FR-SORT-1 - System SHALL sort cards by cost in ascending order
@@ -11,24 +12,6 @@ import { getCard } from '../src/cards';
 // @level: unit
 
 describe('Phase 4.1 - Feature 3: Card Sorting Display', () => {
-
-  // Function under test (will be implemented by dev-agent)
-  function sortCardsByCostAndName(cards: CardName[]): CardName[] {
-    // This is a placeholder - actual implementation will be in display.ts or helpers
-    // Tests define the expected behavior
-    return [...cards].sort((a, b) => {
-      const cardA = getCard(a);
-      const cardB = getCard(b);
-
-      // Primary sort: cost ascending
-      if (cardA.cost !== cardB.cost) {
-        return cardA.cost - cardB.cost;
-      }
-
-      // Secondary sort: alphabetical
-      return a.localeCompare(b);
-    });
-  }
 
   describe('UT-SORT-1: Should sort by cost ascending', () => {
     // @req: FR-SORT-1 - Primary sort by cost

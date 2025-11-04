@@ -51,6 +51,7 @@ export interface GameState {
   readonly gameLog: ReadonlyArray<string>;
   readonly trash: ReadonlyArray<CardName>;
   readonly pendingEffect?: PendingEffect;
+  readonly selectedKingdomCards?: ReadonlyArray<CardName>;
 }
 
 export interface Move {

@@ -1,4 +1,5 @@
 import { CardName } from './types';
+import { getCard } from './cards';
 
 // @blocker: Conflicting test expectations for default supply composition
 // Phase 3 tests (multiplayer-mcp-tools.test.ts) expect: supply.size === 8
@@ -124,16 +125,9 @@ export function createDefaultSupply(options?: { victoryPileSize?: number; kingdo
     ['Gold', 30],
     ['Estate', victoryPileSize],
     ['Duchy', victoryPileSize],
-    ['Province', victoryPileSize]
+    ['Province', victoryPileSize],
+    ['Curse', 10]  // Always include Curse (Phase 4.1 requirement)
   ]);
-
-  // Add Curse only if attack cards are present (they generate Curses)
-  const hasAttackCards = kingdomCards.some(card =>
-    PHASE4_ATTACK_CARDS.includes(card)
-  );
-  if (hasAttackCards) {
-    supply.set('Curse', 10);
-  }
 
   // Add kingdom cards
   kingdomCards.forEach(card => {
@@ -159,4 +153,26 @@ export function calculateScore(cards: ReadonlyArray<CardName>): number {
 
 export function getAllPlayerCards(deck: ReadonlyArray<CardName>, hand: ReadonlyArray<CardName>, discard: ReadonlyArray<CardName>): ReadonlyArray<CardName> {
   return [...deck, ...hand, ...discard];
+}
+
+/**
+ * Sort cards by cost (ascending) and then alphabetically within each cost tier
+ * This is a display-only function - does not mutate the original array
+ *
+ * @param cards - Array of card names to sort
+ * @returns New sorted array
+ */
+export function sortCardsByCostAndName(cards: ReadonlyArray<CardName>): CardName[] {
+  return [...cards].sort((a, b) => {
+    const cardA = getCard(a);
+    const cardB = getCard(b);
+
+    // Primary sort: cost ascending
+    if (cardA.cost !== cardB.cost) {
+      return cardA.cost - cardB.cost;
+    }
+
+    // Secondary sort: alphabetical
+    return a.localeCompare(b);
+  });
 }
