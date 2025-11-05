@@ -40,6 +40,7 @@ export interface PendingEffect {
   targetPlayer?: number;
   throneRoomDouble?: boolean;
   destination?: 'hand' | 'discard' | 'topdeck';  // For Mine and other cards that gain to specific location
+  deckSize?: number;  // For Chancellor decision
 }
 
 export interface GameState {

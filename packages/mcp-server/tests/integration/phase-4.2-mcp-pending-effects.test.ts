@@ -8,12 +8,10 @@
  * to use all 11 interactive action cards via the MCP interface.
  */
 
-import { GameEngine } from '../../../core/src/game';
-import { CardName, GameState } from '../../../core/src/types';
+import { GameEngine, CardName, GameState, generateMoveOptions } from '@principality/core';
 
 // NOTE: These imports will fail until implementation is created
 import { GameExecuteTool } from '../../src/tools/game-execute';
-import { generateMoveOptions } from '../../../core/src/presentation/move-options';
 
 describe('MCP Pending Effect Detection', () => {
   let tool: GameExecuteTool;

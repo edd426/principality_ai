@@ -409,9 +409,11 @@ export class GameExecuteTool {
           // Determine step number for multi-step cards
           let step: number | undefined = undefined;
           if (pendingEffect.card === 'Remodel' || pendingEffect.card === 'Mine') {
+            // @decision: Remodel uses 'trash_for_remodel', Mine uses 'select_treasure_to_trash' for step 1
+            // Both use 'gain_card'/'gain_treasure' for step 2
             if (pendingEffect.effect === 'trash_for_remodel' || pendingEffect.effect === 'select_treasure_to_trash') {
               step = 1;
-            } else if (pendingEffect.effect === 'gain_card') {
+            } else if (pendingEffect.effect === 'gain_card' || pendingEffect.effect === 'gain_treasure') {
               step = 2;
             }
           }

@@ -481,9 +481,15 @@ describe('Phase 4.1 - Feature 2: CLI Interactive Prompts - All Cards', () => {
 // Mock parsing function
 function parseUserSelection(input: string, options: any[]): number | null {
   const trimmed = input.trim();
+
+  // Reject non-numeric input (including floats with decimal points)
+  if (!/^\d+$/.test(trimmed)) {
+    return null;
+  }
+
   const num = parseInt(trimmed, 10);
 
-  if (isNaN(num) || num < 1 || num > options.length) {
+  if (num < 1 || num > options.length) {
     return null;
   }
 

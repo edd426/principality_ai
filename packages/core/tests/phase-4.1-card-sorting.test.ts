@@ -26,8 +26,8 @@ describe('Phase 4.1 - Feature 3: Card Sorting Display', () => {
       expect(sorted).toEqual([
         'Copper',   // $0
         'Estate',   // $2
+        'Silver',   // $3 (alphabetically before Village)
         'Village',  // $3
-        'Silver',   // $3
         'Gold',     // $6
         'Province'  // $8
       ]);
