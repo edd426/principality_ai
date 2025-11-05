@@ -26,9 +26,16 @@ describe('E2E: Interactive Cards via MCP', () => {
     await server.stop();
   });
 
+  // Helper to call server tool and parse JSON response
+  const call = async (toolName: string, args: any): Promise<any> => {
+    const response = await server.callTool(toolName, args);
+    const text = response.content[0].text;
+    return JSON.parse(text);
+  };
+
   // Helper to setup game with specific card in hand
   const setupGameWithCard = async (card: CardName, seed: string = 'e2e-test') => {
-    await server.call('game_session', { command: 'new', seed, players: 1, allCards: true });
+    await call('game_session', { command: 'new', seed, players: 1, allCards: true });
 
     // Get initial state and manipulate to have desired card in hand
     // This may require multiple turns or direct state manipulation
@@ -44,7 +51,7 @@ describe('E2E: Interactive Cards via MCP', () => {
       await setupGameWithCard('Cellar', 'e2e-cellar');
 
       // Play Cellar
-      const playResponse = await server.call('game_execute', { move: 'play_action Cellar' });
+      const playResponse = await call('game_execute', { move: 'play_action Cellar' });
       expect(playResponse.success).toBe(true);
       expect(playResponse.pendingEffect).toBeDefined();
       expect(playResponse.pendingEffect.card).toBe('Cellar');
@@ -53,7 +60,7 @@ describe('E2E: Interactive Cards via MCP', () => {
 
       // Select discard option (option 1 - discard most cards)
       const discardCmd = playResponse.pendingEffect.options[0].command;
-      const resolveResponse = await server.call('game_execute', { move: discardCmd });
+      const resolveResponse = await call('game_execute', { move: discardCmd });
       expect(resolveResponse.success).toBe(true);
       expect(resolveResponse.pendingEffect).toBeUndefined();
       expect(resolveResponse.message).toContain('Discarded');
@@ -66,10 +73,10 @@ describe('E2E: Interactive Cards via MCP', () => {
     it('should handle numeric selection for Cellar', async () => {
       await setupGameWithCard('Cellar', 'e2e-cellar-numeric');
 
-      await server.call('game_execute', { move: 'play_action Cellar' });
+      await call('game_execute', { move: 'play_action Cellar' });
 
       // Select option 2 via numeric selection
-      const resolveResponse = await server.call('game_execute', { move: '2' });
+      const resolveResponse = await call('game_execute', { move: '2' });
       expect(resolveResponse.success).toBe(true);
       expect(resolveResponse.pendingEffect).toBeUndefined();
     });
@@ -77,16 +84,16 @@ describe('E2E: Interactive Cards via MCP', () => {
     it('should handle discard nothing option for Cellar', async () => {
       await setupGameWithCard('Cellar', 'e2e-cellar-nothing');
 
-      const playResponse = await server.call('game_execute', { move: 'play_action Cellar' });
+      const playResponse = await call('game_execute', { move: 'play_action Cellar' });
 
       // Find "discard nothing" option (likely last option)
-      const nothingOption = playResponse.pendingEffect.options.find(opt =>
+      const nothingOption = playResponse.pendingEffect.options.find((opt: any) =>
         opt.description.toLowerCase().includes('nothing')
       );
 
-      const resolveResponse = await server.call('game_execute', { move: nothingOption!.command });
+      const resolveResponse = await call('game_execute', { move: nothingOption!.command });
       expect(resolveResponse.success).toBe(true);
-      expect(resolveResponse.message).toContain('nothing' || 'draw 0');
+      expect(resolveResponse.message).toMatch(/nothing|draw 0/);
     });
   });
 
@@ -95,7 +102,7 @@ describe('E2E: Interactive Cards via MCP', () => {
       await setupGameWithCard('Chapel', 'e2e-chapel');
 
       // Play Chapel
-      const playResponse = await server.call('game_execute', { move: 'play_action Chapel' });
+      const playResponse = await call('game_execute', { move: 'play_action Chapel' });
       expect(playResponse.success).toBe(true);
       expect(playResponse.pendingEffect).toBeDefined();
       expect(playResponse.pendingEffect.card).toBe('Chapel');
@@ -103,7 +110,7 @@ describe('E2E: Interactive Cards via MCP', () => {
 
       // Trash cards (up to 4)
       const trashCmd = playResponse.pendingEffect.options[0].command;
-      const resolveResponse = await server.call('game_execute', { move: trashCmd });
+      const resolveResponse = await call('game_execute', { move: trashCmd });
       expect(resolveResponse.success).toBe(true);
       expect(resolveResponse.pendingEffect).toBeUndefined();
       expect(resolveResponse.message).toContain('Trashed');
@@ -112,10 +119,10 @@ describe('E2E: Interactive Cards via MCP', () => {
     it('should respect maxTrash limit of 4', async () => {
       await setupGameWithCard('Chapel', 'e2e-chapel-limit');
 
-      const playResponse = await server.call('game_execute', { move: 'play_action Chapel' });
+      const playResponse = await call('game_execute', { move: 'play_action Chapel' });
 
       // Verify no option trashes more than 4 cards
-      playResponse.pendingEffect.options.forEach(opt => {
+      playResponse.pendingEffect.options.forEach((opt: any) => {
         const cardCount = (opt.command.match(/,/g) || []).length + 1;
         if (opt.command !== 'trash_cards') { // If not empty trash
           expect(cardCount).toBeLessThanOrEqual(4);
@@ -130,7 +137,7 @@ describe('E2E: Interactive Cards via MCP', () => {
       await setupGameWithCard('Remodel', 'e2e-remodel');
 
       // Step 1: Play Remodel
-      const step1Response = await server.call('game_execute', { move: 'play_action Remodel' });
+      const step1Response = await call('game_execute', { move: 'play_action Remodel' });
       expect(step1Response.success).toBe(true);
       expect(step1Response.pendingEffect).toBeDefined();
       expect(step1Response.pendingEffect.card).toBe('Remodel');
@@ -138,36 +145,36 @@ describe('E2E: Interactive Cards via MCP', () => {
       expect(step1Response.message).toContain('Step 1');
 
       // Step 2: Trash Estate ($2)
-      const trashEstateOpt = step1Response.pendingEffect.options.find(opt =>
+      const trashEstateOpt = step1Response.pendingEffect.options.find((opt: any) =>
         opt.description.includes('Estate')
       );
-      const step2Response = await server.call('game_execute', { move: trashEstateOpt!.command });
+      const step2Response = await call('game_execute', { move: trashEstateOpt!.command });
       expect(step2Response.success).toBe(true);
       expect(step2Response.pendingEffect).toBeDefined();
       expect(step2Response.pendingEffect.step).toBe(2);
       expect(step2Response.message).toContain('Step 2');
 
       // Step 3: Gain Smithy ($4)
-      const gainSmithyOpt = step2Response.pendingEffect.options.find(opt =>
+      const gainSmithyOpt = step2Response.pendingEffect.options.find((opt: any) =>
         opt.description.includes('Smithy')
       );
-      const finalResponse = await server.call('game_execute', { move: gainSmithyOpt!.command });
+      const finalResponse = await call('game_execute', { move: gainSmithyOpt!.command });
       expect(finalResponse.success).toBe(true);
       expect(finalResponse.pendingEffect).toBeUndefined();
-      expect(finalResponse.message).toContain('Remodel complete' || 'Gained');
+      expect(finalResponse.message).toMatch(/Remodel complete|Gained/);
     });
 
     it('should calculate maxGainCost correctly (+2 from trashed card)', async () => {
       await setupGameWithCard('Remodel', 'e2e-remodel-cost');
 
-      const step1Response = await server.call('game_execute', { move: 'play_action Remodel' });
+      const step1Response = await call('game_execute', { move: 'play_action Remodel' });
 
       // Trash Copper ($0) - should enable gain up to $2
-      const trashCopperOpt = step1Response.pendingEffect.options.find(opt =>
+      const trashCopperOpt = step1Response.pendingEffect.options.find((opt: any) =>
         opt.description.includes('Copper')
       );
 
-      const step2Response = await server.call('game_execute', { move: trashCopperOpt!.command });
+      const step2Response = await call('game_execute', { move: trashCopperOpt!.command });
 
       // Verify all gain options are ≤ $2
       // (This would need card cost lookup in real implementation)
@@ -181,21 +188,21 @@ describe('E2E: Interactive Cards via MCP', () => {
       await setupGameWithCard('Mine', 'e2e-mine');
 
       // Step 1: Play Mine
-      const step1Response = await server.call('game_execute', { move: 'play_action Mine' });
+      const step1Response = await call('game_execute', { move: 'play_action Mine' });
       expect(step1Response.success).toBe(true);
       expect(step1Response.pendingEffect).toBeDefined();
       expect(step1Response.pendingEffect.step).toBe(1);
 
       // Step 2: Trash Copper treasure
       const trashCmd = step1Response.pendingEffect.options[0].command;
-      const step2Response = await server.call('game_execute', { move: trashCmd });
+      const step2Response = await call('game_execute', { move: trashCmd });
       expect(step2Response.success).toBe(true);
       expect(step2Response.pendingEffect).toBeDefined();
       expect(step2Response.pendingEffect.step).toBe(2);
 
       // Step 3: Gain Silver to hand
       const gainCmd = step2Response.pendingEffect.options[0].command;
-      const finalResponse = await server.call('game_execute', { move: gainCmd });
+      const finalResponse = await call('game_execute', { move: gainCmd });
       expect(finalResponse.success).toBe(true);
       expect(finalResponse.pendingEffect).toBeUndefined();
     });
@@ -203,10 +210,10 @@ describe('E2E: Interactive Cards via MCP', () => {
     it('should only show treasures in Mine options', async () => {
       await setupGameWithCard('Mine', 'e2e-mine-treasures');
 
-      const step1Response = await server.call('game_execute', { move: 'play_action Mine' });
+      const step1Response = await call('game_execute', { move: 'play_action Mine' });
 
       // Verify all step 1 options are treasures (Copper, Silver, Gold)
-      step1Response.pendingEffect.options.forEach(opt => {
+      step1Response.pendingEffect.options.forEach((opt: any) => {
         expect(['Copper', 'Silver', 'Gold', 'No treasures'].some(treasure =>
           opt.description.includes(treasure)
         )).toBe(true);
@@ -216,14 +223,14 @@ describe('E2E: Interactive Cards via MCP', () => {
     it('should gain treasure to hand not discard pile', async () => {
       await setupGameWithCard('Mine', 'e2e-mine-destination');
 
-      const step1Response = await server.call('game_execute', { move: 'play_action Mine' });
-      const step2Response = await server.call('game_execute', {
+      const step1Response = await call('game_execute', { move: 'play_action Mine' });
+      const step2Response = await call('game_execute', {
         move: step1Response.pendingEffect.options[0].command
       });
 
       // Verify destination is hand
       // (Would need to check game state to confirm card went to hand)
-      const finalResponse = await server.call('game_execute', {
+      const finalResponse = await call('game_execute', {
         move: step2Response.pendingEffect.options[0].command
       });
 
@@ -237,14 +244,14 @@ describe('E2E: Interactive Cards via MCP', () => {
       await setupGameWithCard('Workshop', 'e2e-workshop');
 
       // Play Workshop
-      const playResponse = await server.call('game_execute', { move: 'play_action Workshop' });
+      const playResponse = await call('game_execute', { move: 'play_action Workshop' });
       expect(playResponse.success).toBe(true);
       expect(playResponse.pendingEffect).toBeDefined();
       expect(playResponse.pendingEffect.card).toBe('Workshop');
 
       // Gain card up to $4
       const gainCmd = playResponse.pendingEffect.options[0].command;
-      const resolveResponse = await server.call('game_execute', { move: gainCmd });
+      const resolveResponse = await call('game_execute', { move: gainCmd });
       expect(resolveResponse.success).toBe(true);
       expect(resolveResponse.pendingEffect).toBeUndefined();
     });
@@ -252,7 +259,7 @@ describe('E2E: Interactive Cards via MCP', () => {
     it('should only show cards costing up to $4', async () => {
       await setupGameWithCard('Workshop', 'e2e-workshop-cost');
 
-      const playResponse = await server.call('game_execute', { move: 'play_action Workshop' });
+      const playResponse = await call('game_execute', { move: 'play_action Workshop' });
 
       // Verify no options exceed $4
       // (Would need card cost lookup to verify fully)
@@ -265,14 +272,14 @@ describe('E2E: Interactive Cards via MCP', () => {
       await setupGameWithCard('Feast', 'e2e-feast');
 
       // Play Feast
-      const playResponse = await server.call('game_execute', { move: 'play_action Feast' });
+      const playResponse = await call('game_execute', { move: 'play_action Feast' });
       expect(playResponse.success).toBe(true);
       expect(playResponse.pendingEffect).toBeDefined();
       expect(playResponse.pendingEffect.card).toBe('Feast');
 
       // Gain card up to $5
       const gainCmd = playResponse.pendingEffect.options[0].command;
-      const resolveResponse = await server.call('game_execute', { move: gainCmd });
+      const resolveResponse = await call('game_execute', { move: gainCmd });
       expect(resolveResponse.success).toBe(true);
       expect(resolveResponse.pendingEffect).toBeUndefined();
     });
@@ -280,7 +287,7 @@ describe('E2E: Interactive Cards via MCP', () => {
     it('should only show cards costing up to $5', async () => {
       await setupGameWithCard('Feast', 'e2e-feast-cost');
 
-      const playResponse = await server.call('game_execute', { move: 'play_action Feast' });
+      const playResponse = await call('game_execute', { move: 'play_action Feast' });
 
       expect(playResponse.message).toContain('$5');
     });
@@ -288,8 +295,8 @@ describe('E2E: Interactive Cards via MCP', () => {
     it('should trash Feast card after use', async () => {
       await setupGameWithCard('Feast', 'e2e-feast-trash');
 
-      const playResponse = await server.call('game_execute', { move: 'play_action Feast' });
-      const resolveResponse = await server.call('game_execute', {
+      const playResponse = await call('game_execute', { move: 'play_action Feast' });
+      const resolveResponse = await call('game_execute', {
         move: playResponse.pendingEffect.options[0].command
       });
 
@@ -305,7 +312,7 @@ describe('E2E: Interactive Cards via MCP', () => {
       await setupGameWithCard('Library', 'e2e-library');
 
       // Play Library
-      const response1 = await server.call('game_execute', { move: 'play_action Library' });
+      const response1 = await call('game_execute', { move: 'play_action Library' });
 
       // If action card is drawn, should prompt
       if (response1.pendingEffect) {
@@ -313,7 +320,7 @@ describe('E2E: Interactive Cards via MCP', () => {
 
         // Set aside first action card
         const setAsideCmd = response1.pendingEffect.options[0].command;
-        const response2 = await server.call('game_execute', { move: setAsideCmd });
+        const response2 = await call('game_execute', { move: setAsideCmd });
 
         // May prompt for more action cards or complete
         expect(response2.success).toBe(true);
@@ -326,13 +333,13 @@ describe('E2E: Interactive Cards via MCP', () => {
     it('should provide keep or set aside options', async () => {
       await setupGameWithCard('Library', 'e2e-library-choices');
 
-      const playResponse = await server.call('game_execute', { move: 'play_action Library' });
+      const playResponse = await call('game_execute', { move: 'play_action Library' });
 
       if (playResponse.pendingEffect) {
         // Should have 2 options: set aside or keep
         expect(playResponse.pendingEffect.options).toHaveLength(2);
-        expect(playResponse.pendingEffect.options[0].description).toContain('Set aside' || 'skip');
-        expect(playResponse.pendingEffect.options[1].description).toContain('Keep' || 'hand');
+        expect(playResponse.pendingEffect.options[0].description).toMatch(/Set aside|skip/);
+        expect(playResponse.pendingEffect.options[1].description).toMatch(/Keep|hand/);
       }
     });
 
@@ -340,7 +347,7 @@ describe('E2E: Interactive Cards via MCP', () => {
       // Setup with hand of 6 cards (need 1 more to reach 7)
       await setupGameWithCard('Library', 'e2e-library-limit');
 
-      const playResponse = await server.call('game_execute', { move: 'play_action Library' });
+      const playResponse = await call('game_execute', { move: 'play_action Library' });
 
       // Library should complete quickly since hand is nearly full
       // (Would verify exact behavior in full implementation)
@@ -353,28 +360,28 @@ describe('E2E: Interactive Cards via MCP', () => {
       await setupGameWithCard('Throne Room', 'e2e-throne');
 
       // Play Throne Room
-      const playResponse = await server.call('game_execute', { move: 'play_action Throne Room' });
+      const playResponse = await call('game_execute', { move: 'play_action Throne Room' });
       expect(playResponse.success).toBe(true);
       expect(playResponse.pendingEffect).toBeDefined();
       expect(playResponse.pendingEffect.card).toBe('Throne Room');
 
       // Select Village to play twice
-      const villageOpt = playResponse.pendingEffect.options.find(opt =>
+      const villageOpt = playResponse.pendingEffect.options.find((opt: any) =>
         opt.description.includes('Village')
       );
 
-      const resolveResponse = await server.call('game_execute', { move: villageOpt!.command });
+      const resolveResponse = await call('game_execute', { move: villageOpt!.command });
       expect(resolveResponse.success).toBe(true);
-      expect(resolveResponse.message).toContain('twice' || 'doubled');
+      expect(resolveResponse.message).toMatch(/twice|doubled/);
     });
 
     it('should only show action cards as options', async () => {
       await setupGameWithCard('Throne Room', 'e2e-throne-actions');
 
-      const playResponse = await server.call('game_execute', { move: 'play_action Throne Room' });
+      const playResponse = await call('game_execute', { move: 'play_action Throne Room' });
 
       // Verify all options are action cards or skip
-      playResponse.pendingEffect.options.forEach(opt => {
+      playResponse.pendingEffect.options.forEach((opt: any) => {
         expect(
           opt.description.includes('action') ||
           opt.description.includes('skip') ||
@@ -387,9 +394,9 @@ describe('E2E: Interactive Cards via MCP', () => {
     it('should include skip option', async () => {
       await setupGameWithCard('Throne Room', 'e2e-throne-skip');
 
-      const playResponse = await server.call('game_execute', { move: 'play_action Throne Room' });
+      const playResponse = await call('game_execute', { move: 'play_action Throne Room' });
 
-      const skipOpt = playResponse.pendingEffect.options.find(opt =>
+      const skipOpt = playResponse.pendingEffect.options.find((opt: any) =>
         opt.description.toLowerCase().includes('skip')
       );
 
@@ -402,7 +409,7 @@ describe('E2E: Interactive Cards via MCP', () => {
       await setupGameWithCard('Chancellor', 'e2e-chancellor');
 
       // Play Chancellor
-      const playResponse = await server.call('game_execute', { move: 'play_action Chancellor' });
+      const playResponse = await call('game_execute', { move: 'play_action Chancellor' });
       expect(playResponse.success).toBe(true);
       expect(playResponse.pendingEffect).toBeDefined();
       expect(playResponse.pendingEffect.card).toBe('Chancellor');
@@ -412,7 +419,7 @@ describe('E2E: Interactive Cards via MCP', () => {
 
       // Choose to move deck to discard
       const moveOpt = playResponse.pendingEffect.options[0];
-      const resolveResponse = await server.call('game_execute', { move: moveOpt.command });
+      const resolveResponse = await call('game_execute', { move: moveOpt.command });
       expect(resolveResponse.success).toBe(true);
       expect(resolveResponse.pendingEffect).toBeUndefined();
     });
@@ -420,10 +427,10 @@ describe('E2E: Interactive Cards via MCP', () => {
     it('should show deck size in options', async () => {
       await setupGameWithCard('Chancellor', 'e2e-chancellor-size');
 
-      const playResponse = await server.call('game_execute', { move: 'play_action Chancellor' });
+      const playResponse = await call('game_execute', { move: 'play_action Chancellor' });
 
       // Description should mention deck size
-      const deckSizeOption = playResponse.pendingEffect.options.find(opt =>
+      const deckSizeOption = playResponse.pendingEffect.options.find((opt: any) =>
         opt.description.match(/\d+/)
       );
 
@@ -435,10 +442,10 @@ describe('E2E: Interactive Cards via MCP', () => {
     // @why: Spy is iterative with multiple players
     it('should complete full Spy workflow via MCP (2 players)', async () => {
       // Setup 2-player game
-      await server.call('game_session', { command: 'new', seed: 'e2e-spy', players: 2, allCards: true });
+      await call('game_session', { command: 'new', seed: 'e2e-spy', players: 2, allCards: true });
 
       // Play Spy
-      const response1 = await server.call('game_execute', { move: 'play_action Spy' });
+      const response1 = await call('game_execute', { move: 'play_action Spy' });
 
       // Should prompt for first player's revealed card
       if (response1.pendingEffect) {
@@ -447,12 +454,12 @@ describe('E2E: Interactive Cards via MCP', () => {
 
         // Make decision for player 1
         const decision1Cmd = response1.pendingEffect.options[0].command;
-        const response2 = await server.call('game_execute', { move: decision1Cmd });
+        const response2 = await call('game_execute', { move: decision1Cmd });
 
         // Should prompt for player 2's revealed card
         if (response2.pendingEffect) {
           const decision2Cmd = response2.pendingEffect.options[0].command;
-          const finalResponse = await server.call('game_execute', { move: decision2Cmd });
+          const finalResponse = await call('game_execute', { move: decision2Cmd });
           expect(finalResponse.success).toBe(true);
           expect(finalResponse.pendingEffect).toBeUndefined();
         }
@@ -460,9 +467,9 @@ describe('E2E: Interactive Cards via MCP', () => {
     });
 
     it('should show revealed card in description', async () => {
-      await server.call('game_session', { command: 'new', seed: 'e2e-spy-reveal', players: 2, allCards: true });
+      await call('game_session', { command: 'new', seed: 'e2e-spy-reveal', players: 2, allCards: true });
 
-      const playResponse = await server.call('game_execute', { move: 'play_action Spy' });
+      const playResponse = await call('game_execute', { move: 'play_action Spy' });
 
       if (playResponse.pendingEffect) {
         // Description should include revealed card name
@@ -471,14 +478,14 @@ describe('E2E: Interactive Cards via MCP', () => {
     });
 
     it('should provide discard or keep options', async () => {
-      await server.call('game_session', { command: 'new', seed: 'e2e-spy-options', players: 2, allCards: true });
+      await call('game_session', { command: 'new', seed: 'e2e-spy-options', players: 2, allCards: true });
 
-      const playResponse = await server.call('game_execute', { move: 'play_action Spy' });
+      const playResponse = await call('game_execute', { move: 'play_action Spy' });
 
       if (playResponse.pendingEffect) {
         expect(playResponse.pendingEffect.options).toHaveLength(2);
-        expect(playResponse.pendingEffect.options[0].description).toContain('Discard' || 'discard');
-        expect(playResponse.pendingEffect.options[1].description).toContain('Keep' || 'keep');
+        expect(playResponse.pendingEffect.options[0].description).toMatch(/[Dd]iscard/);
+        expect(playResponse.pendingEffect.options[1].description).toMatch(/[Kk]eep/);
       }
     });
   });
@@ -486,10 +493,10 @@ describe('E2E: Interactive Cards via MCP', () => {
   describe('E2E-MCP-BUREAUCRAT-1: Complete Bureaucrat Iterative Workflow (2-player)', () => {
     it('should complete full Bureaucrat workflow via MCP (2 players)', async () => {
       // Setup 2-player game
-      await server.call('game_session', { command: 'new', seed: 'e2e-bureaucrat', players: 2, allCards: true });
+      await call('game_session', { command: 'new', seed: 'e2e-bureaucrat', players: 2, allCards: true });
 
       // Play Bureaucrat
-      const playResponse = await server.call('game_execute', { move: 'play_action Bureaucrat' });
+      const playResponse = await call('game_execute', { move: 'play_action Bureaucrat' });
 
       // Should prompt for opponent's victory card choice
       if (playResponse.pendingEffect) {
@@ -498,19 +505,19 @@ describe('E2E: Interactive Cards via MCP', () => {
 
         // Opponent chooses victory card to topdeck
         const topdeckCmd = playResponse.pendingEffect.options[0].command;
-        const resolveResponse = await server.call('game_execute', { move: topdeckCmd });
+        const resolveResponse = await call('game_execute', { move: topdeckCmd });
         expect(resolveResponse.success).toBe(true);
       }
     });
 
     it('should only show victory cards as options', async () => {
-      await server.call('game_session', { command: 'new', seed: 'e2e-bureaucrat-victory', players: 2, allCards: true });
+      await call('game_session', { command: 'new', seed: 'e2e-bureaucrat-victory', players: 2, allCards: true });
 
-      const playResponse = await server.call('game_execute', { move: 'play_action Bureaucrat' });
+      const playResponse = await call('game_execute', { move: 'play_action Bureaucrat' });
 
       if (playResponse.pendingEffect) {
         // All options should be victory cards (Estate, Duchy, Province) or "Reveal hand"
-        playResponse.pendingEffect.options.forEach(opt => {
+        playResponse.pendingEffect.options.forEach((opt: any) => {
           expect(
             opt.description.includes('Estate') ||
             opt.description.includes('Duchy') ||
@@ -523,13 +530,13 @@ describe('E2E: Interactive Cards via MCP', () => {
 
     it('should handle no victory cards case', async () => {
       // Setup game where opponent has no victory cards
-      await server.call('game_session', { command: 'new', seed: 'e2e-bureaucrat-none', players: 2, allCards: true });
+      await call('game_session', { command: 'new', seed: 'e2e-bureaucrat-none', players: 2, allCards: true });
 
-      const playResponse = await server.call('game_execute', { move: 'play_action Bureaucrat' });
+      const playResponse = await call('game_execute', { move: 'play_action Bureaucrat' });
 
       if (playResponse.pendingEffect) {
         // Should have "Reveal hand" option
-        const revealOpt = playResponse.pendingEffect.options.find(opt =>
+        const revealOpt = playResponse.pendingEffect.options.find((opt: any) =>
           opt.description.includes('Reveal hand')
         );
         expect(revealOpt).toBeDefined();
@@ -541,9 +548,9 @@ describe('E2E: Interactive Cards via MCP', () => {
     // @edge: EC-GEN-3 - Large number of options
     it('should handle Cellar with large hand (many combinations)', async () => {
       // Setup game with 7-card hand (128 combinations)
-      await server.call('game_session', { command: 'new', seed: 'e2e-large', players: 1, allCards: true });
+      await call('game_session', { command: 'new', seed: 'e2e-large', players: 1, allCards: true });
 
-      const playResponse = await server.call('game_execute', { move: 'play_action Cellar' });
+      const playResponse = await call('game_execute', { move: 'play_action Cellar' });
 
       // Should limit displayed options but still accept valid commands
       expect(playResponse.pendingEffect.options.length).toBeLessThanOrEqual(50);
@@ -556,9 +563,9 @@ describe('E2E: Interactive Cards via MCP', () => {
     // @edge: EC-WORKSHOP-1 - Empty supply
     it('should handle Workshop with no cards available', async () => {
       // Setup game where all cards ≤ $4 are sold out
-      await server.call('game_session', { command: 'new', seed: 'e2e-empty-supply', players: 1, allCards: true });
+      await call('game_session', { command: 'new', seed: 'e2e-empty-supply', players: 1, allCards: true });
 
-      const playResponse = await server.call('game_execute', { move: 'play_action Workshop' });
+      const playResponse = await call('game_execute', { move: 'play_action Workshop' });
 
       expect(playResponse.pendingEffect.options).toHaveLength(1);
       expect(playResponse.pendingEffect.options[0].description).toContain('No cards available');
@@ -567,9 +574,9 @@ describe('E2E: Interactive Cards via MCP', () => {
     // @edge: EC-LIBRARY-1 - Already 7 cards
     it('should handle Library with hand already at 7 cards', async () => {
       // Setup game where player already has 7 cards
-      await server.call('game_session', { command: 'new', seed: 'e2e-library-full', players: 1, allCards: true });
+      await call('game_session', { command: 'new', seed: 'e2e-library-full', players: 1, allCards: true });
 
-      const playResponse = await server.call('game_execute', { move: 'play_action Library' });
+      const playResponse = await call('game_execute', { move: 'play_action Library' });
 
       // Library should complete immediately
       expect(playResponse.success).toBe(true);
@@ -583,7 +590,7 @@ describe('E2E: Interactive Cards via MCP', () => {
       await setupGameWithCard('Cellar', 'e2e-perf');
 
       const startTime = performance.now();
-      const playResponse = await server.call('game_execute', { move: 'play_action Cellar' });
+      const playResponse = await call('game_execute', { move: 'play_action Cellar' });
       const endTime = performance.now();
 
       const duration = endTime - startTime;
