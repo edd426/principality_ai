@@ -39,6 +39,7 @@ export interface PendingEffect {
   trashedCard?: CardName;
   targetPlayer?: number;
   throneRoomDouble?: boolean;
+  destination?: 'hand' | 'discard' | 'topdeck';  // For Mine and other cards that gain to specific location
 }
 
 export interface GameState {
@@ -51,6 +52,7 @@ export interface GameState {
   readonly gameLog: ReadonlyArray<string>;
   readonly trash: ReadonlyArray<CardName>;
   readonly pendingEffect?: PendingEffect;
+  readonly selectedKingdomCards?: ReadonlyArray<CardName>;
 }
 
 export interface Move {

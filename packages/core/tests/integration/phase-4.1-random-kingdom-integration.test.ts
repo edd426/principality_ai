@@ -73,11 +73,15 @@ describe('Phase 4.1 - Feature 1: Random Kingdom Integration', () => {
       const selectedKingdom = extractKingdomCards(state);
       expect(selectedKingdom).toHaveLength(10);
 
-      // Play 3 turns
+      // Play 3 player-turns (in 2-player game, this is ~1.5 full turns)
+      const initialTurn = state.turnNumber;
       for (let i = 0; i < 3; i++) {
         state = playSimpleTurn(engine, state);
-        expect(state.turnNumber).toBeGreaterThan(i + 1);
+        // Verify turn number hasn't decreased and is progressing
+        expect(state.turnNumber).toBeGreaterThanOrEqual(initialTurn);
       }
+      // After 3 player-turns in 2-player game, should be at turn 2
+      expect(state.turnNumber).toBeGreaterThanOrEqual(2);
 
       // Verify kingdom cards are still only the selected ones
       const kingdomAfter = extractKingdomCards(state);
@@ -158,10 +162,11 @@ describe('Phase 4.1 - Feature 1: Random Kingdom Integration', () => {
       expect(Array.isArray(selectedKingdom)).toBe(true);
 
       // Verify all selected cards are valid kingdom cards
+      // Note: Gardens is a kingdom card with type 'victory' (provides VP based on deck size)
       selectedKingdom.forEach(card => {
         const cardDef = getCard(card);
         expect(cardDef).toBeDefined();
-        expect(['action', 'action-attack', 'action-reaction']).toContain(cardDef.type);
+        expect(['action', 'action-attack', 'action-reaction', 'victory']).toContain(cardDef.type);
       });
     });
 

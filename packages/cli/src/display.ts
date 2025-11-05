@@ -3,10 +3,13 @@ import {
   PlayerState,
   Move,
   Victory,
+  CardName,
   getCard,
   getMoveDescriptionCompact,
   groupSupplyByType,
-  calculateVictoryPoints
+  calculateVictoryPoints,
+  generateMoveOptions,
+  MoveOption
 } from '@principality/core';
 import { formatVPDisplay } from './vp-calculator';
 import { getStableNumber } from './stable-numbers';
@@ -187,9 +190,9 @@ export class Display {
   }
 
   /**
-   * Display welcome message
+   * Display welcome message with kingdom card selection
    */
-  displayWelcome(seed: string, victoryPileSize?: number): void {
+  displayWelcome(seed: string, victoryPileSize?: number, state?: GameState): void {
     console.log('\n' + '='.repeat(60));
     console.log('PRINCIPALITY AI - Deck Building Game');
     if (victoryPileSize && victoryPileSize !== 4) {
@@ -197,6 +200,12 @@ export class Display {
     }
     console.log('='.repeat(60));
     console.log(`Game Seed: ${seed}`);
+
+    // Display selected kingdom cards
+    if (state) {
+      this.displayKingdomSelection(state);
+    }
+
     console.log('\nCommands:');
     console.log('  Enter number to select a move');
     console.log('  "hand" - Show your hand');
@@ -204,6 +213,20 @@ export class Display {
     console.log('  "help" - Show this help message');
     console.log('  "quit" or "exit" - End game');
     console.log('='.repeat(60));
+  }
+
+  /**
+   * Display the selected kingdom cards
+   */
+  private displayKingdomSelection(state: GameState): void {
+    const basicCards = ['Copper', 'Silver', 'Gold', 'Estate', 'Duchy', 'Province', 'Curse'];
+    const kingdomCards = Array.from(state.supply.keys())
+      .filter(card => !basicCards.includes(card))
+      .sort();
+
+    if (kingdomCards.length > 0) {
+      console.log(`\nKingdom Cards: ${kingdomCards.join(', ')}`);
+    }
   }
 
   /**
@@ -248,5 +271,301 @@ export class Display {
    */
   clearScreen(): void {
     console.clear();
+  }
+
+  /**
+   * Display interactive prompt for pending effects (Feature 2)
+   * REFACTORED to use shared presentation layer (Phase 4.2)
+   *
+   * @req: FR-CLI-1 - CLI uses shared layer
+   * @req: FR-CLI-2 - No behavioral changes
+   * @req: FR-CLI-3 - Consistent option numbering
+   * @param state - Current game state with pendingEffect
+   * @param validMoves - Valid moves for the pending effect
+   */
+  displayPendingEffectPrompt(state: GameState, validMoves: Move[]): void {
+    const pendingEffect = state.pendingEffect;
+    if (!pendingEffect) {
+      return;
+    }
+
+    const card = getCard(pendingEffect.card);
+
+    // Display card effect description
+    console.log(`\n✓ Player ${state.currentPlayer + 1} played ${pendingEffect.card}`);
+    console.log(`Effect: ${card.description}\n`);
+
+    // Get structured options from SHARED LAYER
+    const options: MoveOption[] = generateMoveOptions(state, validMoves);
+
+    if (options.length === 0) {
+      console.log(`Choose an option:`);
+      validMoves.forEach((move, index) => {
+        console.log(`  [${index + 1}] ${getMoveDescriptionCompact(move)}`);
+      });
+      console.log('');
+      return;
+    }
+
+    // Display card-specific header
+    this.displayPromptHeader(pendingEffect);
+
+    // Display options using shared data
+    options.forEach(opt => {
+      console.log(`  [${opt.index}] ${opt.description}`);
+    });
+
+    console.log(''); // Empty line before input prompt
+  }
+
+  /**
+   * Display card-specific prompt headers
+   * Helper method for displayPendingEffectPrompt
+   */
+  private displayPromptHeader(pendingEffect: any): void {
+    switch (pendingEffect.effect) {
+      case 'discard_for_cellar':
+        console.log('Choose cards to discard:');
+        break;
+      case 'trash_cards':
+        console.log(`Choose cards to trash (up to ${pendingEffect.maxTrash || 4}):`);
+        break;
+      case 'trash_for_remodel':
+        console.log('Step 1: Choose card to trash:');
+        break;
+      case 'select_treasure_to_trash':
+        if (pendingEffect.card === 'Mine') {
+          console.log('Step 1: Choose treasure to trash:');
+        }
+        break;
+      case 'gain_card':
+        if (pendingEffect.card === 'Remodel') {
+          console.log(`Step 2: Choose card to gain (up to $${pendingEffect.maxGainCost}):`);
+        } else if (pendingEffect.card === 'Mine') {
+          console.log(`Step 2: Choose treasure to gain to hand (up to $${pendingEffect.maxGainCost}):`);
+        } else if (pendingEffect.card === 'Workshop') {
+          console.log('Choose card to gain (up to $4):');
+        } else if (pendingEffect.card === 'Feast') {
+          console.log('Choose card to gain (up to $5):');
+        }
+        break;
+      case 'library_set_aside':
+        console.log('Action card drawn - set aside or keep?');
+        break;
+      case 'select_action_for_throne':
+        console.log('Choose action card to play twice:');
+        break;
+      case 'chancellor_decision':
+        const deckSize = pendingEffect.deckSize || 0;
+        console.log(`Put your deck (${deckSize} cards) into discard pile?`);
+        break;
+      case 'spy_decision':
+        console.log(`Player ${(pendingEffect.targetPlayer || 0) + 1}'s top card revealed - discard or keep?`);
+        break;
+      case 'reveal_and_topdeck':
+        console.log('Choose victory card to put on top of deck:');
+        break;
+      default:
+        console.log('Choose an option:');
+    }
+  }
+
+  /**
+   * Display Cellar prompt: choose cards to discard
+   */
+  private displayCellarPrompt(validMoves: Move[]): void {
+    console.log('Choose cards to discard:');
+    validMoves.forEach((move, index) => {
+      if (move.type === 'discard_for_cellar' && move.cards) {
+        const count = move.cards.length;
+        if (count === 0) {
+          console.log(`  [${index + 1}] Discard nothing (draw 0)`);
+        } else {
+          console.log(`  [${index + 1}] Discard: ${move.cards.join(', ')} (draw ${count})`);
+        }
+      }
+    });
+  }
+
+  /**
+   * Display Chapel prompt: choose cards to trash (up to maxTrash)
+   */
+  private displayChapelPrompt(validMoves: Move[], maxTrash: number): void {
+    console.log(`Choose cards to trash (up to ${maxTrash}):`);
+    validMoves.forEach((move, index) => {
+      if (move.type === 'trash_cards' && move.cards) {
+        const count = move.cards.length;
+        if (count === 0) {
+          console.log(`  [${index + 1}] Trash nothing`);
+        } else {
+          console.log(`  [${index + 1}] Trash: ${move.cards.join(', ')} (${count} card${count > 1 ? 's' : ''})`);
+        }
+      }
+    });
+  }
+
+  /**
+   * Display Remodel Step 1: choose card to trash
+   */
+  private displayRemodelStep1Prompt(hand: ReadonlyArray<CardName>): void {
+    console.log('Step 1: Choose card to trash:');
+    hand.forEach((card, index) => {
+      const cardDef = getCard(card);
+      const gainCost = cardDef.cost + 2;
+      console.log(`  [${index + 1}] Trash: ${card} ($${cardDef.cost}) → Can gain up to $${gainCost}`);
+    });
+  }
+
+  /**
+   * Display Remodel Step 2: choose card to gain
+   */
+  private displayRemodelStep2Prompt(validMoves: Move[], maxGainCost: number): void {
+    console.log(`Step 2: Choose card to gain (up to $${maxGainCost}):`);
+    validMoves.forEach((move, index) => {
+      if (move.type === 'gain_card' && move.card) {
+        const cardDef = getCard(move.card);
+        console.log(`  [${index + 1}] Gain: ${move.card} ($${cardDef.cost})`);
+      }
+    });
+  }
+
+  /**
+   * Display Mine Step 1: choose treasure to trash
+   */
+  private displayMineStep1Prompt(hand: ReadonlyArray<CardName>): void {
+    console.log('Step 1: Choose treasure to trash:');
+    const treasures = hand.filter(card => {
+      const cardDef = getCard(card);
+      return cardDef.type === 'treasure';
+    });
+
+    if (treasures.length === 0) {
+      console.log('  [1] No treasures to trash');
+    } else {
+      treasures.forEach((card, index) => {
+        const cardDef = getCard(card);
+        const gainCost = cardDef.cost + 3;
+        console.log(`  [${index + 1}] Trash: ${card} ($${cardDef.cost}) → Can gain treasure up to $${gainCost} to hand`);
+      });
+    }
+  }
+
+  /**
+   * Display Mine Step 2: choose treasure to gain to hand
+   */
+  private displayMineStep2Prompt(validMoves: Move[], maxGainCost: number): void {
+    console.log(`Step 2: Choose treasure to gain to hand (up to $${maxGainCost}):`);
+    validMoves.forEach((move, index) => {
+      if (move.type === 'gain_card' && move.card) {
+        const cardDef = getCard(move.card);
+        console.log(`  [${index + 1}] Gain to hand: ${move.card} ($${cardDef.cost})`);
+      }
+    });
+  }
+
+  /**
+   * Display Workshop prompt: gain card up to $4
+   */
+  private displayWorkshopPrompt(validMoves: Move[]): void {
+    console.log('Choose card to gain (up to $4):');
+    validMoves.forEach((move, index) => {
+      if (move.type === 'gain_card' && move.card) {
+        const cardDef = getCard(move.card);
+        console.log(`  [${index + 1}] Gain: ${move.card} ($${cardDef.cost})`);
+      }
+    });
+  }
+
+  /**
+   * Display Feast prompt: gain card up to $5
+   */
+  private displayFeastPrompt(validMoves: Move[]): void {
+    console.log('Choose card to gain (up to $5):');
+    validMoves.forEach((move, index) => {
+      if (move.type === 'gain_card' && move.card) {
+        const cardDef = getCard(move.card);
+        console.log(`  [${index + 1}] Gain: ${move.card} ($${cardDef.cost})`);
+      }
+    });
+  }
+
+  /**
+   * Display Library prompt: set aside or keep action card
+   */
+  private displayLibraryPrompt(validMoves: Move[]): void {
+    console.log('Action card drawn - set aside or keep?');
+    validMoves.forEach((move, index) => {
+      if (move.type === 'library_set_aside' && move.cards && move.cards.length > 0) {
+        const card = move.cards[0];
+        if (move.choice === true) {
+          console.log(`  [${index + 1}] Set aside: ${card}`);
+        } else {
+          console.log(`  [${index + 1}] Keep: ${card}`);
+        }
+      }
+    });
+  }
+
+  /**
+   * Display Throne Room prompt: choose action to play twice
+   */
+  private displayThroneRoomPrompt(hand: ReadonlyArray<CardName>): void {
+    console.log('Choose action card to play twice:');
+    const actions = hand.filter(card => {
+      const cardDef = getCard(card);
+      return cardDef.type === 'action' || cardDef.type === 'action-attack' || cardDef.type === 'action-reaction';
+    });
+
+    if (actions.length === 0) {
+      console.log('  [1] No action cards to play');
+    } else {
+      actions.forEach((card, index) => {
+        console.log(`  [${index + 1}] Play twice: ${card}`);
+      });
+    }
+  }
+
+  /**
+   * Display Chancellor prompt: put deck into discard pile?
+   */
+  private displayChancellorPrompt(deckSize: number): void {
+    console.log(`Put your deck (${deckSize} cards) into discard pile?`);
+    console.log(`  [1] Yes - Put deck into discard`);
+    console.log(`  [2] No - Keep deck as is`);
+  }
+
+  /**
+   * Display Spy prompt: discard or keep revealed top card
+   */
+  private displaySpyPrompt(validMoves: Move[], targetPlayer: number, state: GameState): void {
+    console.log(`Player ${targetPlayer + 1}'s top card revealed - discard or keep?`);
+    validMoves.forEach((move, index) => {
+      if (move.type === 'spy_decision') {
+        if (move.choice === true) {
+          console.log(`  [${index + 1}] Discard top card`);
+        } else {
+          console.log(`  [${index + 1}] Keep on top of deck`);
+        }
+      }
+    });
+  }
+
+  /**
+   * Display Bureaucrat prompt: choose victory card to topdeck
+   */
+  private displayBureaucratPrompt(hand: ReadonlyArray<CardName>): void {
+    console.log('Choose victory card to put on top of deck:');
+    const victoryCards = hand.filter(card => {
+      const cardDef = getCard(card);
+      return cardDef.type === 'victory';
+    });
+
+    if (victoryCards.length === 0) {
+      console.log('  [1] Reveal hand (no Victory cards)');
+    } else {
+      victoryCards.forEach((card, index) => {
+        console.log(`  [${index + 1}] Topdeck: ${card}`);
+      });
+    }
   }
 }

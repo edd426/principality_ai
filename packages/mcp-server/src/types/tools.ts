@@ -48,6 +48,17 @@ export interface GameExecuteResponse {
   gameState?: any; // Current game state (standard detail level)
   validMoves?: string[]; // Available move commands for next action
   gameOver?: boolean; // Game end status flag
+  // Phase 4.2: Pending effect support for interactive cards
+  pendingEffect?: {
+    card: string;
+    effect: string;
+    step?: number;
+    options: Array<{
+      index: number;
+      description: string;
+      command: string;
+    }>;
+  };
   error?: {
     message: string;
     suggestion?: string;

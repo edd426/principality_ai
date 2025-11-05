@@ -21,7 +21,9 @@ import {
   getCardCost,
   calculateScore,
   getAllPlayerCards,
-  CardName
+  CardName,
+  generateMoveOptions,
+  formatMoveCommand
 } from '@principality/core';
 import { GameExecuteRequest, GameExecuteResponse } from '../types/tools';
 import { Logger } from '../logger';
@@ -34,12 +36,28 @@ export class GameExecuteTool {
     timestamp: string;
   }> = [];
 
+  // Internal state for test mode
+  private testState: GameState | null = null;
+
   constructor(
     private gameEngine: GameEngine,
-    private getState: () => GameState | null,
-    private setState: (state: GameState) => void,
+    getState?: () => GameState | null,
+    setState?: (state: GameState) => void,
     private logger?: Logger
-  ) {}
+  ) {
+    // If getState/setState not provided, use internal test state
+    if (!getState || !setState) {
+      this.getState = () => this.testState;
+      this.setState = (state: GameState) => { this.testState = state; };
+    } else {
+      this.getState = getState;
+      this.setState = setState;
+    }
+  }
+
+  // Public for test access
+  private getState: () => GameState | null;
+  public setState: (state: GameState) => void;
 
   async execute(request: GameExecuteRequest): Promise<GameExecuteResponse> {
     const { move, return_detail = 'minimal', reasoning } = request;
@@ -379,6 +397,41 @@ export class GameExecuteTool {
           tie: winners.length > 1,
           winners: winners.length > 1 ? winners : undefined
         });
+      }
+
+      // Phase 4.2: Check for pending effect and generate options
+      if (finalStateAfterAutoSkip.pendingEffect) {
+        const pendingEffect = finalStateAfterAutoSkip.pendingEffect;
+        const validMovesForOptions = this.gameEngine.getValidMoves(finalStateAfterAutoSkip);
+        const options = generateMoveOptions(finalStateAfterAutoSkip, validMovesForOptions);
+
+        if (options.length > 0) {
+          // Determine step number for multi-step cards
+          let step: number | undefined = undefined;
+          if (pendingEffect.card === 'Remodel' || pendingEffect.card === 'Mine') {
+            if (pendingEffect.effect === 'trash_for_remodel' || pendingEffect.effect === 'select_treasure_to_trash') {
+              step = 1;
+            } else if (pendingEffect.effect === 'gain_card') {
+              step = 2;
+            }
+          }
+
+          // Format options for MCP response
+          response.pendingEffect = {
+            card: pendingEffect.card,
+            effect: pendingEffect.effect,
+            step,
+            options: options.map(opt => ({
+              index: opt.index,
+              description: opt.description,
+              command: formatMoveCommand(opt.move)
+            }))
+          };
+
+          // Update message to indicate pending effect
+          const stepText = step ? ` - Step ${step}` : '';
+          response.message = `Card requires choice: ${pendingEffect.card}${stepText}`;
+        }
       }
 
       // Include full state if requested (backward compatibility)

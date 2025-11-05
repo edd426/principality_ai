@@ -1,4 +1,5 @@
-import { CardName } from './types';
+import { CardName, GameState, Victory } from './types';
+import { getCard } from './cards';
 
 // @blocker: Conflicting test expectations for default supply composition
 // Phase 3 tests (multiplayer-mcp-tools.test.ts) expect: supply.size === 8
@@ -124,16 +125,9 @@ export function createDefaultSupply(options?: { victoryPileSize?: number; kingdo
     ['Gold', 30],
     ['Estate', victoryPileSize],
     ['Duchy', victoryPileSize],
-    ['Province', victoryPileSize]
+    ['Province', victoryPileSize],
+    ['Curse', 10]  // Always include Curse (Phase 4.1 requirement)
   ]);
-
-  // Add Curse only if attack cards are present (they generate Curses)
-  const hasAttackCards = kingdomCards.some(card =>
-    PHASE4_ATTACK_CARDS.includes(card)
-  );
-  if (hasAttackCards) {
-    supply.set('Curse', 10);
-  }
 
   // Add kingdom cards
   kingdomCards.forEach(card => {
@@ -159,4 +153,81 @@ export function calculateScore(cards: ReadonlyArray<CardName>): number {
 
 export function getAllPlayerCards(deck: ReadonlyArray<CardName>, hand: ReadonlyArray<CardName>, discard: ReadonlyArray<CardName>): ReadonlyArray<CardName> {
   return [...deck, ...hand, ...discard];
+}
+
+/**
+ * Sort cards by cost (ascending) and then alphabetically within each cost tier
+ * This is a display-only function - does not mutate the original array
+ *
+ * @param cards - Array of card names to sort
+ * @returns New sorted array
+ *
+ * @blocker: Test expectation issue (test:phase-4.1-card-sorting.test.ts:26)
+ * Test expects [Village, Silver] for $3 cards, but alphabetically should be [Silver, Village]
+ * Requirement FR-SORT-2 states "Within same cost, system SHALL sort alphabetically"
+ * Current implementation is correct per requirement (Silver < Village alphabetically)
+ * Need: test-architect to fix test expectation to match alphabetical requirement
+ */
+export function sortCardsByCostAndName(cards: ReadonlyArray<CardName>): CardName[] {
+  return [...cards].sort((a, b) => {
+    const cardA = getCard(a);
+    const cardB = getCard(b);
+
+    // Primary sort: cost ascending
+    if (cardA.cost !== cardB.cost) {
+      return cardA.cost - cardB.cost;
+    }
+
+    // Secondary sort: alphabetical
+    return a.localeCompare(b);
+  });
+}
+
+/**
+ * Check if the game is over and calculate winner if so
+ * Game ends when Province pile is empty OR any 3 piles are empty
+ *
+ * @param state - Current game state
+ * @returns Victory object with isGameOver flag and winner info
+ */
+export function checkVictory(state: GameState): Victory {
+  const supply = state.supply;
+
+  // Game ends if Province pile is empty
+  if ((supply.get('Province') || 0) <= 0) {
+    return calculateWinner(state);
+  }
+
+  // Game ends if any 3 piles are empty
+  let emptyPiles = 0;
+  for (const count of supply.values()) {
+    if (count <= 0) emptyPiles++;
+  }
+
+  if (emptyPiles >= 3) {
+    return calculateWinner(state);
+  }
+
+  return { isGameOver: false };
+}
+
+/**
+ * Calculate winner and scores for all players
+ * @param state - Current game state
+ * @returns Victory object with winner and scores
+ */
+function calculateWinner(state: GameState): Victory {
+  const scores = state.players.map(player => {
+    const allCards = getAllPlayerCards(player.drawPile, player.hand, player.discardPile);
+    return calculateScore(allCards);
+  });
+
+  const maxScore = Math.max(...scores);
+  const winner = scores.indexOf(maxScore);
+
+  return {
+    isGameOver: true,
+    winner,
+    scores
+  };
 }
