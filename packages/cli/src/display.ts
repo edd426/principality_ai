@@ -7,7 +7,9 @@ import {
   getCard,
   getMoveDescriptionCompact,
   groupSupplyByType,
-  calculateVictoryPoints
+  calculateVictoryPoints,
+  generateMoveOptions,
+  MoveOption
 } from '@principality/core';
 import { formatVPDisplay } from './vp-calculator';
 import { getStableNumber } from './stable-numbers';
@@ -273,9 +275,11 @@ export class Display {
 
   /**
    * Display interactive prompt for pending effects (Feature 2)
-   * Main dispatcher that routes to card-specific prompt functions
+   * REFACTORED to use shared presentation layer (Phase 4.2)
    *
-   * @req: FR-CLI-1 through FR-CLI-6 - Interactive prompts for all 11 action cards
+   * @req: FR-CLI-1 - CLI uses shared layer
+   * @req: FR-CLI-2 - No behavioral changes
+   * @req: FR-CLI-3 - Consistent option numbering
    * @param state - Current game state with pendingEffect
    * @param validMoves - Valid moves for the pending effect
    */
@@ -285,71 +289,85 @@ export class Display {
       return;
     }
 
-    const player = state.players[state.currentPlayer];
     const card = getCard(pendingEffect.card);
 
     // Display card effect description
     console.log(`\n✓ Player ${state.currentPlayer + 1} played ${pendingEffect.card}`);
     console.log(`Effect: ${card.description}\n`);
 
-    // Route to appropriate prompt based on effect type
-    switch (pendingEffect.effect) {
-      case 'discard_for_cellar':
-        this.displayCellarPrompt(validMoves);
-        break;
+    // Get structured options from SHARED LAYER
+    const options: MoveOption[] = generateMoveOptions(state, validMoves);
 
-      case 'trash_cards':
-        this.displayChapelPrompt(validMoves, pendingEffect.maxTrash || 4);
-        break;
-
-      case 'trash_for_remodel':
-        this.displayRemodelStep1Prompt(player.hand);
-        break;
-
-      case 'gain_card':
-        if (pendingEffect.card === 'Remodel') {
-          this.displayRemodelStep2Prompt(validMoves, pendingEffect.maxGainCost || 0);
-        } else if (pendingEffect.card === 'Mine') {
-          this.displayMineStep2Prompt(validMoves, pendingEffect.maxGainCost || 0);
-        } else if (pendingEffect.card === 'Workshop') {
-          this.displayWorkshopPrompt(validMoves);
-        } else if (pendingEffect.card === 'Feast') {
-          this.displayFeastPrompt(validMoves);
-        }
-        break;
-
-      case 'select_treasure_to_trash':
-        this.displayMineStep1Prompt(player.hand);
-        break;
-
-      case 'library_set_aside':
-        this.displayLibraryPrompt(validMoves);
-        break;
-
-      case 'select_action_for_throne':
-        this.displayThroneRoomPrompt(player.hand);
-        break;
-
-      case 'chancellor_decision':
-        this.displayChancellorPrompt(player.drawPile.length);
-        break;
-
-      case 'spy_decision':
-        this.displaySpyPrompt(validMoves, pendingEffect.targetPlayer || 0, state);
-        break;
-
-      case 'reveal_and_topdeck':
-        this.displayBureaucratPrompt(player.hand);
-        break;
-
-      default:
-        console.log(`Choose an option:`);
-        validMoves.forEach((move, index) => {
-          console.log(`  [${index + 1}] ${getMoveDescriptionCompact(move)}`);
-        });
+    if (options.length === 0) {
+      console.log(`Choose an option:`);
+      validMoves.forEach((move, index) => {
+        console.log(`  [${index + 1}] ${getMoveDescriptionCompact(move)}`);
+      });
+      console.log('');
+      return;
     }
 
+    // Display card-specific header
+    this.displayPromptHeader(pendingEffect);
+
+    // Display options using shared data
+    options.forEach(opt => {
+      console.log(`  [${opt.index}] ${opt.description}`);
+    });
+
     console.log(''); // Empty line before input prompt
+  }
+
+  /**
+   * Display card-specific prompt headers
+   * Helper method for displayPendingEffectPrompt
+   */
+  private displayPromptHeader(pendingEffect: any): void {
+    switch (pendingEffect.effect) {
+      case 'discard_for_cellar':
+        console.log('Choose cards to discard:');
+        break;
+      case 'trash_cards':
+        console.log(`Choose cards to trash (up to ${pendingEffect.maxTrash || 4}):`);
+        break;
+      case 'trash_for_remodel':
+        console.log('Step 1: Choose card to trash:');
+        break;
+      case 'select_treasure_to_trash':
+        if (pendingEffect.card === 'Mine') {
+          console.log('Step 1: Choose treasure to trash:');
+        }
+        break;
+      case 'gain_card':
+        if (pendingEffect.card === 'Remodel') {
+          console.log(`Step 2: Choose card to gain (up to $${pendingEffect.maxGainCost}):`);
+        } else if (pendingEffect.card === 'Mine') {
+          console.log(`Step 2: Choose treasure to gain to hand (up to $${pendingEffect.maxGainCost}):`);
+        } else if (pendingEffect.card === 'Workshop') {
+          console.log('Choose card to gain (up to $4):');
+        } else if (pendingEffect.card === 'Feast') {
+          console.log('Choose card to gain (up to $5):');
+        }
+        break;
+      case 'library_set_aside':
+        console.log('Action card drawn - set aside or keep?');
+        break;
+      case 'select_action_for_throne':
+        console.log('Choose action card to play twice:');
+        break;
+      case 'chancellor_decision':
+        const deckSize = pendingEffect.deckSize || 0;
+        console.log(`Put your deck (${deckSize} cards) into discard pile?`);
+        break;
+      case 'spy_decision':
+        console.log(`Player ${(pendingEffect.targetPlayer || 0) + 1}'s top card revealed - discard or keep?`);
+        break;
+      case 'reveal_and_topdeck':
+        console.log('Choose victory card to put on top of deck:');
+        break;
+      default:
+        console.log('Choose an option:');
+    }
   }
 
   /**

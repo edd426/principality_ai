@@ -48,3 +48,25 @@ export {
   generateSuggestion,
   type RejectionReason
 } from './error-messages';
+
+// Move Options (Phase 4.2 - Shared presentation layer for interactive cards)
+export {
+  generateMoveOptions,
+  generateCellarOptions,
+  generateChapelOptions,
+  generateRemodelStep1Options,
+  generateRemodelStep2Options,
+  generateMineStep1Options,
+  generateMineStep2Options,
+  generateWorkshopOptions,
+  generateFeastOptions,
+  generateLibraryOptions,
+  generateThroneRoomOptions,
+  generateChancellorOptions,
+  generateSpyOptions,
+  generateBureaucratOptions,
+  formatMoveCommand,
+  getCombinations,
+  formatCardList,
+  type MoveOption
+} from './move-options';
