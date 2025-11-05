@@ -569,3 +569,30 @@ export class Display {
     }
   }
 }
+
+/**
+ * Parse user's numeric selection from interactive prompt
+ * @param input - User input string (e.g., "1", "2", " 3 ")
+ * @param options - Array of available Move options
+ * @returns Index of selected option (0-based), or null if invalid
+ *
+ * @req: FR-CLI-INPUT - Numeric selection parsing with validation
+ * @edge: Rejects floats, negatives, out-of-range, non-numeric, empty
+ */
+export function parseUserSelection(input: string, options: Move[]): number | null {
+  const trimmed = input.trim();
+
+  // Reject non-numeric input (including floats with decimal points)
+  if (!/^\d+$/.test(trimmed)) {
+    return null;
+  }
+
+  const num = parseInt(trimmed, 10);
+
+  // Check if valid index (1-based input, return 0-based)
+  if (num < 1 || num > options.length) {
+    return null;
+  }
+
+  return num - 1;
+}

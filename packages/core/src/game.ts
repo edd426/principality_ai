@@ -683,6 +683,7 @@ export class GameEngine {
     return {
       ...state,
       players: newPlayers,
+      pendingEffect: undefined,
       gameLog: [...state.gameLog, `Player ${state.currentPlayer + 1} discarded ${cardsToDiscard.length} cards for Cellar`]
     };
   }
@@ -979,6 +980,18 @@ export class GameEngine {
 
     // Handle special effects
     switch (special) {
+      // === Discard and Draw ===
+      case 'discard_draw': // Cellar
+        // Cellar: +1 Action (already applied), then discard any number and draw that many
+        return {
+          ...baseState,
+          pendingEffect: {
+            card: 'Cellar',
+            effect: 'discard_for_cellar'
+          },
+          gameLog: [...baseState.gameLog, `Player ${baseState.currentPlayer + 1} played Cellar (may discard cards to draw)`]
+        };
+
       // === Trashing Cards ===
       case 'trash_up_to_4': // Chapel
         // Chapel allows trashing up to 4 cards - handled by subsequent trash_cards move
@@ -1000,7 +1013,7 @@ export class GameEngine {
           ...baseState,
           pendingEffect: {
             card: 'Remodel',
-            effect: 'trash_then_gain'
+            effect: 'trash_for_remodel'
           },
           gameLog: [...baseState.gameLog, `Player ${baseState.currentPlayer + 1} played Remodel (trash 1 card, gain +$2 cost)`]
         };
@@ -1010,7 +1023,7 @@ export class GameEngine {
           ...baseState,
           pendingEffect: {
             card: 'Mine',
-            effect: 'trash_then_gain'
+            effect: 'select_treasure_to_trash'
           },
           gameLog: [...baseState.gameLog, `Player ${baseState.currentPlayer + 1} played Mine (trash Treasure, gain Treasure +$3 to hand)`]
         };
@@ -1059,7 +1072,7 @@ export class GameEngine {
           ...baseState,
           pendingEffect: {
             card: 'Throne Room',
-            effect: 'select_action'
+            effect: 'select_action_for_throne'
           },
           gameLog: [...baseState.gameLog, `Player ${baseState.currentPlayer + 1} played Throne Room (select action to play twice)`]
         };
@@ -1265,10 +1278,16 @@ export class GameEngine {
 
   private handleChancellor(state: GameState): GameState {
     // Chancellor already gave +$2 coins in standard effects
-    // For now, auto-decline deck-to-discard option (requires user choice)
+    // Set pending effect for user to decide whether to put deck into discard
+    const player = state.players[state.currentPlayer];
     return {
       ...state,
-      gameLog: [...state.gameLog, `Player ${state.currentPlayer + 1} played Chancellor (+$2)`]
+      pendingEffect: {
+        card: 'Chancellor',
+        effect: 'chancellor_decision',
+        deckSize: player.drawPile.length
+      },
+      gameLog: [...state.gameLog, `Player ${state.currentPlayer + 1} played Chancellor (+$2, may put deck into discard)`]
     };
   }
 
