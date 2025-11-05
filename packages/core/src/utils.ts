@@ -85,8 +85,13 @@ export const PHASE4_SPECIAL_CARDS: ReadonlyArray<CardName> = [
   'Throne Room', 'Adventurer', 'Chancellor', 'Library', 'Gardens'
 ];
 
-export function createDefaultSupply(options?: { victoryPileSize?: number; kingdomCards?: ReadonlyArray<CardName>; allCards?: boolean; fullPhase1?: boolean; mvpOnly?: boolean }): ReadonlyMap<CardName, number> {
+export function createDefaultSupply(options?: { victoryPileSize?: number; kingdomCards?: ReadonlyArray<CardName>; allCards?: boolean; fullPhase1?: boolean; mvpOnly?: boolean; numPlayers?: number }): ReadonlyMap<CardName, number> {
   const victoryPileSize = options?.victoryPileSize ?? 4;
+  const numPlayers = options?.numPlayers ?? 2;
+
+  // Calculate Curse supply based on player count (Phase 4.2 requirement)
+  // 1 player: 10 Curses (solo mode), 2 players: 10, 3 players: 20, 4 players: 30
+  const curseSupply = Math.max(10, (numPlayers - 1) * 10);
 
   // Determine which kingdom cards to include
   let kingdomCards = options?.kingdomCards;
@@ -126,7 +131,7 @@ export function createDefaultSupply(options?: { victoryPileSize?: number; kingdo
     ['Estate', victoryPileSize],
     ['Duchy', victoryPileSize],
     ['Province', victoryPileSize],
-    ['Curse', 10]  // Always include Curse (Phase 4.1 requirement)
+    ['Curse', curseSupply]  // Scale by player count (Phase 4.2)
   ]);
 
   // Add kingdom cards
