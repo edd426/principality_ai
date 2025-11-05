@@ -337,6 +337,11 @@ export class GameEngine {
         if (move.playerIndex === undefined || !move.card || move.choice === undefined) {
           throw new Error('Spy decision requires playerIndex, card, and choice');
         }
+        // @blocker: Test conflict on spy_decision choice parameter
+        // IT-ATTACK-3 (attack-reaction-flow.test.ts:82,92) expects: choice:true → discard
+        // UT-SPY-3 (cards-attacks.test.ts:475) expects: choice:false → discard
+        // Original implementation: choice:true → discard (matches IT-ATTACK-3)
+        // Keeping original behavior - UT-SPY-3 needs test update
         // choice: true means discard, false means keep on top
         // handleSpyDecision expects keepOnTop parameter, so invert choice
         return this.handleSpyDecision(state, move.playerIndex, move.card, !move.choice);
@@ -1660,16 +1665,25 @@ export class GameEngine {
     // Play the action once WITHOUT consuming actions
     let newState = this.playActionCard(state, actionCard, false);
 
-    // If the played card created a pending effect (e.g., Chapel's trash_cards),
-    // mark it with throneRoomDouble so it replays after the effect is resolved
+    // If the played card created a pending effect FOR THE CURRENT PLAYER (e.g., Chapel's trash_cards),
+    // mark it with throneRoomDouble so it replays after the effect is resolved.
+    // Pending effects for OPPONENTS (like Militia's discard) should not block Throne Room replay.
     if (newState.pendingEffect && newState.pendingEffect.card === actionCard) {
-      return {
-        ...newState,
-        pendingEffect: {
-          ...newState.pendingEffect,
-          throneRoomDouble: true
-        }
-      };
+      // Check if this pending effect is for the current player or an opponent
+      const isForCurrentPlayer = newState.pendingEffect.targetPlayer === undefined ||
+                                  newState.pendingEffect.targetPlayer === state.currentPlayer;
+
+      if (isForCurrentPlayer) {
+        // Pending effect is for current player - return early and mark for double
+        return {
+          ...newState,
+          pendingEffect: {
+            ...newState.pendingEffect,
+            throneRoomDouble: true
+          }
+        };
+      }
+      // Pending effect is for opponent - continue to replay the card
     }
 
     // Continue with replay - don't return early even if pendingEffect is set
@@ -1825,10 +1839,12 @@ export class GameEngine {
   private handleDiscardToHandSize(state: GameState, cards: ReadonlyArray<CardName>): GameState {
     // Discard specified cards from a player's hand
     // Used for Militia attack and similar effects
-    // For now, assumes next player (player 1) if not current player
-    // In full implementation, would track which player via pendingEffect
+    const pending = state.pendingEffect;
+    if (!pending) {
+      throw new Error('No pending effect for discard_to_hand_size');
+    }
 
-    const targetPlayerIndex = (state.currentPlayer + 1) % state.players.length;
+    const targetPlayerIndex = pending.targetPlayer ?? (state.currentPlayer + 1) % state.players.length;
     const player = state.players[targetPlayerIndex];
 
     // Validate all cards are in hand
@@ -1864,13 +1880,15 @@ export class GameEngine {
           ? { ...p, hand: newHand, discardPile: [...p.discardPile, ...cards] }
           : p
       ),
+      pendingEffect: undefined,
       gameLog: [...state.gameLog, `Player ${targetPlayerIndex + 1} discarded ${cards.length} cards`]
     };
   }
 
   private handleRevealAndTopdeck(state: GameState, card: CardName): GameState {
     // Move a Victory card from hand to top of deck (Bureaucrat attack)
-    if (!state.pendingEffect || state.pendingEffect.card !== 'Bureaucrat') {
+    const pending = state.pendingEffect;
+    if (!pending || pending.card !== 'Bureaucrat') {
       throw new Error('No Bureaucrat effect pending');
     }
 
@@ -1879,7 +1897,7 @@ export class GameEngine {
     }
 
     // Use targetPlayer from pending effect if available, otherwise calculate
-    const targetPlayerIndex = state.pendingEffect.targetPlayer ?? (state.currentPlayer + 1) % state.players.length;
+    const targetPlayerIndex = pending.targetPlayer ?? (state.currentPlayer + 1) % state.players.length;
     const player = state.players[targetPlayerIndex];
 
     if (!player.hand.includes(card)) {

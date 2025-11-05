@@ -26,10 +26,18 @@ describe('IT: Trash Pile Mechanics', () => {
     // @req: Trash pile accumulation across turns
     const state = engine.initializeGame(1);
 
-    let currentState = state;
-
     // Turn 1: Chapel trashes 4 Estates
-    const chapel = engine.executeMove(currentState, {
+    const chapelState: GameState = {
+      ...state,
+      phase: 'action',
+      players: [{
+        ...state.players[0],
+        hand: ['Chapel', 'Estate', 'Estate', 'Estate', 'Estate'],
+        actions: 1
+      }]
+    };
+
+    const chapel = engine.executeMove(chapelState, {
       type: 'play_action',
       card: 'Chapel'
     });
@@ -47,7 +55,8 @@ describe('IT: Trash Pile Mechanics', () => {
       phase: 'action',
       players: [{
         ...chapelTrash.newState!.players[0],
-        hand: ['Moneylender', 'Copper', 'Silver']
+        hand: ['Moneylender', 'Copper', 'Silver'],
+        actions: 1
       }]
     };
 
@@ -69,7 +78,8 @@ describe('IT: Trash Pile Mechanics', () => {
       phase: 'action',
       players: [{
         ...moneylenderTrash.newState!.players[0],
-        hand: ['Remodel', 'Silver', 'Gold']
+        hand: ['Remodel', 'Silver', 'Gold'],
+        actions: 1
       }]
     };
 

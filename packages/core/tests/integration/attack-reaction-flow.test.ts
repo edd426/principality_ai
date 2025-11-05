@@ -69,7 +69,7 @@ describe('IT: Attack/Reaction Flow', () => {
       phase: 'action',
       currentPlayer: 0,
       players: [
-        { ...state.players[0], hand: ['Spy'], drawPile: ['Copper'], actions: 1 },
+        { ...state.players[0], hand: ['Spy'], drawPile: ['Copper', 'Copper'], actions: 1 },
         { ...state.players[1], drawPile: ['Estate'] },
         { ...state.players[2], drawPile: ['Gold'] }
       ]
