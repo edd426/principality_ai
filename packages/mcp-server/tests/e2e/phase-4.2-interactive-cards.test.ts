@@ -8,8 +8,7 @@
  * resolution.
  */
 
-import { GameEngine } from '../../../core/src/game';
-import { CardName, GameState } from '../../../core/src/types';
+import { GameEngine, CardName, GameState } from '@principality/core';
 
 // NOTE: These imports will fail until implementation is created
 import { MCPGameServer } from '../../src/server';

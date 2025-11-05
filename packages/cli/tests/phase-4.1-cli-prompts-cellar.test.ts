@@ -1,4 +1,4 @@
-import { GameState, CardName, Move, PendingEffect } from '../../../core/src/types';
+import { GameState, CardName, Move, PendingEffect } from '@principality/core';
 
 // @req: FR-CLI-1 - CLI SHALL detect pendingEffect and enter interactive prompt mode
 // @req: FR-CLI-2 - System SHALL generate all valid move options for pendingEffect

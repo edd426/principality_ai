@@ -57,7 +57,15 @@ describe('Phase 4.1 - Card Sorting E2E', () => {
     lines.forEach(line => {
       const matches = line.match(/([A-Z][a-z]+(?:\s[A-Z][a-z]+)?)/g);
       if (matches) {
-        cards.push(...matches);
+        // Filter to only valid card names
+        matches.forEach(match => {
+          try {
+            getCard(match);
+            cards.push(match);
+          } catch {
+            // Not a valid card, skip it
+          }
+        });
       }
     });
 
