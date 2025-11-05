@@ -333,7 +333,9 @@ export class GameEngine {
         if (move.playerIndex === undefined || !move.card || move.choice === undefined) {
           throw new Error('Spy decision requires playerIndex, card, and choice');
         }
-        return this.handleSpyDecision(state, move.playerIndex, move.card, move.choice);
+        // choice: true means discard, false means keep on top
+        // handleSpyDecision expects keepOnTop parameter, so invert choice
+        return this.handleSpyDecision(state, move.playerIndex, move.card, !move.choice);
 
       case 'select_treasure_to_trash':
         if (!move.card) {
@@ -1393,33 +1395,109 @@ export class GameEngine {
       }
     }
 
+    // Find first player with cards in deck who isn't blocked
+    let firstPlayer = 0;
+    while (firstPlayer < state.players.length) {
+      if (state.players[firstPlayer].drawPile.length > 0) {
+        // Check if blocked by Moat
+        const wasBlocked = newState.gameLog.some(log =>
+          log.includes(`Player ${firstPlayer + 1} revealed Moat and blocked Spy`)
+        );
+        if (!wasBlocked) {
+          break; // Found first player to reveal
+        }
+      }
+      firstPlayer++;
+    }
+
+    // If no players have cards, no pending effect needed
+    if (firstPlayer >= state.players.length) {
+      return {
+        ...newState,
+        gameLog: [...newState.gameLog, `Player ${newState.currentPlayer + 1} played Spy (no cards to reveal)`]
+      };
+    }
+
+    // Set up pending effect for first player with cards
     return {
       ...newState,
+      pendingEffect: {
+        card: 'Spy',
+        effect: 'spy_decision',
+        targetPlayer: firstPlayer
+      },
       gameLog: [...newState.gameLog, `Player ${newState.currentPlayer + 1} played Spy (revealing top cards)`]
     };
   }
 
   private handleSpyDecision(state: GameState, playerIndex: number, card: CardName, keepOnTop: boolean): GameState {
+    // @blocker(test:attack-reaction-flow.test.ts:95): IT-ATTACK-3 test setup issue
+    // Test has P0 drawPile: ['Copper'] but Spy's +1 Card effect draws it before reveal.
+    // After Spy is played, P0 drawPile is empty, so spy_decision(playerIndex: 0) fails.
+    // Fix: Change test line 72 to: drawPile: ['Copper', 'Copper'] (extra card for +1 draw)
+    // This ensures P0 has a card to reveal after drawing +1 Card
+
+    // Validate pending effect
+    if (!state.pendingEffect || state.pendingEffect.card !== 'Spy') {
+      throw new Error('No Spy effect pending');
+    }
+
+    if (state.pendingEffect.targetPlayer !== playerIndex) {
+      throw new Error(`Expected decision for Player ${state.pendingEffect.targetPlayer! + 1}, got Player ${playerIndex + 1}`);
+    }
+
     const player = state.players[playerIndex];
 
     // Validate card is on top of deck
+    // Skip players with empty decks (they have nothing to reveal)
     if (player.drawPile.length === 0) {
-      throw new Error(`Player ${playerIndex + 1} has no cards in deck`);
+      // No card to reveal, skip to next player
+      let nextPlayer = playerIndex + 1;
+      while (nextPlayer < state.players.length) {
+        if (state.players[nextPlayer].drawPile.length > 0) {
+          const wasBlocked = state.gameLog.some(log =>
+            log.includes(`Player ${nextPlayer + 1} revealed Moat and blocked Spy`)
+          );
+          if (!wasBlocked) {
+            break;
+          }
+        }
+        nextPlayer++;
+      }
+
+      if (nextPlayer < state.players.length) {
+        return {
+          ...state,
+          pendingEffect: {
+            ...state.pendingEffect,
+            targetPlayer: nextPlayer
+          },
+          gameLog: [...state.gameLog, `Player ${playerIndex + 1} has no cards to reveal for Spy`]
+        };
+      } else {
+        return {
+          ...state,
+          pendingEffect: undefined,
+          gameLog: [...state.gameLog, `Player ${playerIndex + 1} has no cards to reveal for Spy`]
+        };
+      }
     }
 
     if (player.drawPile[0] !== card) {
       throw new Error(`Card ${card} is not on top of Player ${playerIndex + 1}'s deck (top card is ${player.drawPile[0]})`);
     }
 
+    // Process the decision
+    let newState: GameState;
     if (keepOnTop) {
       // Keep card on top of deck (no change needed)
-      return {
+      newState = {
         ...state,
         gameLog: [...state.gameLog, `Player ${state.currentPlayer + 1} kept ${card} on top of Player ${playerIndex + 1}'s deck`]
       };
     } else {
       // Discard the card
-      return {
+      newState = {
         ...state,
         players: state.players.map((p, i) =>
           i === playerIndex
@@ -1431,6 +1509,37 @@ export class GameEngine {
             : p
         ),
         gameLog: [...state.gameLog, `Player ${state.currentPlayer + 1} discarded ${card} from Player ${playerIndex + 1}'s deck`]
+      };
+    }
+
+    // Find next player that isn't blocked by Moat
+    let nextPlayer = playerIndex + 1;
+    while (nextPlayer < newState.players.length) {
+      // Check if this player was blocked by Moat (look for Moat message in log)
+      const wasBlocked = newState.gameLog.some(log =>
+        log.includes(`Player ${nextPlayer + 1} revealed Moat and blocked Spy`)
+      );
+      if (!wasBlocked) {
+        break; // Found next unblocked player
+      }
+      nextPlayer++;
+    }
+
+    // Update or clear pending effect
+    if (nextPlayer < newState.players.length) {
+      // More players to process
+      return {
+        ...newState,
+        pendingEffect: {
+          ...state.pendingEffect,
+          targetPlayer: nextPlayer
+        }
+      };
+    } else {
+      // All players processed, clear pending effect
+      return {
+        ...newState,
+        pendingEffect: undefined
       };
     }
   }
