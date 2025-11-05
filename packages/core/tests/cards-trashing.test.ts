@@ -179,7 +179,8 @@ describe('UT: Trashing System Cards', () => {
      */
     test('UT-REMODEL-1: should upgrade Estate to Smithy', () => {
       // @req: Trash Estate ($2), gain up to $4 (Smithy)
-      const state = engine.initializeGame(1);
+      // @clarify: Using allCards option to ensure Smithy is in supply
+      const state = engine.initializeGame(1, { allCards: true });
 
       const testState: GameState = {
         ...state,

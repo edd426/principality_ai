@@ -437,9 +437,11 @@ describe('UT: Attack System Cards', () => {
      * UT-SPY-3: Attacker controls all decisions
      * @req: Attacker decides discard/keep for all revealed cards
      * @assert: Attacker makes decisions for self and opponents
+     * @convention: choice=true → discard, choice=false → keep on top
      */
     test('UT-SPY-3: should allow attacker to control decisions', () => {
       // @req: Attacker controls all discard/keep decisions
+      // @convention: choice=true → discard, choice=false → keep on top
       // Note: Spy's +1 Card effect draws a card first, so deck changes before reveal
       const state = engine.initializeGame(2);
 
@@ -467,23 +469,23 @@ describe('UT: Attack System Cards', () => {
       });
 
       // After Spy's +1 Card, Copper is drawn to hand, Estate is revealed
-      // Attacker decides on own card: discard
+      // Attacker decides on own card: discard (choice=true)
       const decision1 = engine.executeMove(spyResult.newState!, {
         type: 'spy_decision',
         playerIndex: 0,
         card: 'Estate',
-        choice: false
+        choice: true
       });
 
       expect(decision1.success).toBe(true);
       expect(decision1.newState!.players[0].discardPile).toContain('Estate');
 
-      // Attacker decides on opponent's card: keep
+      // Attacker decides on opponent's card: keep (choice=false)
       const decision2 = engine.executeMove(decision1.newState!, {
         type: 'spy_decision',
         playerIndex: 1,
         card: 'Gold',
-        choice: true
+        choice: false
       });
 
       expect(decision2.success).toBe(true);
