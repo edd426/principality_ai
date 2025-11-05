@@ -2,9 +2,40 @@
 
 **Status**: DRAFT
 **Created**: 2025-11-02
+**Last-Updated**: 2025-11-05
 **Phase**: 4
 **Total Cards**: 32 unique cards (7 basic + 25 kingdom)
 **Owner**: requirements-architect
+**Edition**: 1st Edition (see note below)
+
+---
+
+## ⚠️ IMPORTANT: Card Set Edition Notice
+
+**Current Implementation**: This document specifies the **Dominion 1st Edition base set** (25 kingdom cards).
+
+**Official Version**: The current official Dominion base set is **2nd Edition** (released Fall 2016), which has **26 kingdom cards** with the following changes:
+
+**Removed from 1st Edition** (6 cards):
+- Adventurer ($6)
+- Chancellor ($3)
+- Feast ($4)
+- Spy ($4)
+- Thief ($4)
+- Woodcutter ($3)
+
+**Added in 2nd Edition** (7 cards):
+- Artisan ($6)
+- Bandit ($5)
+- Harbinger ($3)
+- Merchant ($3)
+- Poacher ($4)
+- Sentry ($5)
+- Vassal ($3)
+
+**Migration Plan**: See `/docs/requirements/CARD_SET_EDITION_ANALYSIS.md` for complete analysis, rationale, and migration roadmap. Migration to 2nd Edition is planned for Phase 4.2-4.5.
+
+**Current Phase 4**: Implements 1st edition cards as specified below. These cards will be deprecated and replaced in future phases.
 
 ---
 
