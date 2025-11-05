@@ -318,6 +318,10 @@ export class GameEngine {
         return this.handleCellarDiscard(state, move.cards);
 
       case 'trash_cards':
+        // @blocker(test:trash-pile-mechanics.test.ts:42): IT-TRASH-PILE-1 test setup missing
+        // Test plays Chapel at line 32 without Chapel in hand. InitializeGame gives
+        // standard starting hand (7 Copper + 3 Estate). Need test to set up state like:
+        // const testState = {...state, phase: 'action', players: [{...state.players[0], hand: ['Chapel', 'Estate', ...], actions: 1}]}
         if (!move.cards) {
           throw new Error('Must specify cards to trash');
         }
@@ -1655,6 +1659,18 @@ export class GameEngine {
 
     // Play the action once WITHOUT consuming actions
     let newState = this.playActionCard(state, actionCard, false);
+
+    // If the played card created a pending effect (e.g., Chapel's trash_cards),
+    // mark it with throneRoomDouble so it replays after the effect is resolved
+    if (newState.pendingEffect && newState.pendingEffect.card === actionCard) {
+      return {
+        ...newState,
+        pendingEffect: {
+          ...newState.pendingEffect,
+          throneRoomDouble: true
+        }
+      };
+    }
 
     // Continue with replay - don't return early even if pendingEffect is set
     // Throne Room plays all instances, then any pending effects are handled afterward
