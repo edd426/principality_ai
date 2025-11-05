@@ -5,6 +5,20 @@ import { SeededRandom, createStartingDeck, createDefaultSupply, calculateScore, 
 // @decision: Helper functions for Phase 4 card mechanics
 // Placed outside GameEngine class for better separation of concerns
 
+// @resolved(commit:this): Fixed allCards option implementation (line 238-240)
+// Was returning empty array, now returns all 25 kingdom cards from KINGDOM_CARDS
+
+// @resolved(commit:this): Fixed AI Province purchase at 8 coins
+// Added fallback logic when Gold unavailable - AI now buys Province instead of end_phase
+// Tests UT-AI-DECISION-32 and UT-AI-DECISION-33 now pass
+
+// @blocker(test-architect): Phase 4 E2E tests need kingdom card specification
+// Tests affected: phase4-trashing-strategy.test.ts, phase4-attack-defense.test.ts, etc.
+// Issue: Tests use random kingdom selection but expect specific cards (Smithy, Chapel, etc.)
+// Solution: Update tests to use `initializeGame(1, { kingdomCards: ['Remodel', 'Smithy', ...] })`
+// Or use `{ allCards: true }` to include all 25 Phase 4 cards
+// Example test failure: E2E-TRASHING-3 expects Smithy but it's not in randomly selected 10 cards
+
 // @blocker(test:cards-trashing.test.ts:211): UT-REMODEL-1 test expects Smithy in supply
 // Issue: Test uses seed 'trashing-test' which randomly selects 10 cards (doesn't include Smithy)
 // Options for test-architect:
@@ -236,8 +250,8 @@ export class GameEngine {
       kingdomCards = mergedOptions.kingdomCards;
       selectedKingdomCards = mergedOptions.kingdomCards;
     } else if (mergedOptions.allCards) {
-      // Use all cards option if specified
-      kingdomCards = mergedOptions.kingdomCards || [];
+      // Use all 25 kingdom cards from Phase 4
+      kingdomCards = Object.keys(KINGDOM_CARDS) as CardName[];
       selectedKingdomCards = undefined;
     } else {
       // Default: select 10 random kingdom cards

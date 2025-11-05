@@ -2,11 +2,14 @@
  * Cards Command Implementation
  *
  * Displays a formatted table of all available cards with:
- * - All 15 cards (8 kingdom + 7 base)
+ * - All 32 cards (25 kingdom + 7 base) - Phase 4
  * - Sorted by type (action, treasure, victory, curse), then by cost, then by name
  * - Columns: Name, Cost, Type, Effect Description
  *
  * Usage: cards (no arguments)
+ *
+ * @resolved(commit:this): Fixed sorting for action-attack and action-reaction cards
+ * Added these types to typeOrder map so they sort with action cards (cost ascending)
  */
 
 import { BASIC_CARDS, KINGDOM_CARDS } from '@principality/core';
@@ -20,8 +23,11 @@ export function handleCardsCommand(): string {
   const allCards = { ...BASIC_CARDS, ...KINGDOM_CARDS };
 
   // Define sort order for card types
+  // Note: action-attack and action-reaction cards are grouped with action cards
   const typeOrder: Record<string, number> = {
     'action': 0,
+    'action-attack': 0,
+    'action-reaction': 0,
     'treasure': 1,
     'victory': 2,
     'curse': 3
@@ -30,8 +36,10 @@ export function handleCardsCommand(): string {
   // Sort by type, then cost, then name
   const sortedCards = Object.values(allCards).sort((a, b) => {
     // First, sort by type
-    if (typeOrder[a.type] !== typeOrder[b.type]) {
-      return typeOrder[a.type] - typeOrder[b.type];
+    const aOrder = typeOrder[a.type] ?? 999; // Unknown types go to end
+    const bOrder = typeOrder[b.type] ?? 999;
+    if (aOrder !== bOrder) {
+      return aOrder - bOrder;
     }
 
     // Within same type, sort by cost

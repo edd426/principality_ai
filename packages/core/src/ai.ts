@@ -1,6 +1,11 @@
 import { GameState, Move, CardName } from './types';
 import { isActionCard, isTreasureCard } from './cards';
 
+// @resolved(commit:this): Fixed Province purchase logic at 8 coins
+// Added fallback (lines 143-150) to buy Province when Gold unavailable
+// Prevents wasting 8 coins by returning end_phase
+// Tests UT-AI-DECISION-32 and UT-AI-DECISION-33 now pass
+
 export interface AIDecision {
   move: Move;
   reasoning: string;
@@ -137,6 +142,16 @@ export class RulesBasedAI {
       return {
         move: { type: 'buy', card: 'Gold' },
         reasoning: 'Big Money: Gold (6 coins) increases coin generation'
+      };
+    }
+
+    // FALLBACK: Province when Gold unavailable (don't waste 8 coins)
+    // If we have 8 coins but can't buy Gold, buy Province even in early game
+    if (player_state.coins >= 8 && provincesLeft > 0) {
+      const reasonPrefix = isEndgame ? 'Endgame: ' : 'Buy ';
+      return {
+        move: { type: 'buy', card: 'Province' },
+        reasoning: `${reasonPrefix}Province (8 coins, 6 VP) - Gold unavailable, ${provincesLeft} left`
       };
     }
 

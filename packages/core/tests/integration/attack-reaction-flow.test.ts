@@ -62,6 +62,8 @@ describe('IT: Attack/Reaction Flow', () => {
   });
 
   test('IT-ATTACK-3: should process attacks sequentially', () => {
+    // @req: Spy attack processes all players sequentially
+    // @convention: spy_decision choice=true → discard, choice=false → keep on top
     const state = engine.initializeGame(3);
 
     const testState: GameState = {
@@ -77,17 +79,17 @@ describe('IT: Attack/Reaction Flow', () => {
 
     const spy = engine.executeMove(testState, { type: 'play_action', card: 'Spy' });
 
-    // P0 decides on own card
+    // P0 decides on own card: discard (choice=true)
     const decision1 = engine.executeMove(spy.newState!, {
       type: 'spy_decision', playerIndex: 0, card: 'Copper', choice: true
     });
 
-    // P0 decides on P1's card
+    // P0 decides on P1's card: keep (choice=false)
     const decision2 = engine.executeMove(decision1.newState!, {
       type: 'spy_decision', playerIndex: 1, card: 'Estate', choice: false
     });
 
-    // P0 decides on P2's card
+    // P0 decides on P2's card: discard (choice=true)
     const decision3 = engine.executeMove(decision2.newState!, {
       type: 'spy_decision', playerIndex: 2, card: 'Gold', choice: true
     });
