@@ -67,9 +67,6 @@ npm run play -- --seed=12345
 # Start with multiple players
 npm run play -- --players=2
 
-# Quick game mode (reduced piles for faster testing)
-npm run play -- --quick-game
-
 # Stable numbers mode (for AI testing)
 npm run play -- --stable-numbers
 
@@ -77,7 +74,7 @@ npm run play -- --stable-numbers
 npm run play -- --manual-cleanup
 
 # Combine flags
-npm run play -- --seed=test --quick-game --stable-numbers
+npm run play -- --seed=test --stable-numbers
 ```
 
 ---
@@ -345,10 +342,10 @@ web           # Depends on core + cli
 - **Testing**: CLI manual testing + unit tests
 - **Commands**: `npm run play` for interactive testing
 
-### Phase 1.5 (In Progress)
+### Phase 1.5 (Complete)
 - **Focus**: CLI UX improvements
 - **Testing**: Integration tests for new features
-- **Commands**: Test with `--quick-game`, `--stable-numbers`, etc.
+- **Commands**: Test with `--stable-numbers`, `--manual-cleanup`, etc.
 
 ### Phase 2 (Future)
 - **Focus**: MCP server integration

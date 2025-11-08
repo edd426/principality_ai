@@ -238,7 +238,7 @@ describe('Feature 6: Auto-Skip Cleanup Phase', () => {
     });
 
     test('should handle flag with other options', () => {
-      const flags = parseCommandLineFlags(['--seed=123', '--manual-cleanup', '--quick-game']);
+      const flags = parseCommandLineFlags(['--seed=123', '--manual-cleanup', '--stable-numbers']);
       expect(flags.manualCleanup).toBe(true);
     });
   });
@@ -859,7 +859,7 @@ describe('Feature 6: Auto-Skip Cleanup Phase', () => {
     });
 
     test('should work with other flags', () => {
-      const args = ['--seed=123', '--quick-game', '--manual-cleanup', '--stable-numbers'];
+      const args = ['--seed=123', '--manual-cleanup', '--stable-numbers'];
       const flags = parseCommandLineFlags(args);
       expect(flags.manualCleanup).toBe(true);
     });

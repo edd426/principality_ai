@@ -191,6 +191,48 @@ describe('Phase 4.1 - Card Sorting Integration', () => {
       }
     });
 
+    it('should display cards in ascending cost then alphabetical order', () => {
+      const engine = new GameEngine('alpha-buy-sort-test');
+      const state = engine.initializeGame(1);
+      const availableCoins = 20;
+
+      const output = displayBuyOptions(state, availableCoins);
+
+      // Extract all lines with card info
+      const lines = output.split('\n').filter(line => line.startsWith('['));
+
+      // Verify both cost and alphabetical ordering
+      for (let i = 0; i < lines.length - 1; i++) {
+        const currentLine = lines[i];
+        const nextLine = lines[i + 1];
+
+        const currentCostMatch = currentLine.match(/\$(\d+)\)/);
+        const nextCostMatch = nextLine.match(/\$(\d+)\)/);
+
+        if (currentCostMatch && nextCostMatch) {
+          const currentCost = parseInt(currentCostMatch[1], 10);
+          const nextCost = parseInt(nextCostMatch[1], 10);
+
+          // Extract card names
+          const currentCardMatch = currentLine.match(/\]\s+([A-Za-z ]+)\s+\(/);
+          const nextCardMatch = nextLine.match(/\]\s+([A-Za-z ]+)\s+\(/);
+
+          if (currentCardMatch && nextCardMatch) {
+            const currentCard = currentCardMatch[1].trim();
+            const nextCard = nextCardMatch[1].trim();
+
+            if (currentCost === nextCost) {
+              // Same cost: verify alphabetical order
+              expect(currentCard.localeCompare(nextCard)).toBeLessThanOrEqual(0);
+            } else {
+              // Different cost: verify ascending
+              expect(currentCost).toBeLessThan(nextCost);
+            }
+          }
+        }
+      }
+    });
+
     it('should not show cards costing more than available coins', () => {
       const engine = new GameEngine('affordable-test');
       const state = engine.initializeGame(1);
@@ -204,6 +246,66 @@ describe('Phase 4.1 - Card Sorting Integration', () => {
 
       // Should contain Silver ($3) and cards ≤ $4
       expect(output).toContain('Silver');
+    });
+
+    it('should handle single affordable card correctly', () => {
+      const engine = new GameEngine('single-card-test');
+      const state = engine.initializeGame(1);
+      const availableCoins = 2; // Only Estate ($2) is affordable
+
+      const output = displayBuyOptions(state, availableCoins);
+
+      // Should contain Estate
+      expect(output).toContain('Estate');
+
+      // Should not contain higher-cost cards
+      expect(output).not.toContain('Silver');
+      expect(output).not.toContain('Gold');
+    });
+
+    it('should handle no affordable cards case', () => {
+      const engine = new GameEngine('no-afford-test');
+      const state = engine.initializeGame(1);
+      const availableCoins = 0; // Can only afford $0 cards (Copper, Curse)
+
+      const output = displayBuyOptions(state, availableCoins);
+
+      // Should have "Buy Options:" header
+      expect(output).toContain('Buy Options:');
+
+      // Should only show $0 cards (Copper, Curse)
+      const lines = output.split('\n').filter(line => line.startsWith('['));
+      lines.forEach(line => {
+        expect(line).toMatch(/\$0/);
+      });
+
+      // Should not show cards costing more than $0
+      expect(output).not.toContain('Estate');
+      expect(output).not.toContain('Silver');
+    });
+
+    it('should maintain order with multiple cards at same cost', () => {
+      const engine = new GameEngine('multi-same-cost-test');
+      const state = engine.initializeGame(1);
+      const availableCoins = 10;
+
+      const output = displayBuyOptions(state, availableCoins);
+
+      // Find cards at $3 cost (typically Silver, Village, Workshop)
+      const lines = output.split('\n').filter(line => line.includes('($3)'));
+
+      if (lines.length > 1) {
+        // Extract card names
+        const cards = lines.map(line => {
+          const match = line.match(/\]\s+([A-Za-z ]+)\s+\(/);
+          return match ? match[1].trim() : '';
+        }).filter(name => name);
+
+        // Verify alphabetical order within same cost
+        for (let i = 0; i < cards.length - 1; i++) {
+          expect(cards[i].localeCompare(cards[i + 1])).toBeLessThanOrEqual(0);
+        }
+      }
     });
   });
 

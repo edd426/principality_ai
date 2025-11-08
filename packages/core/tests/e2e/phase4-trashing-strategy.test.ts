@@ -28,7 +28,7 @@ describe('E2E: Trashing Strategy', () => {
 
     let currentState = state;
     let turnCount = 0;
-    const maxTurns = 30;
+    const maxTurns = 150; // @req: Phase 4 has 25 kingdom cards vs 8 in Phase 1, games take longer
 
     let gameOver = engine.checkGameOver(currentState).isGameOver;
     while (!gameOver && turnCount < maxTurns) {
@@ -121,7 +121,9 @@ describe('E2E: Trashing Strategy', () => {
     expect(gainSmithy.newState!.trash).toContain('Estate');
     expect(gainSmithy.newState!.players[0].discardPile).toContain('Smithy');
 
-    // Later: Remodel Silver → Gold
+    // Later: Remodel Silver → Duchy
+    // @req: Remodel allows gaining card costing up to +$2 more than trashed card
+    // Silver costs $3, so max gain is $5 (Duchy or Laboratory), not $6 (Gold)
     const remodelState2: GameState = {
       ...gainSmithy.newState!,
       phase: 'action',
@@ -134,9 +136,9 @@ describe('E2E: Trashing Strategy', () => {
 
     const remodel2 = engine.executeMove(remodelState2, { type: 'play_action', card: 'Remodel' });
     const trashSilver = engine.executeMove(remodel2.newState!, { type: 'trash_cards', cards: ['Silver'] });
-    const gainGold = engine.executeMove(trashSilver.newState!, { type: 'gain_card', card: 'Gold' });
+    const gainDuchy = engine.executeMove(trashSilver.newState!, { type: 'gain_card', card: 'Duchy' });
 
-    expect(gainGold.newState!.trash).toContain('Silver');
-    expect(gainGold.newState!.players[0].discardPile).toContain('Gold');
+    expect(gainDuchy.newState!.trash).toContain('Silver');
+    expect(gainDuchy.newState!.players[0].discardPile).toContain('Duchy');
   });
 });

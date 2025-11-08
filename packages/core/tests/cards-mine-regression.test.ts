@@ -1,29 +1,29 @@
 import { GameEngine, GameState } from '@principality/core';
 
 /**
- * Mine Card Regression Tests - Bug Fix for Infinite Loop
+ * Mine Card Regression Tests - Bug Fix Validation ✓ FIXED
  *
  * @phase 4.2
- * @status RED (tests will FAIL initially - proving bug exists)
- * @bug: select_treasure_to_trash incorrectly routes to handleThiefTrashTreasure()
- * @location: packages/core/src/game.ts:363-367
+ * @status GREEN (all tests passing - bug is fixed)
+ * @bug: select_treasure_to_trash incorrectly routed to handleThiefTrashTreasure() ✓ FIXED
+ * @location: packages/core/src/game.ts:368-373 (fixed routing)
  *
- * ROOT CAUSE:
- * - Line 367 calls handleThiefTrashTreasure() for select_treasure_to_trash move
- * - handleThiefTrashTreasure() is Thief-specific logic (removes from opponent's draw pile)
- * - Should instead trash from current player's HAND (not opponent's revealed cards)
+ * ROOT CAUSE (now resolved):
+ * - Previously: Line 367 called handleThiefTrashTreasure() for select_treasure_to_trash
+ * - handleThiefTrashTreasure() is Thief-specific (removes from opponent's revealed cards)
+ * - Should trash from current player's HAND (not opponent's revealed cards)
  *
- * EXPECTED BEHAVIOR (Mine card workflow):
+ * FIX APPLIED:
+ * - game.ts:368-373 now routes select_treasure_to_trash → handleTrashCards()
+ * - handleTrashCards() correctly removes treasure from player's hand
+ * - Pending effect properly advances to 'gain_treasure' step
+ *
+ * CORRECT BEHAVIOR (Mine card workflow):
  * 1. Play Mine → pendingEffect: { effect: 'select_treasure_to_trash' }
- * 2. Select treasure → TRASH from hand, pendingEffect: { effect: 'gain_treasure' }
+ * 2. Select treasure → TRASH from hand via handleTrashCards(), pendingEffect: { effect: 'gain_treasure' }
  * 3. Gain treasure → Add to hand, clear pendingEffect
  *
- * ACTUAL BUGGY BEHAVIOR:
- * - select_treasure_to_trash calls handleThiefTrashTreasure()
- * - handleThiefTrashTreasure() expects treasure in opponent's revealed cards
- * - Since no opponent revealed cards exist for Mine, causes error/infinite loop
- *
- * These tests will FAIL until dev-agent fixes the routing in game.ts:367
+ * These tests now validate the fix is working correctly.
  */
 
 describe('REGRESSION: Mine Card Bug - Treasure Selection', () => {
@@ -599,14 +599,14 @@ describe('REGRESSION: Mine Card Bug - Treasure Selection', () => {
 
   describe('BUG-MINE-5: Error message validation', () => {
     /**
-     * @req: Bug manifests as "opponent" error from handleThiefTrashTreasure
-     * @edge: Bug detection
-     * @why: select_treasure_to_trash routes to Thief handler instead of Mine handler
-     * @assert: Error mentions "opponent" (proving wrong handler is called)
+     * @req: select_treasure_to_trash routes to handleTrashCards (Mine handler) ✓ FIXED
+     * @edge: Bug fix validation
+     * @why: Previously routed to handleThiefTrashTreasure (Thief handler), causing "opponent" errors
+     * @assert: Move succeeds, Copper trashed from hand, pending effect advances
      * @level: Regression
      */
-    test('BUG PROOF: select_treasure_to_trash calls wrong handler (Thief instead of Mine)', () => {
-      // @req: This test PROVES the bug exists
+    test('POST-FIX: select_treasure_to_trash routes to correct handler (Mine, not Thief)', () => {
+      // @req: This test validates the bug fix
       const state = engine.initializeGame(1);
 
       const testState: GameState = {
@@ -626,33 +626,39 @@ describe('REGRESSION: Mine Card Bug - Treasure Selection', () => {
 
       expect(playResult.success).toBe(true);
 
-      // Select Copper to trash (BUG: routes to handleThiefTrashTreasure)
+      // Select Copper to trash (NOW FIXED: routes to handleTrashCards)
       const trashResult = engine.executeMove(playResult.newState!, {
         type: 'select_treasure_to_trash',
         card: 'Copper'
       });
 
-      // ASSERTION: Move should FAIL with "opponent" error (proving wrong handler)
-      expect(trashResult.success).toBe(false);
-      expect(trashResult.error).toBeDefined();
+      // POST-FIX ASSERTIONS: Move should succeed
+      // (Original bug assertion commented for historical documentation:)
+      // expect(trashResult.success).toBe(false);
+      // expect(trashResult.error?.toLowerCase()).toContain('opponent');
 
-      // BUG PROOF: Error mentions "opponent" (handleThiefTrashTreasure expects opponents)
-      expect(trashResult.error?.toLowerCase()).toContain('opponent');
+      // 1. Move succeeds (no longer fails with "opponent" error)
+      expect(trashResult.success).toBe(true);
 
-      // After fix, this assertion should change to:
-      // expect(trashResult.success).toBe(true);
-      // expect(trashResult.newState!.trash).toContain('Copper');
+      // 2. Copper removed from hand and trashed
+      expect(trashResult.newState!.players[0].hand).not.toContain('Copper');
+      expect(trashResult.newState!.trash).toContain('Copper');
+
+      // 3. Pending effect advances to step 2 (gain_treasure)
+      expect(trashResult.newState!.pendingEffect).toBeDefined();
+      expect(trashResult.newState!.pendingEffect?.effect).toBe('gain_treasure');
+      expect(trashResult.newState!.pendingEffect?.maxGainCost).toBe(3); // $0 + $3
     });
 
     /**
-     * @req: After fix, error for non-existent card should be about hand/treasure
+     * @req: After fix, error for non-existent card should be about hand/treasure ✓ FIXED
      * @edge: Post-fix validation
      * @why: Ensure proper error messaging after bug is fixed
      * @assert: Error should mention hand or treasure (not opponent)
      * @level: Regression
      */
-    test.skip('POST-FIX: should provide clear error if selecting non-existent treasure', () => {
-      // @req: This test will be enabled after bug fix
+    test('POST-FIX: should provide clear error if selecting non-existent treasure', () => {
+      // @req: Error messages should be Mine-specific (not Thief-specific)
       const state = engine.initializeGame(1);
 
       const testState: GameState = {

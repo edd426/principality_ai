@@ -490,19 +490,6 @@ describe('CLI Performance Tests', () => {
         'stable numbers display preparation'
       );
     });
-
-    test('should meet quick game initialization targets', async () => {
-      await PerformanceHelper.assertWithinTime(
-        () => {
-          // Simulate quick game setup
-          const cli = new PrincipalityCLI('quick-game-seed');
-          // Future: modify supply for quick game
-          return cli;
-        },
-        Phase15PerformanceUtils.getPerformanceTargets().quickGameSetup,
-        'quick game setup preparation'
-      );
-    });
   });
 
   describe('Performance regression testing', () => {

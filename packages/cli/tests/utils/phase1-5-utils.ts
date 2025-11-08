@@ -154,59 +154,6 @@ export class ChainedSubmissionTestUtils {
 }
 
 /**
- * Utilities for testing Reduced Supply Piles feature
- */
-export class QuickGameTestUtils {
-  /**
-   * Command line flags for quick game
-   */
-  static getQuickGameFlags(): string[] {
-    return ['--quick-game', '--quick'];
-  }
-
-  /**
-   * Expected pile sizes in quick game mode
-   */
-  static getQuickGamePileSizes(): Record<string, number> {
-    return {
-      'Estate': 8,     // Reduced from 12
-      'Duchy': 8,      // Reduced from 12
-      'Province': 8,   // Reduced from 12
-      'Village': 10,   // Kingdom cards unchanged
-      'Smithy': 10,    // Kingdom cards unchanged
-      'Copper': 60,    // Treasures unchanged
-      'Silver': 40,    // Treasures unchanged
-      'Gold': 30       // Treasures unchanged
-    };
-  }
-
-  /**
-   * Expected vs normal pile sizes for comparison
-   */
-  static getNormalPileSizes(): Record<string, number> {
-    return {
-      'Estate': 12,
-      'Duchy': 12,
-      'Province': 12,
-      'Village': 10,
-      'Smithy': 10,
-      'Copper': 60,
-      'Silver': 40,
-      'Gold': 30
-    };
-  }
-
-  /**
-   * Create quick game state for testing
-   */
-  static createQuickGameState() {
-    return GameStateBuilder.create()
-      .withSupply(this.getQuickGamePileSizes())
-      .build();
-  }
-}
-
-/**
  * Utilities for testing Victory Points Display feature
  */
 export class VictoryPointsTestUtils {
@@ -307,35 +254,6 @@ export class FeatureIntegrationTestUtils {
     };
   }
 
-  /**
-   * Test quick game + VP display together
-   */
-  static createQuickGameVPScenario() {
-    return {
-      state: GameStateBuilder.create()
-        .withSupply(QuickGameTestUtils.getQuickGamePileSizes())
-        .withPlayerHand(0, ['Estate', 'Duchy', 'Copper', 'Silver', 'Gold'])
-        .build(),
-      expectedVP: 4, // 1 Estate + 1 Duchy
-      flags: ['--quick-game']
-    };
-  }
-
-  /**
-   * Test all features together in a complex scenario
-   */
-  static createFullIntegrationScenario() {
-    return {
-      state: GameStateBuilder.create()
-        .withSupply(QuickGameTestUtils.getQuickGamePileSizes())
-        .withPlayerHand(0, ['Village', 'Copper', 'Copper', 'Silver', 'Estate'])
-        .withPlayerStats(0, { actions: 1, buys: 1, coins: 0 })
-        .build(),
-      commands: ['7', 'treasures', '1'], // Stable number Village, auto-play treasures, buy something
-      expectedVP: 1, // 1 Estate
-      flags: ['--stable-numbers', '--quick-game']
-    };
-  }
 }
 
 /**
@@ -350,8 +268,7 @@ export class Phase15PerformanceUtils {
       'parseChainedInput': 10,     // < 10ms for parsing chain input
       'autoPlayTreasures': 20,     // < 20ms for treasure auto-play
       'displayWithStableNumbers': 15, // < 15ms for stable number display
-      'calculateVP': 5,            // < 5ms for VP calculation
-      'quickGameSetup': 30         // < 30ms for quick game initialization
+      'calculateVP': 5             // < 5ms for VP calculation
     };
   }
 
