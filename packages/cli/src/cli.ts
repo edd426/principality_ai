@@ -1,5 +1,5 @@
 import * as readline from 'readline';
-import { GameEngine, GameState, Move, getCard, RulesBasedAI } from '@principality/core';
+import { GameEngine, GameState, Move, getCard, RulesBasedAI, MoveOption } from '@principality/core';
 import { Display } from './display';
 import { Parser, ParseResult } from './parser';
 import { formatVPDisplay, formatVPDisplayExpanded } from './vp-calculator';
@@ -176,6 +176,7 @@ export class PrincipalityCLI {
    * Called when a card requires player decision (Cellar, Chapel, etc.)
    *
    * @req: FR-CLI-1 through FR-CLI-6 - Interactive prompts for action cards
+   * @fix: Bug #37 - Use MoveOption[] as single source of truth for display and execution
    */
   private async handlePendingEffect(state: GameState): Promise<void> {
     const pendingEffect = state.pendingEffect;
@@ -186,8 +187,15 @@ export class PrincipalityCLI {
     // Get valid moves for this pending effect
     const validMoves = this.engine.getValidMoves(state);
 
-    // Display the interactive prompt
-    this.display.displayPendingEffectPrompt(state, validMoves);
+    // Display the interactive prompt and get options (SINGLE SOURCE OF TRUTH)
+    const options = this.display.displayPendingEffectPrompt(state, validMoves);
+
+    // Runtime validation: Ensure display and execution are in sync
+    if (options.length !== validMoves.length) {
+      console.error('CRITICAL: Display/execution array mismatch!');
+      console.error(`  Options: ${options.length}, ValidMoves: ${validMoves.length}`);
+      throw new Error('SSOT violation detected - please report this bug');
+    }
 
     // Get user selection
     while (true) {
@@ -200,15 +208,16 @@ export class PrincipalityCLI {
       // Parse numeric selection
       const selection = parseInt(input.trim(), 10);
 
-      // Validate selection
-      if (isNaN(selection) || selection < 1 || selection > validMoves.length) {
-        console.log(`✗ Error: Invalid selection. Please enter 1-${validMoves.length}`);
+      // Validate selection against OPTIONS array (what user saw)
+      if (isNaN(selection) || selection < 1 || selection > options.length) {
+        console.log(`✗ Error: Invalid selection. Please enter 1-${options.length}`);
         continue;
       }
 
-      // Execute the selected move
-      const selectedMove = validMoves[selection - 1];
-      const result = this.engine.executeMove(state, selectedMove);
+      // Execute the selected move from OPTIONS (not validMoves)
+      // This ensures we execute exactly what the user selected from the display
+      const selectedOption = options[selection - 1];
+      const result = this.engine.executeMove(state, selectedOption.move);
 
       if (result.success && result.newState) {
         // Get the last log entry to show what happened
