@@ -83,6 +83,7 @@ sessions/
 # Test artifacts
 test-results/
 playwright-report/
+.stryker-tmp/
 
 # Agent session files (ephemeral)
 .claude/sessions/
