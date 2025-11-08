@@ -358,6 +358,54 @@ describe('UT: Attack System Cards', () => {
       // Opponent's deck unchanged (no Victory to topdeck)
       expect(result.newState!.players[1].drawPile[0]).toBe('Estate');
     });
+
+    /**
+     * UT-BUREAUCRAT-4: All opponents affected in 3+ player game
+     * @req: Bureaucrat attack affects ALL opponents, not just one
+     * @edge: 3-player game to test multi-opponent targeting
+     * @assert: All opponents without Moat are affected
+     * @github: Issue #36
+     */
+    test('UT-BUREAUCRAT-4: should affect all opponents in 3-player game', () => {
+      // @req: All opponents affected by Bureaucrat
+      const state = engine.initializeGame(3);
+
+      const testState: GameState = {
+        ...state,
+        phase: 'action',
+        currentPlayer: 0,
+        players: [
+          {
+            ...state.players[0],
+            hand: ['Bureaucrat'],
+            actions: 1
+          },
+          {
+            ...state.players[1],
+            hand: ['Copper', 'Silver', 'Gold', 'Market'], // No Victory cards
+            drawPile: ['Estate']
+          },
+          {
+            ...state.players[2],
+            hand: ['Copper', 'Village', 'Workshop', 'Smithy'], // No Victory cards
+            drawPile: ['Duchy']
+          }
+        ]
+      };
+
+      const result = engine.executeMove(testState, {
+        type: 'play_action',
+        card: 'Bureaucrat'
+      });
+
+      expect(result.success).toBe(true);
+
+      // Both opponents should have revealed hands (no Victory cards to topdeck)
+      // Check game log for both opponent reveals
+      const logString = result.newState!.gameLog.join('\n');
+      expect(logString).toContain('Player 2 revealed hand (no Victory cards)');
+      expect(logString).toContain('Player 3 revealed hand (no Victory cards)');
+    });
   });
 
   describe('UT-SPY: All players reveal top card', () => {
