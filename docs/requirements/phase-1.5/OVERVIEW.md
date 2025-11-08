@@ -104,24 +104,20 @@ Turn 5:
 
 ### 4. Reduced Supply Pile Sizes 🎲 Could-Have
 
-**Problem**: Testing 20-turn games is slow during development
+⚠️ **DEPRECATED**: The `--quick-game` flag was never implemented. This feature is preserved for historical reference only.
 
-**Solution**: `--quick-game` flag reduces victory piles only
+**Implementation**: Game speed is now controlled via `game-config.json` with `victoryPileSize` configuration (default: 4 cards, which achieves 40% faster games than standard Dominion).
 
-**User Decision**: Provinces confirmed (not "principalities")
-- Reduce Estates, Duchies, Provinces from 12 → 8
-- Villages are kingdom cards, stay at 10
-- All kingdom cards stay at 10
-- Treasures unchanged
+**Original Problem**: Testing 20-turn games is slow during development
 
-**Example**:
-```bash
-npm run play -- --quick-game
-```
+**Original Solution**: `--quick-game` flag was planned to reduce victory piles only
+- Estates, Duchies, Provinces: 12 → 8
+- Kingdom cards: stay at 10
+- Treasures: unchanged
 
-**Impact**: Games finish in 10-15 turns instead of 20-25 (40% faster)
+**Current Status**: All games use configurable piles via `game-config.json`. Default of 4 victory cards achieves the desired 40% speedup without requiring a command-line flag.
 
-**Effort**: 2 hours
+**Effort**: 2 hours (Completed via game-config approach instead)
 
 ---
 
@@ -231,10 +227,9 @@ Victory Points: 5 VP (2 Estates, 1 Duchy)
    - Cleanup summary generation
    - `--manual-cleanup` flag handling
 
-4. **Feature 4**: Reduced Piles (2 hours)
-   - `--quick-game` flag parsing
-   - Victory pile size configuration
-   - Help text updates
+4. **Feature 4**: Reduced Piles (2 hours) [DEPRECATED - Implemented via game-config.json instead]
+   - Completed using game-config.json approach
+   - No CLI flag implementation
 
 5. **Feature 2**: Stable Numbers (3 hours partial)
    - Stable number mapping
@@ -345,7 +340,6 @@ npm run play -- [options]
 Options:
   --seed=<string>         Game seed for deterministic randomness
   --players=<number>      Number of players (default: 1)
-  --quick-game            Reduce victory piles to 8 for faster games
   --stable-numbers        Enable stable card numbering for AI agents
   --manual-cleanup        Disable auto-skip of cleanup phase
   --help                  Show help message
@@ -406,7 +400,7 @@ All requirements are finalized. No blocking questions remain.
 **Feature 1**: ✓ User can type `treasures` to play all at once
 **Feature 2**: ✓ Stable numbers never change across turns
 **Feature 3**: ✓ Chains rollback completely on any error
-**Feature 4**: ✓ `--quick-game` reduces victory piles only
+**Feature 4**: ✓ Reduced victory piles via `game-config.json` (--quick-game flag never implemented)
 **Feature 5**: ✓ VP always visible in game header
 **Feature 6**: ✓ Cleanup auto-executes when no choices exist
 

@@ -131,7 +131,7 @@ describe('Module Import Validation - Production Readiness', () => {
     expect(basicCardNames).toContain('Curse');
 
     const kingdomCardNames = Object.keys(KINGDOM_CARDS);
-    expect(kingdomCardNames.length).toBe(8);
+    expect(kingdomCardNames.length).toBe(25);
     expect(kingdomCardNames).toContain('Village');
     expect(kingdomCardNames).toContain('Smithy');
 

@@ -526,6 +526,8 @@ Or stops at first failure with clear error
 
 ## Feature 4: Reduced Supply Pile Sizes
 
+⚠️ **DEPRECATED**: The `--quick-game` command-line flag was never implemented. This documentation is preserved for historical reference. Game speed is now configured via `game-config.json` (victoryPileSize: 4 by default, which achieves the desired 40% speedup).
+
 ### User Story
 
 **As a** developer or tester

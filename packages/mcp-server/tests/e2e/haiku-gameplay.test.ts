@@ -42,6 +42,20 @@ import {
 // Skip tests if CLAUDE_API_KEY not set
 const skipIfNoKey = process.env.CLAUDE_API_KEY ? describe : describe.skip;
 
+// Helper function to extract text content from Claude response
+function extractText(response: any): string {
+  if (!response || !response.content) {
+    return '';
+  }
+  const textBlock = response.content.find((block: any) => block.type === 'text');
+  return textBlock?.text || '';
+}
+
+// Helper function to check if text contains any of the given strings
+function containsAny(text: string, ...terms: string[]): boolean {
+  return terms.some(term => text.includes(term));
+}
+
 // Tool definitions (matching MCP server)
 const GAME_SESSION_SCHEMA: ToolDefinition = {
   name: 'game_session',
@@ -115,11 +129,10 @@ skipIfNoKey('E2E: Haiku Gameplay Tests (Phase 2.1)', () => {
    */
   describe('E2E4.1: Mechanics Skill Auto-Invocation and Error Recovery', () => {
     beforeAll(async () => {
-      const result = await measureTime(async () => {
+      const result = await measureTime('Start new game', async () => {
         const response = await callClaudeWithTools(
-          'Start a new Dominion game. Play at least 3 turns and show me what happens.',
-          [GAME_SESSION_SCHEMA, GAME_OBSERVE_SCHEMA, GAME_EXECUTE_SCHEMA],
-          'Start new game with seed "test-mechanics-001"'
+          'Start a new Dominion game with seed "test-mechanics-001". Play at least 3 turns and show me what happens.',
+          [GAME_SESSION_SCHEMA, GAME_OBSERVE_SCHEMA, GAME_EXECUTE_SCHEMA]
         );
 
         sessionId = 'test-mechanics-001';
@@ -129,7 +142,7 @@ skipIfNoKey('E2E: Haiku Gameplay Tests (Phase 2.1)', () => {
       testMetrics.e2e4_1 = {
         test_id: 'E2E4.1',
         status: 'pending',
-        setup_duration_ms: result.duration
+        setup_duration_ms: result.duration_ms
       };
     });
 
@@ -138,11 +151,11 @@ skipIfNoKey('E2E: Haiku Gameplay Tests (Phase 2.1)', () => {
       // @why: Prerequisite for gameplay testing
       const response = await callClaudeWithTools(
         'What is the current game state? Show me the board.',
-        [GAME_OBSERVE_SCHEMA],
-        'Query game state'
+        [GAME_OBSERVE_SCHEMA]
       );
 
-      expect(response).toContain('phase') || expect(response).toContain('action');
+      const text = extractText(response);
+      expect(containsAny(text, 'phase', 'action')).toBeTruthy();
 
       testMetrics.e2e4_1.game_initialized = true;
     });
@@ -182,12 +195,11 @@ skipIfNoKey('E2E: Haiku Gameplay Tests (Phase 2.1)', () => {
       // @why: Recovery moves must execute successfully
       const response = await callClaudeWithTools(
         'Show me the current valid moves and verify your last move was valid.',
-        [GAME_OBSERVE_SCHEMA],
-        'Validate moves'
+        [GAME_OBSERVE_SCHEMA]
       );
 
-      expect(response).toContain('valid') || expect(response).toContain('play') ||
-        expect(response).toContain('buy');
+      const text = extractText(response);
+      expect(containsAny(text, 'valid', 'play', 'buy')).toBeTruthy();
 
       testMetrics.e2e4_1.recovery_moves_valid = true;
     });
@@ -219,12 +231,11 @@ skipIfNoKey('E2E: Haiku Gameplay Tests (Phase 2.1)', () => {
       // @why: Most critical rule - treasures must be played
       const response = await callClaudeWithTools(
         'Show me how you generate coins and then make a buying decision. Walk through each step.',
-        [GAME_OBSERVE_SCHEMA, GAME_EXECUTE_SCHEMA],
-        'Demonstrate coin generation'
+        [GAME_OBSERVE_SCHEMA, GAME_EXECUTE_SCHEMA]
       );
 
-      expect(response).toContain('play') || expect(response).toContain('treasure') ||
-        expect(response).toContain('coin');
+      const text = extractText(response);
+      expect(containsAny(text, 'play', 'treasure', 'coin')).toBeTruthy();
 
       testMetrics.e2e4_2 = {
         test_id: 'E2E4.2',
@@ -237,12 +248,11 @@ skipIfNoKey('E2E: Haiku Gameplay Tests (Phase 2.1)', () => {
       // @why: Sufficient coins before buying
       const response = await callClaudeWithTools(
         'Check your coins and tell me what you can afford to buy.',
-        [GAME_OBSERVE_SCHEMA],
-        'Check coins'
+        [GAME_OBSERVE_SCHEMA]
       );
 
-      expect(response).toContain('coin') || expect(response).toContain('afford') ||
-        expect(response).toContain('buy');
+      const text = extractText(response);
+      expect(containsAny(text, 'coin', 'afford', 'buy')).toBeTruthy();
 
       testMetrics.e2e4_2.coin_availability_checked = true;
     });
@@ -252,12 +262,12 @@ skipIfNoKey('E2E: Haiku Gameplay Tests (Phase 2.1)', () => {
       // @why: By turn 3, Claude should understand coin generation
       const response = await callClaudeWithTools(
         'Play through turns 3-5 and avoid any "insufficient coins" errors.',
-        [GAME_OBSERVE_SCHEMA, GAME_EXECUTE_SCHEMA],
-        'Play turns 3-5'
+        [GAME_OBSERVE_SCHEMA, GAME_EXECUTE_SCHEMA]
       );
 
       // Should succeed without insufficient coin errors
-      expect(response).not.toContain('insufficient');
+      const text = extractText(response);
+      expect(text).not.toContain('insufficient');
 
       testMetrics.e2e4_2.no_coin_errors_turn_3_plus = true;
     });
@@ -288,11 +298,11 @@ skipIfNoKey('E2E: Haiku Gameplay Tests (Phase 2.1)', () => {
       // @why: Action phase should only allow action cards or end
       const response = await callClaudeWithTools(
         'In the action phase, play your action cards. Tell me what phase you\'re in.',
-        [GAME_OBSERVE_SCHEMA, GAME_EXECUTE_SCHEMA],
-        'Play action phase'
+        [GAME_OBSERVE_SCHEMA, GAME_EXECUTE_SCHEMA]
       );
 
-      expect(response).toContain('action') || expect(response).toContain('phase');
+      const text = extractText(response);
+      expect(containsAny(text, 'action', 'phase')).toBeTruthy();
 
       testMetrics.e2e4_3 = {
         test_id: 'E2E4.3',
@@ -305,11 +315,11 @@ skipIfNoKey('E2E: Haiku Gameplay Tests (Phase 2.1)', () => {
       // @why: Buy phase should allow buying and ending
       const response = await callClaudeWithTools(
         'Move to buy phase and make purchases. What phase are you in now?',
-        [GAME_OBSERVE_SCHEMA, GAME_EXECUTE_SCHEMA],
-        'Move to buy phase'
+        [GAME_OBSERVE_SCHEMA, GAME_EXECUTE_SCHEMA]
       );
 
-      expect(response).toContain('buy') || expect(response).toContain('phase');
+      const text = extractText(response);
+      expect(containsAny(text, 'buy', 'phase')).toBeTruthy();
 
       testMetrics.e2e4_3.buy_phase_executed = true;
     });
@@ -319,8 +329,7 @@ skipIfNoKey('E2E: Haiku Gameplay Tests (Phase 2.1)', () => {
       // @why: Cleanup should happen without Claude interaction (mostly)
       const response = await callClaudeWithTools(
         'End your turn and tell me when cleanup happens.',
-        [GAME_EXECUTE_SCHEMA, GAME_OBSERVE_SCHEMA],
-        'End turn'
+        [GAME_EXECUTE_SCHEMA, GAME_OBSERVE_SCHEMA]
       );
 
       expect(response).toBeDefined();
@@ -333,8 +342,7 @@ skipIfNoKey('E2E: Haiku Gameplay Tests (Phase 2.1)', () => {
       // @why: No invalid phase moves
       const response = await callClaudeWithTools(
         'Play a complete turn and verify all phase transitions are correct.',
-        [GAME_OBSERVE_SCHEMA, GAME_EXECUTE_SCHEMA],
-        'Verify phases'
+        [GAME_OBSERVE_SCHEMA, GAME_EXECUTE_SCHEMA]
       );
 
       expect(response).toBeDefined();
@@ -369,12 +377,11 @@ skipIfNoKey('E2E: Haiku Gameplay Tests (Phase 2.1)', () => {
       // @why: Should follow Copper → Silver → Gold progression
       const response = await callClaudeWithTools(
         'Show me your buying strategy for treasures. What order do you buy Copper, Silver, and Gold?',
-        [GAME_OBSERVE_SCHEMA],
-        'Explain treasure progression'
+        [GAME_OBSERVE_SCHEMA]
       );
 
-      expect(response).toContain('Copper') || expect(response).toContain('Silver') ||
-        expect(response).toContain('Gold');
+      const text = extractText(response);
+      expect(containsAny(text, 'Copper', 'Silver', 'Gold')).toBeTruthy();
 
       testMetrics.e2e4_4 = {
         test_id: 'E2E4.4',
@@ -387,12 +394,11 @@ skipIfNoKey('E2E: Haiku Gameplay Tests (Phase 2.1)', () => {
       // @why: Should buy Provinces when 8 coins available
       const response = await callClaudeWithTools(
         'When do you plan to buy your first Province? What conditions must be met?',
-        [GAME_OBSERVE_SCHEMA],
-        'Explain Province timing'
+        [GAME_OBSERVE_SCHEMA]
       );
 
-      expect(response).toContain('Province') || expect(response).toContain('8') ||
-        expect(response).toContain('coin');
+      const text = extractText(response);
+      expect(containsAny(text, 'Province', '8', 'coin')).toBeTruthy();
 
       testMetrics.e2e4_4.province_timing_considered = true;
     });
@@ -402,8 +408,7 @@ skipIfNoKey('E2E: Haiku Gameplay Tests (Phase 2.1)', () => {
       // @why: Progressive coin increase indicates healthy economy
       const response = await callClaudeWithTools(
         'Play 10 turns and track your coin progression. Show how your economy grows.',
-        [GAME_OBSERVE_SCHEMA, GAME_EXECUTE_SCHEMA],
-        'Track economic growth'
+        [GAME_OBSERVE_SCHEMA, GAME_EXECUTE_SCHEMA]
       );
 
       expect(response).toBeDefined();
@@ -416,13 +421,12 @@ skipIfNoKey('E2E: Haiku Gameplay Tests (Phase 2.1)', () => {
       // @why: Expert review would rate most moves as optimal
       const response = await callClaudeWithTools(
         'Review your buying decisions and estimate what % were strategically optimal.',
-        [GAME_OBSERVE_SCHEMA],
-        'Self-evaluate strategy'
+        [GAME_OBSERVE_SCHEMA]
       );
 
       // Claude should report confidence in decisions (implies quality)
-      expect(response).toContain('optimal') || expect(response).toContain('%') ||
-        expect(response).toContain('good');
+      const text = extractText(response);
+      expect(containsAny(text, 'optimal', '%', 'good')).toBeTruthy();
 
       testMetrics.e2e4_4.move_quality_high = true;
     });
@@ -457,8 +461,7 @@ skipIfNoKey('E2E: Haiku Gameplay Tests (Phase 2.1)', () => {
       // @why: Same situation should yield same decisions
       const response = await callClaudeWithTools(
         'Play a full game with seed "consistency-seed-001". Record all your moves.',
-        [GAME_SESSION_SCHEMA, GAME_OBSERVE_SCHEMA, GAME_EXECUTE_SCHEMA],
-        'Play game run 1'
+        [GAME_SESSION_SCHEMA, GAME_OBSERVE_SCHEMA, GAME_EXECUTE_SCHEMA]
       );
 
       // Extract moves from response (mock extraction for test)
@@ -483,8 +486,7 @@ skipIfNoKey('E2E: Haiku Gameplay Tests (Phase 2.1)', () => {
       // @why: Replay with same seed should be identical/similar
       const response = await callClaudeWithTools(
         'Play another full game with seed "consistency-seed-001". Record all your moves.',
-        [GAME_SESSION_SCHEMA, GAME_OBSERVE_SCHEMA, GAME_EXECUTE_SCHEMA],
-        'Play game run 2'
+        [GAME_SESSION_SCHEMA, GAME_OBSERVE_SCHEMA, GAME_EXECUTE_SCHEMA]
       );
 
       // Extract moves from response
@@ -537,11 +539,10 @@ skipIfNoKey('E2E: Haiku Gameplay Tests (Phase 2.1)', () => {
     test('should complete full game successfully', async () => {
       // @req: FR2.2 - AC2.2 game completion
       // @why: Should reach victory condition
-      const result = await measureTime(async () => {
+      const result = await measureTime('Play full game', async () => {
         const response = await callClaudeWithTools(
           'Play a complete game to victory. Tell me when the game ends and who won.',
-          [GAME_SESSION_SCHEMA, GAME_OBSERVE_SCHEMA, GAME_EXECUTE_SCHEMA],
-          'Play full game'
+          [GAME_SESSION_SCHEMA, GAME_OBSERVE_SCHEMA, GAME_EXECUTE_SCHEMA]
         );
 
         return response;
@@ -549,12 +550,17 @@ skipIfNoKey('E2E: Haiku Gameplay Tests (Phase 2.1)', () => {
 
       testMetrics.e2e4_6 = {
         test_id: 'E2E4.6',
-        game_duration_ms: result.duration,
+        game_duration_ms: result.duration_ms,
         game_completed: true
       };
 
-      expect(result.data).toContain('end') || expect(result.data).toContain('victory') ||
-        expect(result.data).toContain('win');
+      // Extract text from response to validate game completion
+      const textContent = extractText(result.result as any);
+      expect(
+        textContent.includes('end') ||
+        textContent.includes('victory') ||
+        textContent.includes('win')
+      ).toBeTruthy();
     });
 
     test('should achieve victory condition', async () => {
@@ -562,12 +568,18 @@ skipIfNoKey('E2E: Haiku Gameplay Tests (Phase 2.1)', () => {
       // @why: Provinces empty or 3 piles empty
       const response = await callClaudeWithTools(
         'Tell me how the game ended and the final scores.',
-        [GAME_OBSERVE_SCHEMA],
-        'Report final state'
+        [GAME_OBSERVE_SCHEMA]
       );
 
-      expect(response).toContain('Province') || expect(response).toContain('end') ||
-        expect(response).toContain('pile') || expect(response).toContain('score');
+      // Extract text from response to validate victory condition
+      const textContent = response.content
+        ?.find((block: any) => block.type === 'text')?.text || '';
+      expect(
+        textContent.includes('Province') ||
+        textContent.includes('end') ||
+        textContent.includes('pile') ||
+        textContent.includes('score')
+      ).toBeTruthy();
 
       testMetrics.e2e4_6.victory_achieved = true;
     });
@@ -622,8 +634,7 @@ skipIfNoKey('E2E: Haiku Gameplay Tests (Phase 2.1)', () => {
       // @why: All moves must be logged
       const response = await callClaudeWithTools(
         'Play a game and ensure all tool calls are logged. I\'ll verify the logs.',
-        [GAME_SESSION_SCHEMA, GAME_OBSERVE_SCHEMA, GAME_EXECUTE_SCHEMA],
-        'Play with logging'
+        [GAME_SESSION_SCHEMA, GAME_OBSERVE_SCHEMA, GAME_EXECUTE_SCHEMA]
       );
 
       testMetrics.e2e4_7 = {

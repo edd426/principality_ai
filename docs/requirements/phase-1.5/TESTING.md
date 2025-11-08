@@ -324,6 +324,8 @@ test('should execute chain of 10 moves in < 100ms', () => {
 
 ## Feature 4: Reduced Supply Pile Sizes
 
+⚠️ **DEPRECATED**: The `--quick-game` command-line flag was never implemented. These test specifications are preserved for historical reference. Game speed is now controlled via `game-config.json`.
+
 ### Unit Tests
 
 #### Test Suite: `reduced-piles.test.ts`

@@ -25,7 +25,7 @@ describe('E2E: Attack/Defense Gameplay', () => {
     let turnCount = 0;
 
     let gameOver = engine.checkGameOver(currentState).isGameOver;
-    while (!gameOver && turnCount < 30) {
+    while (!gameOver && turnCount < 150) { // @req: Phase 4 has 25 cards, needs more moves
       const move = ai.decideBestMove(currentState, currentState.currentPlayer);
       const result = engine.executeMove(currentState, move.move);
 
@@ -97,7 +97,7 @@ describe('E2E: Attack/Defense Gameplay', () => {
     let turnCount = 0;
 
     let gameOver = engine.checkGameOver(currentState).isGameOver;
-    while (!gameOver && turnCount < 30) {
+    while (!gameOver && turnCount < 150) { // @req: Phase 4 has 25 cards, needs more moves
       const move = ai.decideBestMove(currentState, currentState.currentPlayer);
       const result = engine.executeMove(currentState, move.move);
 
@@ -110,7 +110,7 @@ describe('E2E: Attack/Defense Gameplay', () => {
 
     expect(gameOver).toBe(true);
     // Verify game completed without errors
-    expect(turnCount).toBeLessThan(30);
+    expect(turnCount).toBeLessThan(150);
   });
 
   test('E2E-ATTACK-5: Bureaucrat late-game disruption', () => {

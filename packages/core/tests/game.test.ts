@@ -1335,3 +1335,457 @@ describe('GameEngine - Complex Scenarios', () => {
     expect(result.error).toContain('Not enough coins');
   });
 });
+
+// ============================================================================
+// PHASE 4.1 - FEATURE 3: CARD SORTING IN BUY PHASE
+// ============================================================================
+
+/**
+ * @req: FR-SORT-1 - System SHALL sort cards by cost in ascending order
+ * @req: FR-SORT-2 - Within same cost, system SHALL sort alphabetically
+ * @req: FR-SORT-3 - Buy phase SHALL display sorted options
+ * @req: IT-SORT-2 - Buy phase shows sorted options
+ * @edge: Multiple costs | Same cost cards | Empty budget | Single card buyable
+ * @why: Players should see buy options in predictable order (cost then name)
+ * @level: Unit - tests GameEngine.getValidMoves() sorting behavior
+ */
+describe('UT-SORT - Card Sorting in Buy Phase', () => {
+  let engine: GameEngine;
+
+  beforeEach(() => {
+    engine = new GameEngine('sort-test-seed');
+  });
+
+  describe('UT-SORT-1: Buy moves sorted by cost ascending', () => {
+    // @req: FR-SORT-1 - Primary sort by cost ascending
+    // @assert: Lower cost cards appear before higher cost cards in buy moves
+    // @edge: Mixed costs from $0 to $8
+
+    it('should return buy moves sorted by cost (lowest first)', () => {
+      const state = engine.initializeGame(1);
+
+      // Set buy phase with sufficient coins to buy all affordable cards
+      const buyPhaseState: GameState = {
+        ...state,
+        phase: 'buy',
+        players: [{
+          ...state.players[0],
+          coins: 10, // Enough to buy cards up to $10
+          buys: 10   // Multiple buys allowed
+        }]
+      };
+
+      const moves = engine.getValidMoves(buyPhaseState);
+      const buyMoves = moves.filter(m => m.type === 'buy');
+
+      // Extract card costs to verify sorting
+      const cardCosts = buyMoves.map(m => {
+        const { getCard } = require('../src/cards');
+        return {
+          card: m.card!,
+          cost: getCard(m.card!).cost
+        };
+      });
+
+      // Verify ascending cost order
+      for (let i = 0; i < cardCosts.length - 1; i++) {
+        expect(cardCosts[i].cost).toBeLessThanOrEqual(cardCosts[i + 1].cost);
+      }
+    });
+
+    it('should place Copper ($0) before Silver ($3) in buy moves', () => {
+      const state = engine.initializeGame(1);
+
+      const buyPhaseState: GameState = {
+        ...state,
+        phase: 'buy',
+        players: [{
+          ...state.players[0],
+          coins: 10,
+          buys: 5
+        }]
+      };
+
+      const moves = engine.getValidMoves(buyPhaseState);
+      const buyMoves = moves.filter(m => m.type === 'buy');
+
+      // Find indices of Copper and Silver
+      const copperMove = buyMoves.findIndex(m => m.card === 'Copper');
+      const silverMove = buyMoves.findIndex(m => m.card === 'Silver');
+
+      // Both should be present
+      expect(copperMove).toBeGreaterThanOrEqual(0);
+      expect(silverMove).toBeGreaterThanOrEqual(0);
+
+      // Copper should come before Silver
+      expect(copperMove).toBeLessThan(silverMove);
+    });
+
+    it('should place Province ($8) after all lower-cost cards', () => {
+      const state = engine.initializeGame(1);
+
+      const buyPhaseState: GameState = {
+        ...state,
+        phase: 'buy',
+        players: [{
+          ...state.players[0],
+          coins: 20,
+          buys: 10
+        }]
+      };
+
+      const moves = engine.getValidMoves(buyPhaseState);
+      const buyMoves = moves.filter(m => m.type === 'buy');
+
+      // Get Province index
+      const provinceIndex = buyMoves.findIndex(m => m.card === 'Province');
+      expect(provinceIndex).toBeGreaterThanOrEqual(0);
+
+      // All cards before Province should have cost <= 8
+      const { getCard } = require('../src/cards');
+      for (let i = 0; i < provinceIndex; i++) {
+        const cardCost = getCard(buyMoves[i].card!).cost;
+        expect(cardCost).toBeLessThanOrEqual(8);
+      }
+    });
+  });
+
+  describe('UT-SORT-2: Buy moves sorted alphabetically within cost tier', () => {
+    // @req: FR-SORT-2 - Secondary sort alphabetically within same cost
+    // @assert: Same-cost cards sorted A-Z
+    // @edge: Multiple cards at $3, $4, $5 costs
+
+    it('should sort same-cost cards alphabetically', () => {
+      const state = engine.initializeGame(1);
+
+      // Set up buy phase with coins for multiple same-cost cards
+      const buyPhaseState: GameState = {
+        ...state,
+        phase: 'buy',
+        players: [{
+          ...state.players[0],
+          coins: 20,
+          buys: 10
+        }]
+      };
+
+      const moves = engine.getValidMoves(buyPhaseState);
+      const buyMoves = moves.filter(m => m.type === 'buy');
+
+      const { getCard } = require('../src/cards');
+
+      // Group cards by cost
+      const costGroups = new Map<number, string[]>();
+      buyMoves.forEach(m => {
+        const cost = getCard(m.card!).cost;
+        if (!costGroups.has(cost)) {
+          costGroups.set(cost, []);
+        }
+        costGroups.get(cost)!.push(m.card!);
+      });
+
+      // Within each cost group, verify alphabetical order
+      costGroups.forEach((cards, cost) => {
+        if (cards.length > 1) {
+          for (let i = 0; i < cards.length - 1; i++) {
+            const comparison = cards[i].localeCompare(cards[i + 1]);
+            expect(comparison).toBeLessThanOrEqual(0);
+          }
+        }
+      });
+    });
+
+    it('should handle $3 cards in alphabetical order (Village before Woodcutter)', () => {
+      const state = engine.initializeGame(1);
+
+      const buyPhaseState: GameState = {
+        ...state,
+        phase: 'buy',
+        players: [{
+          ...state.players[0],
+          coins: 3, // Just enough for $3 cards
+          buys: 5
+        }]
+      };
+
+      const moves = engine.getValidMoves(buyPhaseState);
+      const buyMoves = moves.filter(m => m.type === 'buy');
+
+      const { getCard } = require('../src/cards');
+
+      // Find $3 cards
+      const threeCardIndices: { card: string; index: number }[] = [];
+      buyMoves.forEach((m, idx) => {
+        if (getCard(m.card!).cost === 3) {
+          threeCardIndices.push({ card: m.card!, index: idx });
+        }
+      });
+
+      // If we have at least 2 cards at $3, verify alphabetical
+      if (threeCardIndices.length >= 2) {
+        for (let i = 0; i < threeCardIndices.length - 1; i++) {
+          const curr = threeCardIndices[i];
+          const next = threeCardIndices[i + 1];
+          expect(curr.index).toBeLessThan(next.index);
+          expect(curr.card.localeCompare(next.card)).toBeLessThanOrEqual(0);
+        }
+      }
+    });
+  });
+
+  describe('UT-SORT-3: Combined cost and alphabetical sorting', () => {
+    // @req: FR-SORT-1, FR-SORT-2 - Cost primary, alphabetical secondary
+    // @assert: Moves are sorted: $0 A-Z, then $2 A-Z, then $3 A-Z, etc.
+    // @why: User sees predictable, easy-to-scan buy options
+
+    it('should maintain complete cost+alphabetical sort order', () => {
+      const state = engine.initializeGame(1);
+
+      const buyPhaseState: GameState = {
+        ...state,
+        phase: 'buy',
+        players: [{
+          ...state.players[0],
+          coins: 50,
+          buys: 20
+        }]
+      };
+
+      const moves = engine.getValidMoves(buyPhaseState);
+      const buyMoves = moves.filter(m => m.type === 'buy');
+
+      const { getCard } = require('../src/cards');
+
+      // Build expected order: primary by cost, secondary by name
+      const cardData = buyMoves.map(m => ({
+        card: m.card!,
+        cost: getCard(m.card!).cost
+      }));
+
+      // Verify each card costs >= previous card
+      for (let i = 0; i < cardData.length - 1; i++) {
+        const curr = cardData[i];
+        const next = cardData[i + 1];
+
+        if (curr.cost === next.cost) {
+          // Same cost: must be alphabetical
+          expect(curr.card.localeCompare(next.card)).toBeLessThanOrEqual(0);
+        } else {
+          // Different cost: must be ascending
+          expect(curr.cost).toBeLessThan(next.cost);
+        }
+      }
+    });
+  });
+
+  describe('UT-SORT-4: Edge cases in buy move sorting', () => {
+    // @edge: Empty budget | single buyable card | no buys remaining | one card at each cost
+    // @why: Sorting must work correctly in edge scenarios
+
+    it('should handle case with no coins (no buy moves)', () => {
+      const state = engine.initializeGame(1);
+
+      const buyPhaseState: GameState = {
+        ...state,
+        phase: 'buy',
+        players: [{
+          ...state.players[0],
+          coins: 0, // No coins
+          buys: 5
+        }]
+      };
+
+      const moves = engine.getValidMoves(buyPhaseState);
+      const buyMoves = moves.filter(m => m.type === 'buy');
+
+      // @req: Can buy $0 cost cards (Copper, Curse) even with 0 coins
+      // Only Copper and Curse cost $0
+      expect(buyMoves).toHaveLength(2);
+      expect(buyMoves.map(m => m.card).sort()).toEqual(['Copper', 'Curse']);
+    });
+
+    it('should filter buy moves to only affordable cards', () => {
+      // @req: getValidMoves filters buy moves by player's available coins
+      // @edge: Multiple cards at same price point ($0, $2)
+      // @why: Phase 4 has 6 cards costing $0-$2 (Copper, Curse, Estate, Cellar, Chapel, Moat)
+      const state = engine.initializeGame(1);
+
+      const buyPhaseState: GameState = {
+        ...state,
+        phase: 'buy',
+        players: [{
+          ...state.players[0],
+          coins: 2, // Can afford $0-$2 cards only
+          buys: 1
+        }]
+      };
+
+      const moves = engine.getValidMoves(buyPhaseState);
+      const buyMoves = moves.filter(m => m.type === 'buy');
+      const buyCardNames = buyMoves.map(m => m.card);
+
+      // Should include all $0 cards (Copper, Curse)
+      expect(buyCardNames).toContain('Copper');
+      expect(buyCardNames).toContain('Curse');
+
+      // Should include all $2 cards (Estate, and some kingdom cards)
+      expect(buyCardNames).toContain('Estate');
+
+      // Should NOT include any $3+ cards (Silver, Village, Woodcutter, etc.)
+      expect(buyCardNames).not.toContain('Silver');
+      expect(buyCardNames).not.toContain('Village');
+      expect(buyCardNames).not.toContain('Smithy');
+      expect(buyCardNames).not.toContain('Duchy');
+
+      // Verify we have multiple buyable options (at least 3: Copper, Curse, Estate)
+      expect(buyMoves.length).toBeGreaterThanOrEqual(3);
+    });
+
+    it('should handle case with no buys remaining', () => {
+      const state = engine.initializeGame(1);
+
+      const buyPhaseState: GameState = {
+        ...state,
+        phase: 'buy',
+        players: [{
+          ...state.players[0],
+          coins: 20,
+          buys: 0 // No buys left
+        }]
+      };
+
+      const moves = engine.getValidMoves(buyPhaseState);
+      const buyMoves = moves.filter(m => m.type === 'buy');
+
+      // No buy moves (no buys remaining)
+      expect(buyMoves).toHaveLength(0);
+
+      // But end_phase should still be available
+      const endPhase = moves.filter(m => m.type === 'end_phase');
+      expect(endPhase).toHaveLength(1);
+    });
+
+    it('should handle empty supply piles', () => {
+      const state = engine.initializeGame(1);
+
+      // Empty some supply piles
+      const supply = new Map(state.supply);
+      supply.set('Copper', 0);
+      supply.set('Estate', 0);
+
+      const buyPhaseState: GameState = {
+        ...state,
+        phase: 'buy',
+        supply,
+        players: [{
+          ...state.players[0],
+          coins: 10,
+          buys: 5
+        }]
+      };
+
+      const moves = engine.getValidMoves(buyPhaseState);
+      const buyMoves = moves.filter(m => m.type === 'buy');
+
+      // Should not include empty piles
+      buyMoves.forEach(m => {
+        expect(supply.get(m.card!)).toBeGreaterThan(0);
+      });
+    });
+  });
+
+  describe('UT-SORT-5: Non-buy moves not affected by sorting', () => {
+    // @req: FR-SORT-3 - Sorting is display-only, no logic changes
+    // @assert: end_phase, play_treasure moves still work correctly
+    // @why: Sorting should only affect buy moves, not action/cleanup
+
+    it('should include end_phase move regardless of sorting', () => {
+      const state = engine.initializeGame(1);
+
+      const buyPhaseState: GameState = {
+        ...state,
+        phase: 'buy',
+        players: [{
+          ...state.players[0],
+          coins: 10,
+          buys: 5
+        }]
+      };
+
+      const moves = engine.getValidMoves(buyPhaseState);
+      const endPhaseMoves = moves.filter(m => m.type === 'end_phase');
+
+      expect(endPhaseMoves).toHaveLength(1);
+      expect(endPhaseMoves[0]).toEqual({ type: 'end_phase' });
+    });
+
+    it('should include treasure plays in buy phase', () => {
+      const state = engine.initializeGame(1);
+
+      const buyPhaseState: GameState = {
+        ...state,
+        phase: 'buy',
+        players: [{
+          ...state.players[0],
+          hand: ['Copper', 'Silver', 'Gold', 'Estate', 'Village'],
+          coins: 0,
+          buys: 1
+        }]
+      };
+
+      const moves = engine.getValidMoves(buyPhaseState);
+      const treasureMoves = moves.filter(m => m.type === 'play_treasure');
+
+      // Should have 3 treasure cards
+      expect(treasureMoves.length).toBeGreaterThanOrEqual(3);
+      expect(treasureMoves.some(m => m.card === 'Copper')).toBe(true);
+      expect(treasureMoves.some(m => m.card === 'Silver')).toBe(true);
+      expect(treasureMoves.some(m => m.card === 'Gold')).toBe(true);
+    });
+  });
+
+  describe('UT-SORT-6: Complex mixed scenarios', () => {
+    // @req: FR-SORT-1, FR-SORT-2 - Real-world sorting scenarios
+    // @assert: Multiple costs with multiple cards per cost all sorted
+    // @edge: Full supply with random kingdom selection
+
+    it('should sort complex supply with multiple cards at various costs', () => {
+      const state = engine.initializeGame(1);
+
+      // Random kingdom ensures variety of costs
+      // Standard MVP has: Copper ($0), Estate ($2), Silver/Village ($3),
+      // Gold ($6), Duchy ($5), Province ($8)
+
+      const buyPhaseState: GameState = {
+        ...state,
+        phase: 'buy',
+        players: [{
+          ...state.players[0],
+          coins: 20,
+          buys: 15
+        }]
+      };
+
+      const moves = engine.getValidMoves(buyPhaseState);
+      const buyMoves = moves.filter(m => m.type === 'buy');
+
+      const { getCard } = require('../src/cards');
+
+      // Verify costs are non-decreasing
+      let lastCost = -1;
+      buyMoves.forEach((m, idx) => {
+        const currentCost = getCard(m.card!).cost;
+        expect(currentCost).toBeGreaterThanOrEqual(lastCost);
+
+        // If same cost as previous, check alphabetical
+        if (currentCost === lastCost && idx > 0) {
+          const prevCard = buyMoves[idx - 1].card!;
+          const currentCard = m.card!;
+          expect(prevCard.localeCompare(currentCard)).toBeLessThanOrEqual(0);
+        }
+
+        lastCost = currentCost;
+      });
+    });
+  });
+});

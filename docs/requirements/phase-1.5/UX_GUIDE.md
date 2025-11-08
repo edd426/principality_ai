@@ -271,10 +271,13 @@ Game ends at turn 20-25 (typical)
 
 ---
 
-### AFTER (--quick-game flag) - Short game
+### AFTER (--quick-game flag) - Short game [DEPRECATED]
+
+⚠️ **DEPRECATED**: The `--quick-game` flag was never implemented. Game speed is now controlled via `game-config.json`.
 
 ```bash
-$ npm run play -- --quick-game
+$ npm run play
+# Uses default victoryPileSize: 4 from game-config.json (40% faster than standard)
 ```
 
 ```
@@ -307,7 +310,8 @@ Game ends at turn 10-15 (typical)
 ### Maximum Speed Configuration
 
 ```bash
-$ npm run play -- --quick-game --stable-numbers
+$ npm run play -- --stable-numbers
+# Uses default victoryPileSize: 4 from game-config.json (40% faster) + stable numbers
 ```
 
 ### Turn Sequence
