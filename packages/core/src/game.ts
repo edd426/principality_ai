@@ -1233,29 +1233,64 @@ export class GameEngine {
       // No Silver in supply
     }
 
-    // Set pending effect for opponent to topdeck a Victory card
-    // The attack resolution will happen via reveal_and_topdeck move
-    const opponentIndex = (newState.currentPlayer + 1) % newState.players.length;
-    const opponentPlayer = newState.players[opponentIndex];
-    const victoryCards = opponentPlayer.hand.filter(c => isVictoryCard(c));
+    // Attack ALL opponents (not just one)
+    for (let i = 0; i < newState.players.length; i++) {
+      if (i === newState.currentPlayer) continue; // Skip attacker
 
-    if (victoryCards.length === 0) {
-      // No Victory cards - attack resolves immediately
-      return {
-        ...newState,
-        gameLog: [...newState.gameLog, `Player ${opponentIndex + 1} revealed hand (no Victory cards)`, `Player ${newState.currentPlayer + 1} played Bureaucrat`]
-      };
+      // Check for Moat - if revealed, skip this player
+      if (checkForMoatReveal(newState, i)) {
+        newState = {
+          ...newState,
+          gameLog: [...newState.gameLog, `Player ${i + 1} revealed Moat and blocked Bureaucrat`]
+        };
+        continue;
+      }
+
+      const opponentPlayer = newState.players[i];
+      const victoryCards = opponentPlayer.hand.filter(c => isVictoryCard(c));
+
+      if (victoryCards.length === 0) {
+        // No Victory cards - reveal hand (auto-resolve)
+        newState = {
+          ...newState,
+          gameLog: [...newState.gameLog, `Player ${i + 1} revealed hand (no Victory cards)`]
+        };
+      } else if (victoryCards.length === 1) {
+        // Only one Victory card - auto-topdeck it (no choice needed)
+        const victoryCard = victoryCards[0];
+        const updatedPlayers = newState.players.map((p, idx) =>
+          idx === i
+            ? {
+                ...p,
+                hand: p.hand.filter(c => c !== victoryCard),
+                drawPile: [victoryCard, ...p.drawPile]
+              }
+            : p
+        );
+        newState = {
+          ...newState,
+          players: updatedPlayers,
+          gameLog: [...newState.gameLog, `Player ${i + 1} topdecked ${victoryCard}`]
+        };
+      } else {
+        // Multiple Victory cards - need user interaction
+        // Set pendingEffect and return (can only handle one at a time)
+        return {
+          ...newState,
+          pendingEffect: {
+            card: 'Bureaucrat',
+            effect: 'reveal_and_topdeck',
+            targetPlayer: i
+          },
+          gameLog: [...newState.gameLog, `Player ${newState.currentPlayer + 1} played Bureaucrat (opponent must topdeck Victory card)`]
+        };
+      }
     }
 
-    // Have opponent choose a Victory card to topdeck
+    // All opponents processed without needing user interaction
     return {
       ...newState,
-      pendingEffect: {
-        card: 'Bureaucrat',
-        effect: 'reveal_and_topdeck',
-        targetPlayer: opponentIndex
-      },
-      gameLog: [...newState.gameLog, `Player ${newState.currentPlayer + 1} played Bureaucrat (opponent must topdeck Victory card)`]
+      gameLog: [...newState.gameLog, `Player ${newState.currentPlayer + 1} played Bureaucrat`]
     };
   }
 
