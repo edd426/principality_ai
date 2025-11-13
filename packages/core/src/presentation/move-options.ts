@@ -819,7 +819,10 @@ export function generateMoveOptions(
       return [];
 
     case 'reveal_and_topdeck':
-      return generateBureaucratOptions(player.hand);
+      // Use targetPlayer from pendingEffect (Bureaucrat affects opponent, not current player)
+      const targetPlayerIndex = pendingEffect.targetPlayer ?? state.currentPlayer;
+      const targetPlayer = state.players[targetPlayerIndex];
+      return generateBureaucratOptions(targetPlayer.hand);
 
     default:
       console.warn(`generateMoveOptions: Unknown effect type: ${pendingEffect.effect}`);
