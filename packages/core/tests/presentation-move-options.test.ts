@@ -7,7 +7,7 @@
  * CLI and MCP interfaces to generate interactive card move options.
  */
 
-import { CardName } from '../src/types';
+import { CardName, GameState } from '../src/types';
 
 // NOTE: These imports will fail until implementation is created
 // This is EXPECTED and CORRECT in TDD red phase
@@ -877,6 +877,52 @@ describe('generateMoveOptions (Main Dispatcher)', () => {
     const options = generateMoveOptions(state, []);
 
     expect(options).toEqual([]);
+  });
+
+  it('should use targetPlayer hand for reveal_and_topdeck (Bureaucrat)', () => {
+    // @req: Issue #10 fix - Bureaucrat should use target player's hand, not current player's hand
+    // @assert: generateMoveOptions returns options based on targetPlayer's hand
+    const state: GameState = {
+      players: [
+        {
+          hand: ['Copper', 'Silver'], // Current player (P0) has no Victory cards
+          drawPile: [],
+          discardPile: [],
+          inPlay: [],
+          actions: 0,
+          buys: 0,
+          coins: 0
+        },
+        {
+          hand: ['Estate', 'Duchy', 'Copper'], // Target player (P1) has Victory cards
+          drawPile: [],
+          discardPile: [],
+          inPlay: [],
+          actions: 0,
+          buys: 0,
+          coins: 0
+        }
+      ],
+      currentPlayer: 0,
+      phase: 'action',
+      supply: new Map(),
+      trash: [],
+      turnNumber: 1,
+      seed: 'test',
+      gameLog: [],
+      pendingEffect: {
+        card: 'Bureaucrat',
+        effect: 'reveal_and_topdeck',
+        targetPlayer: 1 // Important: targeting player 1, not current player
+      }
+    };
+
+    const options = generateMoveOptions(state, []);
+
+    // Should have 2 options: Estate and Duchy (from player 1's hand, not player 0's)
+    expect(options.length).toBe(2);
+    expect(options[0].description).toBe('Topdeck: Estate');
+    expect(options[1].description).toBe('Topdeck: Duchy');
   });
 });
 
