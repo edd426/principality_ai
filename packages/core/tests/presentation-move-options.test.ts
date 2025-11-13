@@ -182,8 +182,9 @@ describe('generateCellarOptions', () => {
     const hand: CardName[] = ['Copper', 'Copper', 'Estate'];
     const options = generateCellarOptions(hand);
 
-    // 2^3 = 8 combinations
-    expect(options).toHaveLength(8);
+    // 6 UNIQUE combinations (not 8 with duplicates)
+    // [], [Copper], [Copper, Copper], [Estate], [Copper, Estate], [Copper, Copper, Estate]
+    expect(options).toHaveLength(6);
 
     // Verify structure of each option
     options.forEach(opt => {
@@ -893,7 +894,9 @@ describe('Performance Requirements', () => {
 
     const duration = endTime - startTime;
     expect(duration).toBeLessThan(50);
-    expect(options.length).toBe(32); // 2^5
+    // 24 UNIQUE combinations (not 32 with duplicates)
+    // 2 Coppers (0,1,2) × 1 Estate (0,1) × 1 Silver (0,1) × 1 Gold (0,1) = 3×2×2×2 = 24
+    expect(options.length).toBe(24);
   });
 
   it('should generate Chapel options in < 50ms', () => {

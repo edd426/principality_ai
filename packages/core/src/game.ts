@@ -2245,6 +2245,54 @@ export class GameEngine {
         break;
       }
 
+      case 'discard_for_cellar': {
+        // Cellar: discard any number of cards, then draw that many
+        // Generate all possible combinations of cards to discard (including nothing)
+        // IMPORTANT: Generate UNIQUE combinations (no duplicates for identical cards)
+
+        // Helper function to generate unique combinations by grouping cards by type
+        const generateUniqueDiscardCombinations = (hand: readonly CardName[]): CardName[][] => {
+          // Group cards by type and count
+          const cardCounts = new Map<CardName, number>();
+          hand.forEach(card => {
+            cardCounts.set(card, (cardCounts.get(card) || 0) + 1);
+          });
+
+          const cardTypes = Array.from(cardCounts.keys());
+          const combinations: CardName[][] = [];
+
+          // Generate all combinations using recursive backtracking
+          const generateCombinations = (index: number, currentCombo: CardName[]) => {
+            if (index === cardTypes.length) {
+              combinations.push([...currentCombo]);
+              return;
+            }
+
+            const cardType = cardTypes[index];
+            const count = cardCounts.get(cardType)!;
+
+            // For each card type, try discarding 0 to count cards of that type
+            for (let i = 0; i <= count; i++) {
+              // Add i cards of this type to the current combination
+              const cardsToAdd = Array(i).fill(cardType);
+              generateCombinations(index + 1, [...currentCombo, ...cardsToAdd]);
+            }
+          };
+
+          generateCombinations(0, []);
+          return combinations;
+        };
+
+        // Generate all unique combinations (including empty = discard nothing)
+        const allCombinations = generateUniqueDiscardCombinations(player.hand);
+
+        // Convert to moves
+        allCombinations.forEach(cards => {
+          moves.push({ type: 'discard_for_cellar', cards });
+        });
+        break;
+      }
+
       case 'trash_cards': {
         // Chapel: trash up to 4 cards (any combination)
         // Generate all possible combinations of cards to trash
