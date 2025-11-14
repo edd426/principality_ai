@@ -768,6 +768,102 @@ export function generateBureaucratOptions(hand: readonly CardName[]): MoveOption
   return options;
 }
 
+/**
+ * Generate options for Moneylender card
+ * Player may trash a Copper for +$3
+ *
+ * @param hand - Player's current hand
+ * @returns Binary choice: trash Copper or skip
+ */
+export function generateMoneylenderOptions(hand: readonly CardName[]): MoveOption[] {
+  const hasCopper = hand.includes('Copper');
+
+  if (!hasCopper) {
+    // Edge case: no Copper (should not happen as game logic checks this)
+    return [
+      {
+        index: 1,
+        move: { type: 'trash_cards', cards: [] },
+        description: "Skip (no Copper to trash)",
+        cardNames: [],
+        details: { action: 'skip' }
+      }
+    ];
+  }
+
+  return [
+    {
+      index: 1,
+      move: { type: 'trash_cards', cards: ['Copper'] },
+      description: "Trash: Copper (+$3)",
+      cardNames: ['Copper'],
+      details: { action: 'trash', coinBonus: 3 }
+    },
+    {
+      index: 2,
+      move: { type: 'trash_cards', cards: [] },
+      description: "Skip (don't trash Copper)",
+      cardNames: [],
+      details: { action: 'skip' }
+    }
+  ];
+}
+
+/**
+ * Generate options for Militia attack (discard to hand size)
+ * Player must discard down to targetSize cards (usually 3)
+ *
+ * @param hand - Player's current hand
+ * @param targetSize - Target hand size (default 3)
+ * @returns Array of all valid discard combinations
+ */
+export function generateMilitiaOptions(hand: readonly CardName[], targetSize: number = 3): MoveOption[] {
+  if (hand.length <= targetSize) {
+    // Edge case: hand already at or below target size
+    return [
+      {
+        index: 1,
+        move: { type: 'discard_to_hand_size', cards: [] },
+        description: `No discard needed (hand size: ${hand.length})`,
+        cardNames: [],
+        details: { action: 'skip', handSize: hand.length, targetSize }
+      }
+    ];
+  }
+
+  const numToDiscard = hand.length - targetSize;
+
+  // Generate all combinations of exactly numToDiscard cards
+  const allCombinations = getCombinations(hand, hand.length);
+  const validCombinations = allCombinations.filter(combo => combo.length === numToDiscard);
+
+  // Create MoveOption for each combination
+  const options: MoveOption[] = validCombinations.map((cards) => {
+    const cardList = Array.from(cards);
+    return {
+      index: 0, // Will be set after sorting
+      move: { type: 'discard_to_hand_size', cards: cardList },
+      description: `Discard: ${formatCardList(cardList)} (keep ${targetSize} cards)`,
+      cardNames: cardList,
+      details: { discardCount: cardList.length, targetSize }
+    };
+  });
+
+  // Sort by card names alphabetically for consistency
+  options.sort((a, b) => {
+    const aNames = a.cardNames?.join(',') || '';
+    const bNames = b.cardNames?.join(',') || '';
+    return aNames.localeCompare(bNames);
+  });
+
+  // Re-index after sorting (1-based)
+  options.forEach((opt, idx) => {
+    opt.index = idx + 1;
+  });
+
+  return options;
+}
+
 // ============================================================
 // MAIN DISPATCHER
 // ============================================================
@@ -799,6 +895,9 @@ export function generateMoveOptions(
     case 'trash_cards':
       return generateChapelOptions(player.hand, pendingEffect.maxTrash || 4);
 
+    case 'trash_copper':
+      return generateMoneylenderOptions(player.hand);
+
     case 'trash_for_remodel':
       return generateRemodelStep1Options(player.hand);
 
@@ -814,6 +913,10 @@ export function generateMoveOptions(
         return generateFeastOptions(state.supply, 5);
       }
       return [];
+
+    case 'gain_treasure':
+      // Mine card step 2: gain a treasure to hand
+      return generateMineStep2Options(pendingEffect.maxGainCost || 0, state.supply);
 
     case 'select_treasure_to_trash':
       // Check if this is Mine or Remodel
@@ -844,6 +947,11 @@ export function generateMoveOptions(
       const targetPlayerIndex = pendingEffect.targetPlayer ?? state.currentPlayer;
       const targetPlayer = state.players[targetPlayerIndex];
       return generateBureaucratOptions(targetPlayer.hand);
+
+    case 'discard_to_hand_size':
+      // Militia attack or similar: discard down to target hand size
+      const targetPlayer = state.players[pendingEffect.targetPlayer ?? state.currentPlayer];
+      return generateMilitiaOptions(targetPlayer.hand, 3);
 
     default:
       console.warn(`generateMoveOptions: Unknown effect type: ${pendingEffect.effect}`);
