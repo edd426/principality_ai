@@ -56,22 +56,26 @@ export interface MoveOption {
 // ============================================================
 
 /**
- * Generate all combinations of items from an array up to maxSize
- * Uses iterative bit-masking approach for efficiency
+ * Generate all UNIQUE combinations of items from an array up to maxSize
+ * Handles duplicate items correctly by grouping by value
  *
- * @param arr - Array of items to combine
+ * @param arr - Array of items to combine (may contain duplicates)
  * @param maxSize - Maximum size of combinations to generate
- * @returns Array of all combinations (including empty)
+ * @returns Array of all unique combinations (including empty)
  *
  * @example
  * getCombinations(['A', 'B'], 2) => [[], ['A'], ['B'], ['A', 'B']]
+ * getCombinations(['A', 'A', 'B'], 2) => [[], ['A'], ['A', 'A'], ['B'], ['A', 'B']]
+ *
+ * @bug-fix GH-8-BUG-2: Previous implementation used bit-masking on array positions,
+ * treating duplicate items as distinct, creating duplicate combinations.
+ * New implementation groups items by value and generates unique combinations.
  */
 export function getCombinations<T>(
   arr: readonly T[],
   maxSize: number
 ): ReadonlyArray<ReadonlyArray<T>> {
   const n = arr.length;
-  const combinations: T[][] = [];
 
   // Edge case: empty array
   if (n === 0) {
@@ -86,26 +90,43 @@ export function getCombinations<T>(
   // Limit maxSize to array length
   const effectiveMaxSize = Math.min(maxSize, n);
 
-  // Generate all combinations using bit-masking
-  // For n items, there are 2^n combinations (including empty)
-  const totalCombinations = Math.pow(2, n);
+  // Group items by value and count occurrences
+  const itemCounts = new Map<T, number>();
+  arr.forEach(item => {
+    itemCounts.set(item, (itemCounts.get(item) || 0) + 1);
+  });
 
-  for (let mask = 0; mask < totalCombinations; mask++) {
-    const combination: T[] = [];
+  const uniqueItems = Array.from(itemCounts.keys());
+  const combinations: T[][] = [];
 
-    for (let i = 0; i < n; i++) {
-      // Check if bit i is set in mask
-      if ((mask & (1 << i)) !== 0) {
-        combination.push(arr[i]);
+  // Generate all unique combinations using recursive backtracking
+  const generateCombinations = (index: number, currentCombo: T[]) => {
+    // Base case: processed all unique items
+    if (index === uniqueItems.length) {
+      // Only add combinations that don't exceed maxSize
+      if (currentCombo.length <= effectiveMaxSize) {
+        combinations.push([...currentCombo]);
       }
+      return;
     }
 
-    // Only include combinations up to maxSize
-    if (combination.length <= effectiveMaxSize) {
-      combinations.push(combination);
-    }
-  }
+    const item = uniqueItems[index];
+    const count = itemCounts.get(item)!;
 
+    // For each unique item, try adding 0 to count occurrences
+    for (let i = 0; i <= count; i++) {
+      // Skip if adding i items would exceed maxSize
+      if (currentCombo.length + i > effectiveMaxSize) {
+        break;
+      }
+
+      // Add i copies of this item and recurse
+      const itemsToAdd = Array(i).fill(item);
+      generateCombinations(index + 1, [...currentCombo, ...itemsToAdd]);
+    }
+  };
+
+  generateCombinations(0, []);
   return combinations;
 }
 
