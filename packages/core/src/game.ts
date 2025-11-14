@@ -584,14 +584,22 @@ export class GameEngine {
   private endPhase(state: GameState): GameState {
     switch (state.phase) {
       case 'action':
-        return { ...state, phase: 'buy' };
-      
+        return {
+          ...state,
+          phase: 'buy',
+          gameLog: [...state.gameLog, `Player ${state.currentPlayer + 1} ended action phase`]
+        };
+
       case 'buy':
-        return { ...state, phase: 'cleanup' };
-      
+        return {
+          ...state,
+          phase: 'cleanup',
+          gameLog: [...state.gameLog, `Player ${state.currentPlayer + 1} ended buy phase`]
+        };
+
       case 'cleanup':
         return this.performCleanup(state);
-      
+
       default:
         throw new Error(`Cannot end unknown phase: ${state.phase}`);
     }
