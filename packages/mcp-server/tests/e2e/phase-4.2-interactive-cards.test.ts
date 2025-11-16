@@ -52,9 +52,10 @@ describe('E2E: Interactive Cards via MCP', () => {
       // Play Cellar
       const playResponse = await call('game_execute', { move: 'play_action Cellar' });
       expect(playResponse.success).toBe(true);
-      expect(playResponse.pendingEffect).toBeDefined();
-      expect(playResponse.pendingEffect.card).toBe('Cellar');
-      expect(playResponse.pendingEffect.effect).toBe('discard_for_cellar');
+      expect(playResponse.pendingEffect).toMatchObject({
+        card: 'Cellar',
+        effect: 'discard_for_cellar'
+      });
       expect(playResponse.pendingEffect.options.length).toBeGreaterThan(0);
 
       // Select discard option (option 1 - discard most cards)
@@ -65,8 +66,10 @@ describe('E2E: Interactive Cards via MCP', () => {
       expect(resolveResponse.message).toContain('Discarded');
 
       // Verify game state updated correctly
-      expect(resolveResponse.gameState).toBeDefined();
-      expect(resolveResponse.validMoves).toBeDefined();
+      expect(resolveResponse.gameState).toMatchObject({
+        phase: expect.any(String)
+      });
+      expect(resolveResponse.validMoves).toBeInstanceOf(Array);
     });
 
     it('should handle numeric selection for Cellar', async () => {
@@ -103,9 +106,10 @@ describe('E2E: Interactive Cards via MCP', () => {
       // Play Chapel
       const playResponse = await call('game_execute', { move: 'play_action Chapel' });
       expect(playResponse.success).toBe(true);
-      expect(playResponse.pendingEffect).toBeDefined();
-      expect(playResponse.pendingEffect.card).toBe('Chapel');
-      expect(playResponse.pendingEffect.effect).toBe('trash_cards');
+      expect(playResponse.pendingEffect).toMatchObject({
+        card: 'Chapel',
+        effect: 'trash_cards'
+      });
 
       // Trash cards (up to 4)
       const trashCmd = playResponse.pendingEffect.options[0].command;
@@ -138,9 +142,10 @@ describe('E2E: Interactive Cards via MCP', () => {
       // Step 1: Play Remodel
       const step1Response = await call('game_execute', { move: 'play_action Remodel' });
       expect(step1Response.success).toBe(true);
-      expect(step1Response.pendingEffect).toBeDefined();
-      expect(step1Response.pendingEffect.card).toBe('Remodel');
-      expect(step1Response.pendingEffect.step).toBe(1);
+      expect(step1Response.pendingEffect).toMatchObject({
+        card: 'Remodel',
+        step: 1
+      });
       expect(step1Response.message).toContain('Step 1');
 
       // Step 2: Trash Estate ($2)
@@ -149,8 +154,9 @@ describe('E2E: Interactive Cards via MCP', () => {
       );
       const step2Response = await call('game_execute', { move: trashEstateOpt!.command });
       expect(step2Response.success).toBe(true);
-      expect(step2Response.pendingEffect).toBeDefined();
-      expect(step2Response.pendingEffect.step).toBe(2);
+      expect(step2Response.pendingEffect).toMatchObject({
+        step: 2
+      });
       expect(step2Response.message).toContain('Step 2');
 
       // Step 3: Gain Smithy ($4)
@@ -189,15 +195,17 @@ describe('E2E: Interactive Cards via MCP', () => {
       // Step 1: Play Mine
       const step1Response = await call('game_execute', { move: 'play_action Mine' });
       expect(step1Response.success).toBe(true);
-      expect(step1Response.pendingEffect).toBeDefined();
-      expect(step1Response.pendingEffect.step).toBe(1);
+      expect(step1Response.pendingEffect).toMatchObject({
+        step: 1
+      });
 
       // Step 2: Trash Copper treasure
       const trashCmd = step1Response.pendingEffect.options[0].command;
       const step2Response = await call('game_execute', { move: trashCmd });
       expect(step2Response.success).toBe(true);
-      expect(step2Response.pendingEffect).toBeDefined();
-      expect(step2Response.pendingEffect.step).toBe(2);
+      expect(step2Response.pendingEffect).toMatchObject({
+        step: 2
+      });
 
       // Step 3: Gain Silver to hand
       const gainCmd = step2Response.pendingEffect.options[0].command;
@@ -245,8 +253,9 @@ describe('E2E: Interactive Cards via MCP', () => {
       // Play Workshop
       const playResponse = await call('game_execute', { move: 'play_action Workshop' });
       expect(playResponse.success).toBe(true);
-      expect(playResponse.pendingEffect).toBeDefined();
-      expect(playResponse.pendingEffect.card).toBe('Workshop');
+      expect(playResponse.pendingEffect).toMatchObject({
+        card: 'Workshop'
+      });
 
       // Gain card up to $4
       const gainCmd = playResponse.pendingEffect.options[0].command;
@@ -273,8 +282,9 @@ describe('E2E: Interactive Cards via MCP', () => {
       // Play Feast
       const playResponse = await call('game_execute', { move: 'play_action Feast' });
       expect(playResponse.success).toBe(true);
-      expect(playResponse.pendingEffect).toBeDefined();
-      expect(playResponse.pendingEffect.card).toBe('Feast');
+      expect(playResponse.pendingEffect).toMatchObject({
+        card: 'Feast'
+      });
 
       // Gain card up to $5
       const gainCmd = playResponse.pendingEffect.options[0].command;
@@ -361,8 +371,9 @@ describe('E2E: Interactive Cards via MCP', () => {
       // Play Throne Room
       const playResponse = await call('game_execute', { move: 'play_action Throne Room' });
       expect(playResponse.success).toBe(true);
-      expect(playResponse.pendingEffect).toBeDefined();
-      expect(playResponse.pendingEffect.card).toBe('Throne Room');
+      expect(playResponse.pendingEffect).toMatchObject({
+        card: 'Throne Room'
+      });
 
       // Select Village to play twice
       const villageOpt = playResponse.pendingEffect.options.find((opt: any) =>
@@ -399,7 +410,7 @@ describe('E2E: Interactive Cards via MCP', () => {
         opt.description.toLowerCase().includes('skip')
       );
 
-      expect(skipOpt).toBeDefined();
+      expect(skipOpt).toBeTruthy();
     });
   });
 
@@ -410,8 +421,9 @@ describe('E2E: Interactive Cards via MCP', () => {
       // Play Chancellor
       const playResponse = await call('game_execute', { move: 'play_action Chancellor' });
       expect(playResponse.success).toBe(true);
-      expect(playResponse.pendingEffect).toBeDefined();
-      expect(playResponse.pendingEffect.card).toBe('Chancellor');
+      expect(playResponse.pendingEffect).toMatchObject({
+        card: 'Chancellor'
+      });
 
       // Should have 2 options: move deck to discard or keep
       expect(playResponse.pendingEffect.options).toHaveLength(2);
@@ -433,7 +445,7 @@ describe('E2E: Interactive Cards via MCP', () => {
         opt.description.match(/\d+/)
       );
 
-      expect(deckSizeOption).toBeDefined();
+      expect(deckSizeOption).toBeTruthy();
     });
   });
 
@@ -538,7 +550,7 @@ describe('E2E: Interactive Cards via MCP', () => {
         const revealOpt = playResponse.pendingEffect.options.find((opt: any) =>
           opt.description.includes('Reveal hand')
         );
-        expect(revealOpt).toBeDefined();
+        expect(revealOpt).toBeTruthy();
       }
     });
   });
@@ -594,7 +606,7 @@ describe('E2E: Interactive Cards via MCP', () => {
 
       const duration = endTime - startTime;
       expect(duration).toBeLessThan(100);
-      expect(playResponse.pendingEffect).toBeDefined();
+      expect(playResponse.pendingEffect).toBeTruthy();
     });
   });
 });
