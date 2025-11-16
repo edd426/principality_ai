@@ -86,4 +86,5 @@ export interface GameOptions {
   victoryPileSize?: number; // Number of Estate/Duchy/Province cards (default: 4)
   kingdomCards?: ReadonlyArray<CardName>; // Kingdom cards to include in supply (default: Phase 1 cards)
   allCards?: boolean; // Include all Phase 4 cards (ignores kingdomCards if true)
+  debugMode?: boolean; // Enable debug mode for inspecting hidden game state (default: false)
 }

@@ -32,6 +32,7 @@ async function main(): Promise<void> {
   let players = 1;
   let stableNumbers = false;
   let manualCleanup = false;
+  let debugMode = false;
 
   // Look for flags
   for (let i = 0; i < args.length; i++) {
@@ -53,11 +54,13 @@ async function main(): Promise<void> {
       stableNumbers = true;
     } else if (args[i] === '--manual-cleanup') {
       manualCleanup = true;
+    } else if (args[i] === '--debug') {
+      debugMode = true;
     }
   }
 
   // Create and start the CLI with options
-  const cli = new PrincipalityCLI(seed, players, { victoryPileSize, stableNumbers, manualCleanup });
+  const cli = new PrincipalityCLI(seed, players, { victoryPileSize, stableNumbers, manualCleanup, debugMode });
   await cli.start();
 }
 
