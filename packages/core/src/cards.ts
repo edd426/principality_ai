@@ -115,8 +115,8 @@ export const KINGDOM_CARDS: Record<CardName, Card> = {
     name: 'Council Room',
     type: 'action',
     cost: 5,
-    effect: { cards: 4, buys: 1 },
-    description: '+4 Cards, +1 Buy'
+    effect: { cards: 4, buys: 1, special: 'each_other_player_draws_1' },
+    description: '+4 Cards, +1 Buy. Each other player draws 1 card.'
   },
   'Cellar': {
     name: 'Cellar',
