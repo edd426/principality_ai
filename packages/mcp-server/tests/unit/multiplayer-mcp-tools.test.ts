@@ -42,8 +42,12 @@ describe('Feature 5: Multiplayer MCP Tools', () => {
       expect(state.supply.size).toBe(8);
 
       // Verify player structure
-      expect(state.players[0]).toBeDefined();
-      expect(state.players[1]).toBeDefined();
+      expect(state.players[0]).toMatchObject({
+        hand: expect.any(Array)
+      });
+      expect(state.players[1]).toMatchObject({
+        hand: expect.any(Array)
+      });
       expect(state.players[0].hand).toHaveLength(5);
       expect(state.players[1].hand).toHaveLength(5);
     });
@@ -65,8 +69,16 @@ describe('Feature 5: Multiplayer MCP Tools', () => {
       const state = engine.initializeGame(2);
 
       // Structure allows for player type tracking at MCP layer
-      expect(state.players[0]).toBeDefined();
-      expect(state.players[1]).toBeDefined();
+      expect(state.players[0]).toMatchObject({
+        hand: expect.any(Array),
+        drawPile: expect.any(Array),
+        discardPile: expect.any(Array)
+      });
+      expect(state.players[1]).toMatchObject({
+        hand: expect.any(Array),
+        drawPile: expect.any(Array),
+        discardPile: expect.any(Array)
+      });
 
       // At MCP layer, would track: players[0].type = 'human', players[1].type = 'ai'
     });
@@ -106,8 +118,16 @@ describe('Feature 5: Multiplayer MCP Tools', () => {
       // Expected: playerMetadata[0] = { id: 0, type: 'human', name: 'Player 0' }
       //          playerMetadata[1] = { id: 1, type: 'ai', name: 'Rules-based AI' }
 
-      expect(state.players[0]).toBeDefined();
-      expect(state.players[1]).toBeDefined();
+      expect(state.players[0]).toMatchObject({
+        hand: expect.any(Array),
+        drawPile: expect.any(Array),
+        discardPile: expect.any(Array)
+      });
+      expect(state.players[1]).toMatchObject({
+        hand: expect.any(Array),
+        drawPile: expect.any(Array),
+        discardPile: expect.any(Array)
+      });
     });
   });
 
@@ -130,7 +150,10 @@ describe('Feature 5: Multiplayer MCP Tools', () => {
       const result = engine.executeMove(state, validMoves[0]);
 
       expect(result.success).toBe(true);
-      expect(result.newState).toBeDefined();
+      expect(result.newState).toMatchObject({
+        players: expect.any(Array),
+        phase: expect.any(String)
+      });
 
       // Response structure:
       // {
@@ -234,7 +257,7 @@ describe('Feature 5: Multiplayer MCP Tools', () => {
       const result = engine.executeMove(state, { type: 'end_phase' });
 
       if (result.newState) {
-        expect(result.newState.currentPlayer).toBeDefined();
+        expect(result.newState.currentPlayer).toBeGreaterThanOrEqual(0);
         expect([0, 1]).toContain(result.newState.currentPlayer);
       }
     });
@@ -319,7 +342,7 @@ describe('Feature 5: Multiplayer MCP Tools', () => {
       //   myBuys: 1
       // }
 
-      expect(p0.hand).toBeDefined();
+      expect(p0.hand).toBeInstanceOf(Array);
       expect(p0.hand).toHaveLength(5);
 
       const vpCount = p0.hand.filter(c => ['Estate', 'Duchy', 'Province'].includes(c)).length;
@@ -356,8 +379,8 @@ describe('Feature 5: Multiplayer MCP Tools', () => {
       const vp = p1.hand.filter(c => ['Estate', 'Duchy', 'Province'].includes(c)).length;
       expect(vp).toBeGreaterThanOrEqual(0);
 
-      expect(p1.inPlay).toBeDefined();
-      expect(p1.discardPile).toBeDefined();
+      expect(p1.inPlay).toBeInstanceOf(Array);
+      expect(p1.discardPile).toBeInstanceOf(Array);
     });
   });
 
@@ -378,7 +401,7 @@ describe('Feature 5: Multiplayer MCP Tools', () => {
       //   ...
       // }
 
-      expect(state.supply).toBeDefined();
+      expect(state.supply).toBeInstanceOf(Map);
       expect(state.supply.size).toBe(8);
 
       const expectedCards = [
@@ -403,7 +426,7 @@ describe('Feature 5: Multiplayer MCP Tools', () => {
 
       const state = engine.initializeGame(2);
 
-      expect(state.currentPlayer).toBeDefined();
+      expect(state.currentPlayer).toBeGreaterThanOrEqual(0);
       expect([0, 1]).toContain(state.currentPlayer);
 
       // gameOver would be determined by checking supply
@@ -428,8 +451,8 @@ describe('Feature 5: Multiplayer MCP Tools', () => {
       const p1 = state.players[1];
 
       // P0 perspective: own info first, opponent second
-      expect(p0.hand).toBeDefined();
-      expect(p1.hand).toBeDefined();
+      expect(p0.hand).toBeInstanceOf(Array);
+      expect(p1.hand).toBeInstanceOf(Array);
 
       expect(p0.hand).toHaveLength(5);
       expect(p1.hand).toHaveLength(5);
@@ -454,8 +477,8 @@ describe('Feature 5: Multiplayer MCP Tools', () => {
       const p1 = state.players[1];
 
       // P1 perspective: own info first, opponent (P0) second
-      expect(p1.hand).toBeDefined();
-      expect(p0.hand).toBeDefined();
+      expect(p1.hand).toBeInstanceOf(Array);
+      expect(p0.hand).toBeInstanceOf(Array);
 
       expect(p1.hand).toHaveLength(5);
       expect(p0.hand).toHaveLength(5);
@@ -501,8 +524,8 @@ describe('Feature 5: Multiplayer MCP Tools', () => {
       const p1 = state.players[1];
 
       // Should have observed state
-      expect(p0.hand).toBeDefined();
-      expect(p1.hand).toBeDefined();
+      expect(p0.hand).toBeInstanceOf(Array);
+      expect(p1.hand).toBeInstanceOf(Array);
     });
   });
 
@@ -531,7 +554,10 @@ describe('Feature 5: Multiplayer MCP Tools', () => {
       // }
 
       // For now, verify state structure supports AI execution
-      expect(state.players[1]).toBeDefined();
+      expect(state.players[1]).toMatchObject({
+        hand: expect.any(Array),
+        drawPile: expect.any(Array)
+      });
     });
   });
 
@@ -637,7 +663,10 @@ describe('Feature 5: Multiplayer MCP Tools', () => {
         }
       }
 
-      expect(state).toBeDefined();
+      expect(state).toMatchObject({
+        players: expect.any(Array),
+        phase: expect.any(String)
+      });
       expect(state.players).toHaveLength(2);
     });
   });

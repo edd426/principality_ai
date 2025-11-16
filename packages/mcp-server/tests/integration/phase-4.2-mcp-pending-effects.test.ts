@@ -47,8 +47,9 @@ describe('MCP Pending Effect Detection', () => {
       const response = await tool.execute({ move: 'play_action Cellar' });
 
       expect(response.success).toBe(true);
-      expect(response.pendingEffect).toBeDefined();
-      expect(response.pendingEffect!.card).toBe('Cellar');
+      expect(response.pendingEffect).toMatchObject({
+        card: 'Cellar'
+      });
     });
 
     it('should NOT include pendingEffect for normal moves', async () => {
@@ -68,8 +69,9 @@ describe('MCP Pending Effect Detection', () => {
       const response = await tool.execute({ move: 'play_action Chapel' });
 
       expect(response.success).toBe(true);
-      expect(response.pendingEffect).toBeDefined();
-      expect(response.pendingEffect!.card).toBe('Chapel');
+      expect(response.pendingEffect).toMatchObject({
+        card: 'Chapel'
+      });
     });
 
     it('should detect pendingEffect after Remodel is played', async () => {
@@ -79,9 +81,10 @@ describe('MCP Pending Effect Detection', () => {
       const response = await tool.execute({ move: 'play_action Remodel' });
 
       expect(response.success).toBe(true);
-      expect(response.pendingEffect).toBeDefined();
-      expect(response.pendingEffect!.card).toBe('Remodel');
-      expect(response.pendingEffect!.step).toBe(1);
+      expect(response.pendingEffect).toMatchObject({
+        card: 'Remodel',
+        step: 1
+      });
     });
 
     it('should detect pendingEffect after Mine is played', async () => {
@@ -91,9 +94,10 @@ describe('MCP Pending Effect Detection', () => {
       const response = await tool.execute({ move: 'play_action Mine' });
 
       expect(response.success).toBe(true);
-      expect(response.pendingEffect).toBeDefined();
-      expect(response.pendingEffect!.card).toBe('Mine');
-      expect(response.pendingEffect!.step).toBe(1);
+      expect(response.pendingEffect).toMatchObject({
+        card: 'Mine',
+        step: 1
+      });
     });
 
     it('should detect pendingEffect after Workshop is played', async () => {
@@ -103,8 +107,9 @@ describe('MCP Pending Effect Detection', () => {
       const response = await tool.execute({ move: 'play_action Workshop' });
 
       expect(response.success).toBe(true);
-      expect(response.pendingEffect).toBeDefined();
-      expect(response.pendingEffect!.card).toBe('Workshop');
+      expect(response.pendingEffect).toMatchObject({
+        card: 'Workshop'
+      });
     });
 
     it('should detect pendingEffect after Feast is played', async () => {
@@ -114,8 +119,9 @@ describe('MCP Pending Effect Detection', () => {
       const response = await tool.execute({ move: 'play_action Feast' });
 
       expect(response.success).toBe(true);
-      expect(response.pendingEffect).toBeDefined();
-      expect(response.pendingEffect!.card).toBe('Feast');
+      expect(response.pendingEffect).toMatchObject({
+        card: 'Feast'
+      });
     });
 
     it('should detect pendingEffect after Library is played', async () => {
@@ -137,8 +143,9 @@ describe('MCP Pending Effect Detection', () => {
       const response = await tool.execute({ move: 'play_action Throne Room' });
 
       expect(response.success).toBe(true);
-      expect(response.pendingEffect).toBeDefined();
-      expect(response.pendingEffect!.card).toBe('Throne Room');
+      expect(response.pendingEffect).toMatchObject({
+        card: 'Throne Room'
+      });
     });
 
     it('should detect pendingEffect after Chancellor is played', async () => {
@@ -148,8 +155,9 @@ describe('MCP Pending Effect Detection', () => {
       const response = await tool.execute({ move: 'play_action Chancellor' });
 
       expect(response.success).toBe(true);
-      expect(response.pendingEffect).toBeDefined();
-      expect(response.pendingEffect!.card).toBe('Chancellor');
+      expect(response.pendingEffect).toMatchObject({
+        card: 'Chancellor'
+      });
     });
   });
 
@@ -183,7 +191,7 @@ describe('MCP Pending Effect Detection', () => {
 
       const response = await tool.execute({ move: 'play_action Cellar' });
 
-      expect(response.pendingEffect).toBeDefined();
+      expect(response.pendingEffect?.options).toBeDefined();
       const options = response.pendingEffect!.options;
       options.forEach((opt, idx) => {
         expect(opt.index).toBe(idx + 1);
@@ -196,7 +204,7 @@ describe('MCP Pending Effect Detection', () => {
 
       const response = await tool.execute({ move: 'play_action Cellar' });
 
-      expect(response.pendingEffect).toBeDefined();
+      expect(response.pendingEffect?.options).toBeDefined();
       const options = response.pendingEffect!.options;
       expect(options[0].command).toMatch(/^discard_for_cellar/);
     });
@@ -207,7 +215,7 @@ describe('MCP Pending Effect Detection', () => {
 
       const response = await tool.execute({ move: 'play_action Cellar' });
 
-      expect(response.pendingEffect).toBeDefined();
+      expect(response.pendingEffect?.options).toBeDefined();
       const options = response.pendingEffect!.options;
       expect(options[0].description).toBeTruthy();
       expect(options[0].description.length).toBeGreaterThan(5);
@@ -233,7 +241,7 @@ describe('MCP Pending Effect Detection', () => {
 
       // Step 1: Play Cellar
       const response1 = await tool.execute({ move: 'play_action Cellar' });
-      expect(response1.pendingEffect).toBeDefined();
+      expect(response1.pendingEffect?.options).toBeDefined();
       const command = response1.pendingEffect!.options[0].command;
 
       // Step 2: Execute command
@@ -308,8 +316,7 @@ describe('MCP Pending Effect Detection', () => {
       const response = await tool.execute({ move: 'select 99' });
 
       expect(response.success).toBe(false);
-      expect(response.error).toBeDefined();
-      expect(response.error!.message).toContain('Invalid selection');
+      expect(response.error?.message).toContain('Invalid selection');
     });
 
     it('should provide helpful error for invalid numeric selection', async () => {
@@ -317,7 +324,7 @@ describe('MCP Pending Effect Detection', () => {
       tool.setState(state);
 
       const response1 = await tool.execute({ move: 'play_action Cellar' });
-      expect(response1.pendingEffect).toBeDefined();
+      expect(response1.pendingEffect?.options).toBeDefined();
       const optionCount = response1.pendingEffect!.options.length;
 
       const response2 = await tool.execute({ move: 'select 100' });
@@ -339,15 +346,17 @@ describe('MCP Pending Effect Detection', () => {
 
       // Step 1: Play Remodel
       const step1 = await tool.execute({ move: 'play_action Remodel' });
-      expect(step1.pendingEffect).toBeDefined();
-      expect(step1.pendingEffect!.step).toBe(1);
-      expect(step1.pendingEffect!.card).toBe('Remodel');
+      expect(step1.pendingEffect).toMatchObject({
+        step: 1,
+        card: 'Remodel'
+      });
 
       // Step 2: Trash Estate
       const trashCmd = step1.pendingEffect!.options[0].command;
       const step2 = await tool.execute({ move: trashCmd });
-      expect(step2.pendingEffect).toBeDefined();
-      expect(step2.pendingEffect!.step).toBe(2);
+      expect(step2.pendingEffect).toMatchObject({
+        step: 2
+      });
 
       // Step 3: Gain card
       const gainCmd = step2.pendingEffect!.options[0].command;
@@ -362,14 +371,16 @@ describe('MCP Pending Effect Detection', () => {
 
       // Step 1: Play Mine
       const step1 = await tool.execute({ move: 'play_action Mine' });
-      expect(step1.pendingEffect).toBeDefined();
-      expect(step1.pendingEffect!.step).toBe(1);
+      expect(step1.pendingEffect).toMatchObject({
+        step: 1
+      });
 
       // Step 2: Trash treasure
       const trashCmd = step1.pendingEffect!.options[0].command;
       const step2 = await tool.execute({ move: trashCmd });
-      expect(step2.pendingEffect).toBeDefined();
-      expect(step2.pendingEffect!.step).toBe(2);
+      expect(step2.pendingEffect).toMatchObject({
+        step: 2
+      });
 
       // Step 3: Gain treasure to hand
       const gainCmd = step2.pendingEffect!.options[0].command;
@@ -385,7 +396,7 @@ describe('MCP Pending Effect Detection', () => {
       const step1 = await tool.execute({ move: 'play_action Remodel' });
       expect(step1.message).toContain('Step 1');
 
-      expect(step1.pendingEffect).toBeDefined();
+      expect(step1.pendingEffect?.options).toBeDefined();
       const trashCmd = step1.pendingEffect!.options[0].command;
       const step2 = await tool.execute({ move: trashCmd });
       expect(step2.message).toContain('Step 2');
@@ -397,7 +408,7 @@ describe('MCP Pending Effect Detection', () => {
 
       const step1 = await tool.execute({ move: 'play_action Remodel' });
 
-      expect(step1.pendingEffect).toBeDefined();
+      expect(step1.pendingEffect?.options).toBeDefined();
       // Trash Estate ($2) - should enable gain up to $4
       const trashEstateCmd = step1.pendingEffect!.options.find(opt =>
         opt.description.includes('Estate')
@@ -406,8 +417,9 @@ describe('MCP Pending Effect Detection', () => {
       const step2 = await tool.execute({ move: trashEstateCmd! });
 
       // Verify step 2 options respect maxGainCost of $4
-      expect(step2.pendingEffect).toBeDefined();
-      expect(step2.pendingEffect!.effect).toBe('gain_card');
+      expect(step2.pendingEffect).toMatchObject({
+        effect: 'gain_card'
+      });
       // Options should be limited to cards costing ≤ $4
     });
   });
@@ -526,8 +538,7 @@ describe('MCP Pending Effect Detection', () => {
       const response = await tool.execute({ move: 'play_action Village' });
 
       expect(response.success).toBe(false);
-      expect(response.error).toBeDefined();
-      expect(response.error!.message).toContain('pending');
+      expect(response.error?.message).toContain('pending');
     });
 
     it('should handle wrong pending effect type', async () => {
@@ -540,8 +551,7 @@ describe('MCP Pending Effect Detection', () => {
       const response = await tool.execute({ move: 'trash_cards Copper' });
 
       expect(response.success).toBe(false);
-      expect(response.error).toBeDefined();
-      expect(response.error!.message).toContain('Expected');
+      expect(response.error?.message).toContain('Expected');
     });
 
     it('should preserve state on error', async () => {
@@ -549,7 +559,7 @@ describe('MCP Pending Effect Detection', () => {
       tool.setState(state);
 
       const response1 = await tool.execute({ move: 'play_action Cellar' });
-      expect(response1.pendingEffect).toBeDefined();
+      expect(response1.pendingEffect?.options).toBeDefined();
       const originalPendingEffect = response1.pendingEffect!;
 
       // Submit invalid selection (should fail but preserve pending effect)
@@ -559,7 +569,7 @@ describe('MCP Pending Effect Detection', () => {
       // Try a valid move to verify pending effect is still there
       const validResponse = await tool.execute({ move: originalPendingEffect.options[0].command });
       // If this succeeds, it means the pending effect was preserved
-      expect(validResponse).toBeDefined();
+      expect(validResponse.success).toBe(true);
     });
 
     it('should provide helpful error messages', async () => {
@@ -571,9 +581,8 @@ describe('MCP Pending Effect Detection', () => {
       const response = await tool.execute({ move: 'invalid_command' });
 
       expect(response.success).toBe(false);
-      expect(response.error).toBeDefined();
-      expect(response.error!.message).toBeTruthy();
-      expect(response.error!.suggestion).toBeTruthy();
+      expect(response.error?.message).toBeTruthy();
+      expect(response.error?.suggestion).toBeTruthy();
     });
 
     it('should handle empty supply gracefully', async () => {
@@ -592,9 +601,8 @@ describe('MCP Pending Effect Detection', () => {
       const response = await tool.execute({ move: 'play_action Workshop' });
 
       expect(response.success).toBe(true);
-      expect(response.pendingEffect).toBeDefined();
-      expect(response.pendingEffect!.options).toHaveLength(1);
-      expect(response.pendingEffect!.options[0].description).toContain('No cards available');
+      expect(response.pendingEffect?.options).toHaveLength(1);
+      expect(response.pendingEffect?.options[0].description).toContain('No cards available');
     });
   });
 
@@ -618,9 +626,8 @@ describe('MCP Pending Effect Detection', () => {
 
       const response = await tool.execute({ move: 'play_action Cellar' });
 
-      expect(response.pendingEffect).toBeDefined();
-      expect(response.pendingEffect!.options.length).toBeLessThanOrEqual(50);
-      if (response.pendingEffect!.options.length === 50) {
+      expect(response.pendingEffect?.options.length).toBeLessThanOrEqual(50);
+      if (response.pendingEffect?.options.length === 50) {
         expect(response.message).toContain('Showing first 50');
       }
     });
@@ -656,7 +663,7 @@ describe('MCP Pending Effect Detection', () => {
       tool.setState(state);
 
       const response1 = await tool.execute({ move: 'play_action Cellar' });
-      expect(response1.pendingEffect).toBeDefined();
+      expect(response1.pendingEffect?.options).toBeDefined();
 
       const response2 = await tool.execute({ move: response1.pendingEffect!.options[0].command });
       expect(response2.success).toBe(true);
@@ -668,7 +675,7 @@ describe('MCP Pending Effect Detection', () => {
       tool.setState(state);
 
       const response1 = await tool.execute({ move: 'play_action Chapel' });
-      expect(response1.pendingEffect).toBeDefined();
+      expect(response1.pendingEffect?.options).toBeDefined();
 
       const response2 = await tool.execute({ move: response1.pendingEffect!.options[0].command });
       expect(response2.success).toBe(true);
@@ -680,9 +687,9 @@ describe('MCP Pending Effect Detection', () => {
       tool.setState(state);
 
       const step1 = await tool.execute({ move: 'play_action Remodel' });
-      expect(step1.pendingEffect).toBeDefined();
+      expect(step1.pendingEffect?.options).toBeDefined();
       const step2 = await tool.execute({ move: step1.pendingEffect!.options[0].command });
-      expect(step2.pendingEffect).toBeDefined();
+      expect(step2.pendingEffect?.options).toBeDefined();
       const final = await tool.execute({ move: step2.pendingEffect!.options[0].command });
 
       expect(final.success).toBe(true);
@@ -694,9 +701,9 @@ describe('MCP Pending Effect Detection', () => {
       tool.setState(state);
 
       const step1 = await tool.execute({ move: 'play_action Mine' });
-      expect(step1.pendingEffect).toBeDefined();
+      expect(step1.pendingEffect?.options).toBeDefined();
       const step2 = await tool.execute({ move: step1.pendingEffect!.options[0].command });
-      expect(step2.pendingEffect).toBeDefined();
+      expect(step2.pendingEffect?.options).toBeDefined();
       const final = await tool.execute({ move: step2.pendingEffect!.options[0].command });
 
       expect(final.success).toBe(true);
@@ -708,7 +715,7 @@ describe('MCP Pending Effect Detection', () => {
       tool.setState(state);
 
       const response1 = await tool.execute({ move: 'play_action Workshop' });
-      expect(response1.pendingEffect).toBeDefined();
+      expect(response1.pendingEffect?.options).toBeDefined();
       const response2 = await tool.execute({ move: response1.pendingEffect!.options[0].command });
 
       expect(response2.success).toBe(true);
@@ -720,7 +727,7 @@ describe('MCP Pending Effect Detection', () => {
       tool.setState(state);
 
       const response1 = await tool.execute({ move: 'play_action Feast' });
-      expect(response1.pendingEffect).toBeDefined();
+      expect(response1.pendingEffect?.options).toBeDefined();
       const response2 = await tool.execute({ move: response1.pendingEffect!.options[0].command });
 
       expect(response2.success).toBe(true);
@@ -740,7 +747,7 @@ describe('MCP Pending Effect Detection', () => {
       tool.setState(stateWithVillage);
 
       const response1 = await tool.execute({ move: 'play_action Throne Room' });
-      expect(response1.pendingEffect).toBeDefined();
+      expect(response1.pendingEffect?.options).toBeDefined();
       const response2 = await tool.execute({ move: response1.pendingEffect!.options[0].command });
 
       expect(response2.success).toBe(true);
@@ -751,7 +758,7 @@ describe('MCP Pending Effect Detection', () => {
       tool.setState(state);
 
       const response1 = await tool.execute({ move: 'play_action Chancellor' });
-      expect(response1.pendingEffect).toBeDefined();
+      expect(response1.pendingEffect?.options).toBeDefined();
       const response2 = await tool.execute({ move: response1.pendingEffect!.options[0].command });
 
       expect(response2.success).toBe(true);

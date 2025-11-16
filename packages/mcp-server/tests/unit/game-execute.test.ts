@@ -92,7 +92,9 @@ describe('Feature 3: game_execute and game_session Tools', () => {
       // Either engine was called OR state was successfully returned
       // Don't assert specific call counts (implementation detail)
       // Instead: Verify move doesn't crash and processing completes
-      expect(response).toBeDefined();
+      expect(response).toMatchObject({
+        success: expect.any(Boolean)
+      });
     });
 
     test('should prevent invalid move syntax from executing', async () => {
@@ -577,8 +579,10 @@ describe('Feature 3: game_execute and game_session Tools', () => {
 
       expect(response.success).toBe(true);
       expect(response.message).toContain('treasure(s)');
-      expect(response.gameState).toBeDefined();
-      expect(response.validMoves).toBeDefined();
+      expect(response.gameState).toMatchObject({
+        phase: expect.any(String)
+      });
+      expect(response.validMoves).toBeInstanceOf(Array);
     });
 
     // UT-ACC.2: Case insensitive parsing
@@ -664,8 +668,10 @@ describe('Feature 3: game_execute and game_session Tools', () => {
 
       expect(response.success).toBe(false);
       expect(response.error?.message).toContain('No treasures');
-      expect(response.gameState).toBeDefined();
-      expect(response.validMoves).toBeDefined();
+      expect(response.gameState).toMatchObject({
+        phase: expect.any(String)
+      });
+      expect(response.validMoves).toBeInstanceOf(Array);
     });
 
     // UT-ACC.5: Error when wrong phase
@@ -689,7 +695,9 @@ describe('Feature 3: game_execute and game_session Tools', () => {
       expect(response.success).toBe(false);
       expect(response.error?.message).toContain('Action phase');
       expect(response.error?.suggestion).toContain('end');
-      expect(response.gameState).toBeDefined();
+      expect(response.gameState).toMatchObject({
+        phase: expect.any(String)
+      });
     });
 
     // UT-ACC.6: Batch with mixed hand
@@ -763,8 +771,9 @@ describe('Feature 3: game_execute and game_session Tools', () => {
       const response = await tool.execute({ move: 'buy Copper' });
 
       expect(response.success).toBe(true);
-      expect(response.gameState).toBeDefined();
-      expect(response.gameState.phase).toBe('buy');
+      expect(response.gameState).toMatchObject({
+        phase: 'buy'
+      });
       expect(response.gameState.currentCoins).toBe(3);
       expect(response.validMoves).toBeInstanceOf(Array);
       expect(response.gameOver).toBe(false);
@@ -784,10 +793,11 @@ describe('Feature 3: game_execute and game_session Tools', () => {
       const response = await tool.execute({ move: 'buy Province', reasoning: 'I have coins' });
 
       expect(response.success).toBe(false);
-      expect(response.error).toBeDefined();
-      expect(response.gameState).toBeDefined();
-      expect(response.validMoves).toBeDefined();
-      expect(response.gameState.currentCoins).toBe(0);
+      expect(response.error?.message).toBeTruthy();
+      expect(response.gameState).toMatchObject({
+        currentCoins: 0
+      });
+      expect(response.validMoves).toBeInstanceOf(Array);
     });
 
     // UT-ACC.9: Response schema validation
@@ -809,15 +819,12 @@ describe('Feature 3: game_execute and game_session Tools', () => {
 
       const response = await tool.execute({ move: 'end' });
 
-      expect(response.success).toBeDefined();
       expect(typeof response.success).toBe('boolean');
-      expect(response.message).toBeDefined();
       expect(typeof response.message).toBe('string');
-      expect(response.gameState).toBeDefined();
+      expect(response.message).toBeTruthy();
       expect(typeof response.gameState).toBe('object');
-      expect(response.validMoves).toBeDefined();
+      expect(response.gameState).toBeTruthy();
       expect(Array.isArray(response.validMoves)).toBe(true);
-      expect(response.gameOver).toBeDefined();
       expect(typeof response.gameOver).toBe('boolean');
     });
   });
@@ -886,9 +893,10 @@ describe('Feature 3: game_execute and game_session Tools', () => {
       const response = await tool.execute({ move: 'end' });
 
       expect(response.success).toBe(true);
-      expect(response.gameState).toBeDefined();
-      expect(response.gameState?.phase).toBe('action'); // Should be at next turn action phase
-      expect(response.gameState?.turnNumber).toBe(2); // Should have advanced to turn 2
+      expect(response.gameState).toMatchObject({
+        phase: 'action', // Should be at next turn action phase
+        turnNumber: 2 // Should have advanced to turn 2
+      });
     });
 
     test('UT-CLEANUP-2: Auto-skip includes cleanup transition in logs', async () => {
@@ -1006,8 +1014,8 @@ describe('Feature 3: game_execute and game_session Tools', () => {
       expect(response.gameState?.turnNumber).toBe(6);
 
       // Valid moves should be action phase moves (not cleanup end_phase)
-      expect(response.validMoves).toBeDefined();
       expect(Array.isArray(response.validMoves)).toBe(true);
+      expect(response.validMoves).toBeTruthy();
     });
   });
 
