@@ -12,6 +12,8 @@ export interface CardEffect {
   special?: string;
 }
 
+export type DominionEdition = '1st' | '2nd' | 'both';
+
 export interface Card {
   name: CardName;
   type: CardType;
@@ -19,6 +21,7 @@ export interface Card {
   effect: CardEffect;
   description: string;
   victoryPoints?: number;
+  edition: DominionEdition;  // Which edition(s) this card appears in
 }
 
 export interface PlayerState {
@@ -86,4 +89,5 @@ export interface GameOptions {
   victoryPileSize?: number; // Number of Estate/Duchy/Province cards (default: 4)
   kingdomCards?: ReadonlyArray<CardName>; // Kingdom cards to include in supply (default: Phase 1 cards)
   allCards?: boolean; // Include all Phase 4 cards (ignores kingdomCards if true)
+  edition?: '1st' | '2nd' | 'mixed'; // Edition selection: '1st', '2nd', or 'mixed' (default: '2nd')
 }

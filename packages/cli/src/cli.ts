@@ -15,6 +15,7 @@ export interface CLIOptions {
   stableNumbers?: boolean;
   autoPlayTreasures?: boolean;
   manualCleanup?: boolean;
+  edition?: '1st' | '2nd' | 'mixed';
 }
 
 /**
@@ -37,7 +38,7 @@ export class PrincipalityCLI {
     this.numPlayers = players;
 
     // Initialize engine with options
-    this.engine = new GameEngine(gameSeed, { victoryPileSize: options.victoryPileSize });
+    this.engine = new GameEngine(gameSeed, { victoryPileSize: options.victoryPileSize, edition: options.edition });
     this.gameState = this.engine.initializeGame(players);
 
     // Initialize AI with same seed for deterministic behavior
