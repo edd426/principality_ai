@@ -27,6 +27,8 @@ import {
   generateChancellorOptions,
   generateSpyOptions,
   generateBureaucratOptions,
+  generateMoneylenderOptions,
+  generateMilitiaOptions,
   formatMoveCommand,
   getCombinations,
   formatCardList,
@@ -157,6 +159,35 @@ describe('Helper Functions', () => {
       const command = formatMoveCommand(move);
 
       expect(command).toBe('reveal_and_topdeck Estate');
+    });
+
+    // @req: Issue #28 - Missing move type formatting tests
+    it('should format discard_to_hand_size move with cards', () => {
+      const move = { type: 'discard_to_hand_size' as const, cards: ['Copper', 'Estate'] };
+      const command = formatMoveCommand(move);
+
+      expect(command).toBe('discard_to_hand_size Copper,Estate');
+    });
+
+    it('should format discard_to_hand_size move with no cards', () => {
+      const move = { type: 'discard_to_hand_size' as const, cards: [] };
+      const command = formatMoveCommand(move);
+
+      expect(command).toBe('discard_to_hand_size');
+    });
+
+    it('should format reveal_reaction move', () => {
+      const move = { type: 'reveal_reaction' as const, card: 'Moat' };
+      const command = formatMoveCommand(move);
+
+      expect(command).toBe('reveal_reaction Moat');
+    });
+
+    it('should format gain_trashed_card move', () => {
+      const move = { type: 'gain_trashed_card' as const, card: 'Silver' };
+      const command = formatMoveCommand(move);
+
+      expect(command).toBe('gain_trashed_card Silver');
     });
   });
 
@@ -749,6 +780,91 @@ describe('generateBureaucratOptions', () => {
   });
 });
 
+// @req: Issue #28 - Missing generator tests
+describe('generateMoneylenderOptions', () => {
+  it('should generate trash and skip options when Copper is in hand', () => {
+    const hand: CardName[] = ['Copper', 'Estate', 'Silver'];
+    const options = generateMoneylenderOptions(hand);
+
+    expect(options).toHaveLength(2);
+    expect(options[0].move.type).toBe('trash_cards');
+    expect(options[0].move.cards).toEqual(['Copper']);
+    expect(options[0].description).toContain('Trash: Copper');
+    expect(options[1].move.cards).toEqual([]);
+    expect(options[1].description).toContain('Skip');
+  });
+
+  it('should handle no Copper gracefully', () => {
+    const hand: CardName[] = ['Estate', 'Silver'];
+    const options = generateMoneylenderOptions(hand);
+
+    expect(options).toHaveLength(1);
+    expect(options[0].description).toContain('Skip');
+    expect(options[0].description).toContain('no Copper');
+  });
+
+  it('should include coin bonus in description', () => {
+    const hand: CardName[] = ['Copper'];
+    const options = generateMoneylenderOptions(hand);
+
+    expect(options[0].description).toContain('+$3');
+  });
+});
+
+describe('generateMilitiaOptions', () => {
+  it('should generate discard combinations when hand > target size', () => {
+    const hand: CardName[] = ['Copper', 'Copper', 'Estate', 'Silver', 'Gold'];
+    const options = generateMilitiaOptions(hand, 3);
+
+    // Must discard exactly 2 cards from 5-card hand
+    // Number of combinations: C(5,2) accounting for duplicates
+    expect(options.length).toBeGreaterThan(0);
+    options.forEach(opt => {
+      expect(opt.move.type).toBe('discard_to_hand_size');
+      expect(opt.move.cards?.length).toBe(2); // Exactly 2 discards
+    });
+  });
+
+  it('should handle hand already at target size', () => {
+    const hand: CardName[] = ['Copper', 'Copper', 'Estate'];
+    const options = generateMilitiaOptions(hand, 3);
+
+    expect(options).toHaveLength(1);
+    expect(options[0].move.cards).toEqual([]);
+    expect(options[0].description).toContain('No discard needed');
+  });
+
+  it('should handle hand below target size', () => {
+    const hand: CardName[] = ['Copper', 'Estate'];
+    const options = generateMilitiaOptions(hand, 3);
+
+    expect(options).toHaveLength(1);
+    expect(options[0].move.cards).toEqual([]);
+    expect(options[0].description).toContain('No discard needed');
+  });
+
+  it('should sort options alphabetically by card names', () => {
+    const hand: CardName[] = ['Copper', 'Estate', 'Silver', 'Gold'];
+    const options = generateMilitiaOptions(hand, 3);
+
+    // Check that options are sorted
+    for (let i = 0; i < options.length - 1; i++) {
+      const currentNames = options[i].cardNames?.join(',') || '';
+      const nextNames = options[i + 1].cardNames?.join(',') || '';
+      expect(currentNames.localeCompare(nextNames)).toBeLessThanOrEqual(0);
+    }
+  });
+
+  it('should include target size in details', () => {
+    const hand: CardName[] = ['Copper', 'Copper', 'Estate', 'Silver'];
+    const options = generateMilitiaOptions(hand, 3);
+
+    options.forEach(opt => {
+      expect(opt.details.targetSize).toBe(3);
+    });
+  });
+});
+
 describe('generateMoveOptions (Main Dispatcher)', () => {
   // @req: FR-SHARED-3 - Main generator dispatcher
   // @assert: Dispatcher routes to correct generator based on pendingEffect
@@ -923,6 +1039,97 @@ describe('generateMoveOptions (Main Dispatcher)', () => {
     expect(options.length).toBe(2);
     expect(options[0].description).toBe('Topdeck: Estate');
     expect(options[1].description).toBe('Topdeck: Duchy');
+  });
+
+  // @req: Issue #28 - Edge case tests for dispatcher
+  it('should route to generateMineStep2Options for gain_treasure effect', () => {
+    const state = createTestState({
+      card: 'Mine',
+      effect: 'gain_treasure',
+      maxGainCost: 5
+    });
+    const options = generateMoveOptions(state, []);
+
+    expect(options.length).toBeGreaterThan(0);
+    expect(options[0].move.type).toBe('gain_card');
+  });
+
+  it('should route to generateMoneylenderOptions for trash_copper effect', () => {
+    const state = createTestState({
+      card: 'Moneylender',
+      effect: 'trash_copper'
+    });
+    const options = generateMoveOptions(state, []);
+
+    expect(options.length).toBeGreaterThan(0);
+    expect(options[0].move.type).toBe('trash_cards');
+  });
+
+  it('should route to generateMilitiaOptions for discard_to_hand_size effect', () => {
+    const stateWithLargeHand: GameState = {
+      players: [
+        {
+          hand: ['Copper', 'Copper', 'Estate', 'Silver', 'Gold'],
+          drawPile: [],
+          discardPile: [],
+          inPlay: [],
+          actions: 0,
+          buys: 0,
+          coins: 0
+        }
+      ],
+      currentPlayer: 0,
+      phase: 'action',
+      supply: new Map(),
+      trash: [],
+      turnNumber: 1,
+      seed: 'test',
+      gameLog: [],
+      pendingEffect: {
+        card: 'Militia',
+        effect: 'discard_to_hand_size',
+        targetPlayer: 0
+      }
+    };
+    const options = generateMoveOptions(stateWithLargeHand, []);
+
+    expect(options.length).toBeGreaterThan(0);
+    expect(options[0].move.type).toBe('discard_to_hand_size');
+  });
+
+  it('should warn when unknown effect type is encountered', () => {
+    const consoleSpy = jest.spyOn(console, 'warn').mockImplementation();
+
+    const state = createTestState({
+      card: 'Unknown',
+      effect: 'unknown_effect_type'
+    });
+    const options = generateMoveOptions(state, []);
+
+    expect(consoleSpy).toHaveBeenCalledWith(
+      expect.stringContaining('Unknown effect type: unknown_effect_type')
+    );
+    expect(options).toEqual([]);
+
+    consoleSpy.mockRestore();
+  });
+
+  it('should warn when spy_decision is missing required data', () => {
+    const consoleSpy = jest.spyOn(console, 'warn').mockImplementation();
+
+    const state = createTestState({
+      card: 'Spy',
+      effect: 'spy_decision'
+      // Missing revealedCard and targetPlayer
+    });
+    const options = generateMoveOptions(state, []);
+
+    expect(consoleSpy).toHaveBeenCalledWith(
+      expect.stringContaining('spy_decision missing required pendingEffect data')
+    );
+    expect(options).toEqual([]);
+
+    consoleSpy.mockRestore();
   });
 });
 
