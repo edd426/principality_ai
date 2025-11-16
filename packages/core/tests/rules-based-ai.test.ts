@@ -61,8 +61,9 @@ describe('Feature 2: Rules-based AI Opponent', () => {
 
       // STRENGTHENED: Specific assertions instead of just checking existence
       expect(result.success).toBe(true);
-      expect(result.newState).toBeDefined();
-      expect(result.newState?.phase).toBeDefined(); // Verify state structure
+      expect(result.newState).toBeTruthy();
+      expect(typeof result.newState).toBe('object');
+      expect(typeof result.newState?.phase).toBe('string'); // Verify state structure
       expect(result.newState?.players).toHaveLength(2); // Verify game state integrity
     });
   });
@@ -232,7 +233,7 @@ describe('Feature 2: Rules-based AI Opponent', () => {
 
       // Verify Gold CAN be bought with 6+ coins
       const goldBuyMove = validMoves.find(m => m.type === 'buy' && m.card === 'Gold');
-      expect(goldBuyMove).toBeDefined(); // Gold move must exist
+      expect(goldBuyMove).toBeTruthy(); // Gold move must exist
       expect(goldBuyMove?.type).toBe('buy');
       expect(goldBuyMove?.card).toBe('Gold');
     });
@@ -273,7 +274,7 @@ describe('Feature 2: Rules-based AI Opponent', () => {
 
       // Verify Silver CAN be bought (3 coins cost)
       const silverBuyMove = validMoves.find(m => m.type === 'buy' && m.card === 'Silver');
-      expect(silverBuyMove).toBeDefined();
+      expect(silverBuyMove).toBeTruthy();
       expect(silverBuyMove?.type).toBe('buy');
       expect(silverBuyMove?.card).toBe('Silver');
 
@@ -323,7 +324,7 @@ describe('Feature 2: Rules-based AI Opponent', () => {
 
       // Province costs 8 coins, should be available
       const provinceBuyMove = validMoves.find(m => m.type === 'buy' && m.card === 'Province');
-      expect(provinceBuyMove).toBeDefined();
+      expect(provinceBuyMove).toBeTruthy();
       expect(provinceBuyMove?.type).toBe('buy');
       expect(provinceBuyMove?.card).toBe('Province');
     });
@@ -361,7 +362,7 @@ describe('Feature 2: Rules-based AI Opponent', () => {
 
       // Duchy costs 3 coins, should be available with 5 coins
       const duchyBuyMove = validMoves.find(m => m.type === 'buy' && m.card === 'Duchy');
-      expect(duchyBuyMove).toBeDefined();
+      expect(duchyBuyMove).toBeTruthy();
       expect(duchyBuyMove?.type).toBe('buy');
       expect(duchyBuyMove?.card).toBe('Duchy');
 
@@ -638,7 +639,9 @@ describe('Feature 2: Rules-based AI Opponent', () => {
       // When RulesBasedAI is implemented, each decision should have reasoning
 
       const state = engine.initializeGame(2);
-      expect(state).toBeDefined();
+      expect(state).toBeTruthy();
+      expect(typeof state).toBe('object');
+      expect(state.players.length).toBe(2);
 
       // Structure expected from RulesBasedAI.decideBestMove():
       // {

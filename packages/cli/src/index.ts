@@ -34,6 +34,7 @@ async function main(): Promise<void> {
   let stableNumbers = false;
   let manualCleanup = false;
   let editionOverride: '1st' | '2nd' | 'mixed' | undefined;
+  let debugMode = false;
 
   // Look for flags
   for (let i = 0; i < args.length; i++) {
@@ -65,6 +66,8 @@ async function main(): Promise<void> {
       if (editionValue === '1st' || editionValue === '2nd' || editionValue === 'mixed') {
         editionOverride = editionValue;
       }
+    } else if (args[i] === '--debug') {
+      debugMode = true;
     }
   }
 
@@ -72,7 +75,7 @@ async function main(): Promise<void> {
   const finalEdition = editionOverride ?? edition;
 
   // Create and start the CLI with options
-  const cli = new PrincipalityCLI(seed, players, { victoryPileSize, stableNumbers, manualCleanup, edition: finalEdition });
+  const cli = new PrincipalityCLI(seed, players, { victoryPileSize, stableNumbers, manualCleanup, debugMode, edition: finalEdition });
   await cli.start();
 }
 

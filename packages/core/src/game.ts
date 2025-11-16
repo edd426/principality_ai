@@ -147,11 +147,13 @@ export class GameEngine {
   private random: SeededRandom;
   private seed: string;
   private options: GameOptions;
+  private debugMode: boolean;
 
   constructor(seed: string, options: GameOptions = {}) {
     this.seed = seed;
     this.random = new SeededRandom(seed);
     this.options = options;
+    this.debugMode = options.debugMode ?? false;
   }
 
   /**
@@ -1373,48 +1375,116 @@ export class GameEngine {
     };
   }
 
-  private handleLibrarySpecial(state: GameState, consumeAction: boolean): GameState {
-    // Library draws until hand has 7 cards (excluding Library)
-    // "Draw until you have 7 cards in hand" means 7 cards AFTER Library is removed
-    // So we need to draw until we have Library + Copper + 6 others = 8, then remove Library
+  /**
+   * Helper function to continue Library drawing process
+   * Draws cards one at a time until hand reaches 7 cards
+   * Prompts for choice when action cards are drawn
+   */
+  private continueLibraryDraw(state: GameState): GameState {
     const player = state.players[state.currentPlayer];
-    let currentHand = [...player.hand]; // Includes Library
-    let currentDeck = [...player.drawPile];
-    let currentDiscard = [...player.discardPile];
+    const setAsideCards = state.pendingEffect?.setAsideCards || [];
 
-    // Draw until hand has 8 cards (including Library, which will be removed)
-    // This ensures 7 cards remain after Library is removed
-    while (currentHand.length < 8) {
+    // Draw cards one at a time until hand has 7 cards
+    while (player.hand.length < 7) {
+      // Check if we have cards to draw
+      if (player.drawPile.length === 0 && player.discardPile.length === 0) {
+        // No more cards available, Library effect complete
+        break;
+      }
+
       // Reshuffle if needed
+      let currentDeck = [...player.drawPile];
+      let currentDiscard = [...player.discardPile];
+
       if (currentDeck.length === 0) {
-        if (currentDiscard.length === 0) break; // No more cards
         currentDeck = [...this.random.shuffle(currentDiscard)];
         currentDiscard = [];
       }
 
-      if (currentDeck.length > 0) {
-        const card = currentDeck[0];
-        currentDeck = currentDeck.slice(1);
-        currentHand.push(card);
+      // Draw one card
+      const drawnCard = currentDeck[0];
+      currentDeck = currentDeck.slice(1);
+
+      // Check if it's an action card
+      if (isActionCard(drawnCard)) {
+        // Prompt player for choice: set aside or keep
+        return {
+          ...state,
+          players: state.players.map((p, i) =>
+            i === state.currentPlayer
+              ? {
+                  ...p,
+                  hand: [...p.hand, drawnCard],  // Temporarily add to hand for the choice
+                  drawPile: currentDeck,
+                  discardPile: currentDiscard
+                }
+              : p
+          ),
+          pendingEffect: {
+            card: 'Library',
+            effect: 'library_set_aside',
+            drawnCard,
+            setAsideCards,
+            targetHandSize: 7
+          }
+        };
       } else {
-        break;
+        // Non-action card: add to hand and continue
+        const updatedState: GameState = {
+          ...state,
+          players: state.players.map((p, i) =>
+            i === state.currentPlayer
+              ? {
+                  ...p,
+                  hand: [...p.hand, drawnCard],
+                  drawPile: currentDeck,
+                  discardPile: currentDiscard
+                }
+              : p
+          )
+        };
+
+        // Continue with updated state
+        state = updatedState;
+        const updatedPlayer = updatedState.players[updatedState.currentPlayer];
+        Object.assign(player, updatedPlayer);  // Update player reference for next iteration
       }
     }
 
-    // Now remove Library from hand and put in play
-    const newHand = currentHand.filter(c => c !== 'Library');
-    const newInPlay = [...player.inPlay, 'Library'];
-    const newActions = consumeAction ? Math.max(0, player.actions - 1) : player.actions;
-
+    // Library effect complete: discard all set-aside cards
     return {
       ...state,
       players: state.players.map((p, i) =>
         i === state.currentPlayer
           ? {
               ...p,
+              discardPile: [...p.discardPile, ...setAsideCards]
+            }
+          : p
+      ),
+      pendingEffect: undefined,
+      gameLog: setAsideCards.length > 0
+        ? [...state.gameLog, `Player ${state.currentPlayer + 1} set aside ${setAsideCards.length} action card(s) for Library`]
+        : state.gameLog
+    };
+  }
+
+  private handleLibrarySpecial(state: GameState, consumeAction: boolean): GameState {
+    // Library: Draw until hand has 7 cards, may skip action cards
+    const player = state.players[state.currentPlayer];
+
+    // Move Library from hand to in-play and consume action
+    const newHand = player.hand.filter(c => c !== 'Library');
+    const newInPlay = [...player.inPlay, 'Library'];
+    const newActions = consumeAction ? Math.max(0, player.actions - 1) : player.actions;
+
+    const baseState: GameState = {
+      ...state,
+      players: state.players.map((p, i) =>
+        i === state.currentPlayer
+          ? {
+              ...p,
               hand: newHand,
-              drawPile: currentDeck,
-              discardPile: currentDiscard,
               inPlay: newInPlay,
               actions: newActions
             }
@@ -1422,6 +1492,14 @@ export class GameEngine {
       ),
       gameLog: [...state.gameLog, `Player ${state.currentPlayer + 1} played Library (draw to 7 cards)`]
     };
+
+    // If already at 7+ cards, Library effect is complete
+    if (newHand.length >= 7) {
+      return baseState;
+    }
+
+    // Start the interactive drawing process
+    return this.continueLibraryDraw(baseState);
   }
 
   private handleLibrary(state: GameState): GameState {
@@ -1906,8 +1984,12 @@ export class GameEngine {
   private handleLibrarySetAside(state: GameState, card: CardName, choice?: boolean): GameState {
     // Handle Library's Action card choice
     // Player chooses whether to set aside (discard) or keep an Action card drawn by Library
-    // If choice is not specified, treat the call as choosing to set aside the card
     const player = state.players[state.currentPlayer];
+
+    // Validate pendingEffect exists for Library
+    if (!state.pendingEffect || state.pendingEffect.card !== 'Library') {
+      throw new Error('No Library pending effect');
+    }
 
     // If card is not in hand, it's already been dealt with or wasn't in hand - no-op
     if (!player.hand.includes(card)) {
@@ -1920,7 +2002,7 @@ export class GameEngine {
     }
 
     // If choice is explicitly provided, use it
-    // Otherwise, use card-based heuristic: set aside only Village (keep strong Actions)
+    // Otherwise, use card-based heuristic: set aside only weak actions (keep strong Actions)
     let setAside = choice === true;
     if (choice === undefined) {
       // If no choice provided, default to setting aside only weak Actions
@@ -1928,31 +2010,40 @@ export class GameEngine {
       setAside = ['Village', 'Chapel', 'Remodel'].includes(card);
     }
 
-    if (!setAside) {
-      // Keep in hand - no change needed
-      return state;
-    }
+    const setAsideCards = state.pendingEffect.setAsideCards || [];
 
-    // Move from hand to discard (set aside)
-    const newHand = [...player.hand];
-    const cardIndex = newHand.indexOf(card);
-    if (cardIndex !== -1) {
-      newHand.splice(cardIndex, 1);
-    }
+    if (setAside) {
+      // Remove from hand and track as set aside (will be discarded at end)
+      const newHand = [...player.hand];
+      const cardIndex = newHand.indexOf(card);
+      if (cardIndex !== -1) {
+        newHand.splice(cardIndex, 1);
+      }
 
-    return {
-      ...state,
-      players: state.players.map((p, i) =>
-        i === state.currentPlayer
-          ? {
-              ...p,
-              hand: newHand,
-              discardPile: [...p.discardPile, card]
-            }
-          : p
-      ),
-      gameLog: [...state.gameLog, `Player ${state.currentPlayer + 1} set aside ${card} (Library)`]
-    };
+      const updatedState: GameState = {
+        ...state,
+        players: state.players.map((p, i) =>
+          i === state.currentPlayer
+            ? { ...p, hand: newHand }
+            : p
+        ),
+        pendingEffect: {
+          ...state.pendingEffect,
+          setAsideCards: [...setAsideCards, card]
+        },
+        gameLog: [...state.gameLog, `Player ${state.currentPlayer + 1} set aside ${card} (Library)`]
+      };
+
+      // Continue drawing
+      return this.continueLibraryDraw(updatedState);
+    } else {
+      // Keep in hand - continue drawing with current state
+      const updatedState: GameState = {
+        ...state,
+        gameLog: [...state.gameLog, `Player ${state.currentPlayer + 1} kept ${card} (Library)`]
+      };
+      return this.continueLibraryDraw(updatedState);
+    }
   }
 
   private handleDiscardToHandSize(state: GameState, cards: ReadonlyArray<CardName>): GameState {
@@ -2423,5 +2514,108 @@ export class GameEngine {
     }
 
     return moves;
+  }
+
+  /**
+   * Check if debug mode is enabled
+   * @returns true if debug mode is enabled, false otherwise
+   */
+  isDebugMode(): boolean {
+    return this.debugMode;
+  }
+
+  /**
+   * Get player's deck (draw pile) contents
+   * Only available when debug mode is enabled
+   * @param state - Current game state
+   * @param playerIndex - Player index (0-based)
+   * @returns Array of card names in the deck
+   * @throws Error if debug mode is not enabled or player index is invalid
+   */
+  debugGetDeck(state: GameState, playerIndex: number): ReadonlyArray<CardName> {
+    if (!this.debugMode) {
+      throw new Error('Debug mode not enabled');
+    }
+
+    if (playerIndex < 0 || playerIndex >= state.players.length) {
+      throw new Error('Invalid player index');
+    }
+
+    // Return immutable copy
+    return [...state.players[playerIndex].drawPile];
+  }
+
+  /**
+   * Get player's hand contents
+   * Only available when debug mode is enabled
+   * @param state - Current game state
+   * @param playerIndex - Player index (0-based)
+   * @returns Array of card names in the hand
+   * @throws Error if debug mode is not enabled or player index is invalid
+   */
+  debugGetHand(state: GameState, playerIndex: number): ReadonlyArray<CardName> {
+    if (!this.debugMode) {
+      throw new Error('Debug mode not enabled');
+    }
+
+    if (playerIndex < 0 || playerIndex >= state.players.length) {
+      throw new Error('Invalid player index');
+    }
+
+    // Return immutable copy
+    return [...state.players[playerIndex].hand];
+  }
+
+  /**
+   * Get player's discard pile contents
+   * Only available when debug mode is enabled
+   * @param state - Current game state
+   * @param playerIndex - Player index (0-based)
+   * @returns Array of card names in the discard pile
+   * @throws Error if debug mode is not enabled or player index is invalid
+   */
+  debugGetDiscard(state: GameState, playerIndex: number): ReadonlyArray<CardName> {
+    if (!this.debugMode) {
+      throw new Error('Debug mode not enabled');
+    }
+
+    if (playerIndex < 0 || playerIndex >= state.players.length) {
+      throw new Error('Invalid player index');
+    }
+
+    // Return immutable copy
+    return [...state.players[playerIndex].discardPile];
+  }
+
+  /**
+   * Get trash pile contents
+   * Only available when debug mode is enabled
+   * @param state - Current game state
+   * @returns Array of card names in the trash pile
+   * @throws Error if debug mode is not enabled
+   */
+  debugGetTrash(state: GameState): ReadonlyArray<CardName> {
+    if (!this.debugMode) {
+      throw new Error('Debug mode not enabled');
+    }
+
+    // Return immutable copy
+    return [...state.trash];
+  }
+
+  /**
+   * Get complete game state (for advanced debugging)
+   * Only available when debug mode is enabled
+   * @param state - Current game state
+   * @returns Complete game state object
+   * @throws Error if debug mode is not enabled
+   */
+  debugGetFullState(state: GameState): GameState {
+    if (!this.debugMode) {
+      throw new Error('Debug mode not enabled');
+    }
+
+    // Return the state as-is (already immutable)
+    return state;
   }
 }

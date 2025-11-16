@@ -229,7 +229,8 @@ describe('Helper Functions: Error Paths & Edge Cases', () => {
 
       expect(gainResult.success).toBe(false);
       // Could be cost error or supply error depending on validation order
-      expect(gainResult.error).toBeDefined();
+      expect(gainResult.error).toBeTruthy();
+      expect(typeof gainResult.error).toBe('string');
     });
 
     /**
@@ -360,7 +361,8 @@ describe('Helper Functions: Error Paths & Edge Cases', () => {
       expect(trashEstate.newState!.trash).toContain('Estate');
 
       // Should now be able to gain card up to $4
-      expect(trashEstate.newState!.pendingEffect).toBeDefined();
+      expect(trashEstate.newState!.pendingEffect).toBeTruthy();
+      expect(typeof trashEstate.newState!.pendingEffect).toBe('object');
       expect(trashEstate.newState!.pendingEffect!.effect).toBe('gain_card');
     });
 
@@ -410,7 +412,8 @@ describe('Helper Functions: Error Paths & Edge Cases', () => {
       expect(gain1.success).toBe(true);
 
       // Should trigger second Remodel
-      expect(gain1.newState!.pendingEffect).toBeDefined();
+      expect(gain1.newState!.pendingEffect).toBeTruthy();
+      expect(typeof gain1.newState!.pendingEffect).toBe('object');
       expect(gain1.newState!.pendingEffect!.card).toBe('Remodel');
     });
   });

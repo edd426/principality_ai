@@ -45,6 +45,9 @@ export interface PendingEffect {
   destination?: 'hand' | 'discard' | 'topdeck';  // For Mine and other cards that gain to specific location
   deckSize?: number;  // For Chancellor decision
   revealedCard?: CardName;  // For Spy decision - card revealed from top of deck
+  drawnCard?: CardName;  // For Library decision - action card that was drawn
+  setAsideCards?: CardName[];  // For Library - cards set aside during drawing
+  targetHandSize?: number;  // For Library - target hand size (usually 7)
 }
 
 export interface GameState {
@@ -90,4 +93,5 @@ export interface GameOptions {
   kingdomCards?: ReadonlyArray<CardName>; // Kingdom cards to include in supply (default: Phase 1 cards)
   allCards?: boolean; // Include all Phase 4 cards (ignores kingdomCards if true)
   edition?: '1st' | '2nd' | 'mixed'; // Edition selection: '1st', '2nd', or 'mixed' (default: '2nd')
+  debugMode?: boolean; // Enable debug mode for inspecting hidden game state (default: false)
 }

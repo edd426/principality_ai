@@ -64,7 +64,8 @@ describe('REGRESSION: Mine Card Bug - Treasure Selection', () => {
       });
 
       expect(playResult.success).toBe(true);
-      expect(playResult.newState!.pendingEffect).toBeDefined();
+      expect(playResult.newState!.pendingEffect).toBeTruthy();
+      expect(typeof playResult.newState!.pendingEffect).toBe('object');
       expect(playResult.newState!.pendingEffect?.card).toBe('Mine');
 
       // Initial state before selecting treasure to trash
@@ -85,7 +86,8 @@ describe('REGRESSION: Mine Card Bug - Treasure Selection', () => {
       // CRITICAL ASSERTIONS (will FAIL with bug):
       // Bug causes move to fail with "opponent" error
       expect(trashResult.success).toBe(true);
-      expect(trashResult.newState).toBeDefined();
+      expect(trashResult.newState).toBeTruthy();
+      expect(typeof trashResult.newState).toBe('object');
 
       // 1. Copper should be REMOVED from hand (trashed, not played)
       expect(trashResult.newState!.players[0].hand).not.toContain('Copper');
@@ -98,7 +100,8 @@ describe('REGRESSION: Mine Card Bug - Treasure Selection', () => {
       expect(trashResult.newState!.trash).toContain('Copper');
 
       // 4. pendingEffect should advance to step 2 (gain treasure)
-      expect(trashResult.newState!.pendingEffect).toBeDefined();
+      expect(trashResult.newState!.pendingEffect).toBeTruthy();
+      expect(typeof trashResult.newState!.pendingEffect).toBe('object');
       expect(trashResult.newState!.pendingEffect?.effect).toBe('gain_treasure');
     });
 
@@ -347,7 +350,8 @@ describe('REGRESSION: Mine Card Bug - Treasure Selection', () => {
       const afterTrashPendingEffect = trashResult.newState!.pendingEffect;
 
       // 1. pendingEffect still exists (not cleared yet)
-      expect(afterTrashPendingEffect).toBeDefined();
+      expect(afterTrashPendingEffect).toBeTruthy();
+      expect(typeof afterTrashPendingEffect).toBe('object');
 
       // 2. pendingEffect.effect changed to 'gain_treasure'
       expect(afterTrashPendingEffect?.effect).toBe('gain_treasure');
@@ -645,7 +649,8 @@ describe('REGRESSION: Mine Card Bug - Treasure Selection', () => {
       expect(trashResult.newState!.trash).toContain('Copper');
 
       // 3. Pending effect advances to step 2 (gain_treasure)
-      expect(trashResult.newState!.pendingEffect).toBeDefined();
+      expect(trashResult.newState!.pendingEffect).toBeTruthy();
+      expect(typeof trashResult.newState!.pendingEffect).toBe('object');
       expect(trashResult.newState!.pendingEffect?.effect).toBe('gain_treasure');
       expect(trashResult.newState!.pendingEffect?.maxGainCost).toBe(3); // $0 + $3
     });
@@ -684,7 +689,8 @@ describe('REGRESSION: Mine Card Bug - Treasure Selection', () => {
 
       // ASSERTION: Error should be about hand/treasure, NOT about "opponent"
       expect(errorResult.success).toBe(false);
-      expect(errorResult.error).toBeDefined();
+      expect(errorResult.error).toBeTruthy();
+      expect(typeof errorResult.error).toBe('string');
 
       // Error should NOT mention opponent or revealed cards
       expect(errorResult.error?.toLowerCase()).not.toContain('opponent');
