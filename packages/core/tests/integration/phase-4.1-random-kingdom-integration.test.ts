@@ -95,7 +95,7 @@ describe('Phase 4.1 - Feature 1: Random Kingdom Integration', () => {
       const selectedKingdom = extractKingdomCards(state);
       const cardToBuy = selectedKingdom.find(card => getCard(card).cost <= 3);
 
-      expect(cardToBuy).toBeDefined();
+      expect(cardToBuy).toBeTruthy();
 
       // Set up buy phase with enough coins
       const buyState: GameState = {
@@ -111,7 +111,8 @@ describe('Phase 4.1 - Feature 1: Random Kingdom Integration', () => {
       const result = engine.executeMove(buyState, { type: 'buy', card: cardToBuy! });
 
       expect(result.success).toBe(true);
-      expect(result.newState).toBeDefined();
+      expect(result.newState).toBeTruthy();
+      expect(typeof result.newState).toBe('object');
       expect(result.newState!.players[0].discardPile).toContain(cardToBuy!);
     });
 
@@ -123,7 +124,7 @@ describe('Phase 4.1 - Feature 1: Random Kingdom Integration', () => {
       const allKingdomCards = Object.keys(require('../../src/cards').KINGDOM_CARDS);
       const notSelected = allKingdomCards.find(card => !selectedKingdom.includes(card));
 
-      expect(notSelected).toBeDefined();
+      expect(notSelected).toBeTruthy();
 
       // Card should not be in supply
       expect(state.supply.has(notSelected!)).toBe(false);
@@ -165,7 +166,7 @@ describe('Phase 4.1 - Feature 1: Random Kingdom Integration', () => {
       // Note: Gardens is a kingdom card with type 'victory' (provides VP based on deck size)
       selectedKingdom.forEach(card => {
         const cardDef = getCard(card);
-        expect(cardDef).toBeDefined();
+        expect(cardDef).toBeTruthy();
         expect(['action', 'action-attack', 'action-reaction', 'victory']).toContain(cardDef.type);
       });
     });

@@ -139,7 +139,8 @@ describe('IT: Trash Pile Mechanics', () => {
 
     expect(trash).toEqual(['Estate', 'Estate']);
     // Trash is at game state level, not player level
-    expect(trashResult.newState!.trash).toBeDefined();
+    expect(trashResult.newState!.trash).toBeTruthy();
+    expect(Array.isArray(trashResult.newState!.trash)).toBe(true);
   });
 
   /**
