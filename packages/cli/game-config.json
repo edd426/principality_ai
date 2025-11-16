@@ -1,5 +1,6 @@
 {
   "game": {
-    "victoryPileSize": 4
+    "victoryPileSize": 4,
+    "edition": "2nd"
   }
 }

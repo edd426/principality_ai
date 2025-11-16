@@ -15,6 +15,7 @@ export interface CLIOptions {
   stableNumbers?: boolean;
   autoPlayTreasures?: boolean;
   manualCleanup?: boolean;
+  edition?: '1st' | '2nd' | 'mixed';
   debugMode?: boolean;
 }
 
@@ -40,7 +41,8 @@ export class PrincipalityCLI {
     // Initialize engine with options
     this.engine = new GameEngine(gameSeed, {
       victoryPileSize: options.victoryPileSize,
-      debugMode: options.debugMode
+      debugMode: options.debugMode, 
+      edition: options.edition
     });
     this.gameState = this.engine.initializeGame(players);
 

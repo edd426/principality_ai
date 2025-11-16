@@ -12,7 +12,8 @@ export const BASIC_CARDS: Record<CardName, Card> = {
     description: 'Worth 1 coin',
     expansion: 'Base',
     releaseYear: 2008,
-    officialText: '$1'
+    officialText: '$1',
+    edition: 'both'
   },
   'Silver': {
     name: 'Silver',
@@ -22,7 +23,8 @@ export const BASIC_CARDS: Record<CardName, Card> = {
     description: 'Worth 2 coins',
     expansion: 'Base',
     releaseYear: 2008,
-    officialText: '$2'
+    officialText: '$2',
+    edition: 'both'
   },
   'Gold': {
     name: 'Gold',
@@ -32,7 +34,8 @@ export const BASIC_CARDS: Record<CardName, Card> = {
     description: 'Worth 3 coins',
     expansion: 'Base',
     releaseYear: 2008,
-    officialText: '$3'
+    officialText: '$3',
+    edition: 'both'
   },
 
   // Victory Cards
@@ -45,7 +48,8 @@ export const BASIC_CARDS: Record<CardName, Card> = {
     victoryPoints: 1,
     expansion: 'Base',
     releaseYear: 2008,
-    officialText: '1 Victory Point'
+    officialText: '1 Victory Point',
+    edition: 'both'
   },
   'Duchy': {
     name: 'Duchy',
@@ -56,7 +60,8 @@ export const BASIC_CARDS: Record<CardName, Card> = {
     victoryPoints: 3,
     expansion: 'Base',
     releaseYear: 2008,
-    officialText: '3 Victory Points'
+    officialText: '3 Victory Points',
+    edition: 'both'
   },
   'Province': {
     name: 'Province',
@@ -67,7 +72,8 @@ export const BASIC_CARDS: Record<CardName, Card> = {
     victoryPoints: 6,
     expansion: 'Base',
     releaseYear: 2008,
-    officialText: '6 Victory Points'
+    officialText: '6 Victory Points',
+    edition: 'both'
   },
 
   // Curse
@@ -80,12 +86,13 @@ export const BASIC_CARDS: Record<CardName, Card> = {
     victoryPoints: -1,
     expansion: 'Base',
     releaseYear: 2008,
-    officialText: '-1 Victory Point'
+    officialText: '-1 Victory Point',
+    edition: 'both'
   }
 };
 
 export const KINGDOM_CARDS: Record<CardName, Card> = {
-  // Draw Cards
+  // Draw Cards (all in both editions)
   'Village': {
     name: 'Village',
     type: 'action',
@@ -94,7 +101,8 @@ export const KINGDOM_CARDS: Record<CardName, Card> = {
     description: '+1 Card, +2 Actions',
     expansion: 'Base',
     releaseYear: 2008,
-    officialText: '+1 Card, +2 Actions'
+    officialText: '+1 Card, +2 Actions',
+    edition: 'both'
   },
   'Smithy': {
     name: 'Smithy',
@@ -104,7 +112,8 @@ export const KINGDOM_CARDS: Record<CardName, Card> = {
     description: '+3 Cards',
     expansion: 'Base',
     releaseYear: 2008,
-    officialText: '+3 Cards'
+    officialText: '+3 Cards',
+    edition: 'both'
   },
   'Laboratory': {
     name: 'Laboratory',
@@ -114,7 +123,8 @@ export const KINGDOM_CARDS: Record<CardName, Card> = {
     description: '+2 Cards, +1 Action',
     expansion: 'Base',
     releaseYear: 2008,
-    officialText: '+2 Cards, +1 Action'
+    officialText: '+2 Cards, +1 Action',
+    edition: 'both'
   },
 
   // Economy Cards
@@ -126,7 +136,8 @@ export const KINGDOM_CARDS: Record<CardName, Card> = {
     description: '+1 Card, +1 Action, +1 Buy, +1 Coin',
     expansion: 'Base',
     releaseYear: 2008,
-    officialText: '+1 Card, +1 Action, +1 Buy, +$1'
+    officialText: '+1 Card, +1 Action, +1 Buy, +$1',
+    edition: 'both'
   },
   'Woodcutter': {
     name: 'Woodcutter',
@@ -138,7 +149,8 @@ export const KINGDOM_CARDS: Record<CardName, Card> = {
     edition: '1E',
     releaseYear: 2008,
     officialText: '+1 Buy, +$2',
-    rulings: ['Removed in 2nd Edition (2016), replaced by Merchant']
+    rulings: ['Removed in 2nd Edition (2016), replaced by Merchant'],
+    edition: '1st'  // Removed in 2nd edition
   },
   'Festival': {
     name: 'Festival',
@@ -148,7 +160,8 @@ export const KINGDOM_CARDS: Record<CardName, Card> = {
     description: '+2 Actions, +1 Buy, +2 Coins',
     expansion: 'Base',
     releaseYear: 2008,
-    officialText: '+2 Actions, +1 Buy, +$2'
+    officialText: '+2 Actions, +1 Buy, +$2',
+    edition: 'both'
   },
 
   // Utility Cards
@@ -160,7 +173,8 @@ export const KINGDOM_CARDS: Record<CardName, Card> = {
     description: '+4 Cards, +1 Buy. Each other player draws 1 card.',
     expansion: 'Base',
     releaseYear: 2008,
-    officialText: '+4 Cards, +1 Buy. Each other player draws a card.'
+    officialText: '+4 Cards, +1 Buy. Each other player draws a card.',
+    edition: 'both'
   },
   'Cellar': {
     name: 'Cellar',
@@ -170,10 +184,11 @@ export const KINGDOM_CARDS: Record<CardName, Card> = {
     description: '+1 Action, Discard any number of cards, then draw that many',
     expansion: 'Base',
     releaseYear: 2008,
-    officialText: '+1 Action. Discard any number of cards, then draw that many.'
+    officialText: '+1 Action. Discard any number of cards, then draw that many.',
+    edition: 'both'
   },
 
-  // Trashing System (4 cards)
+  // Trashing System (all in both editions)
   'Chapel': {
     name: 'Chapel',
     type: 'action',
@@ -182,7 +197,8 @@ export const KINGDOM_CARDS: Record<CardName, Card> = {
     description: 'Trash up to 4 cards from your hand',
     expansion: 'Base',
     releaseYear: 2008,
-    officialText: 'Trash up to 4 cards from your hand.'
+    officialText: 'Trash up to 4 cards from your hand.',
+    edition: 'both'
   },
   'Remodel': {
     name: 'Remodel',
@@ -192,7 +208,8 @@ export const KINGDOM_CARDS: Record<CardName, Card> = {
     description: 'Trash a card from your hand. Gain a card costing up to $2 more.',
     expansion: 'Base',
     releaseYear: 2008,
-    officialText: 'Trash a card from your hand. Gain a card costing up to $2 more than it.'
+    officialText: 'Trash a card from your hand. Gain a card costing up to $2 more than it.',
+    edition: 'both'
   },
   'Mine': {
     name: 'Mine',
@@ -202,7 +219,8 @@ export const KINGDOM_CARDS: Record<CardName, Card> = {
     description: 'Trash a Treasure from your hand. Gain a Treasure costing up to $3 more, to your hand.',
     expansion: 'Base',
     releaseYear: 2008,
-    officialText: 'You may trash a Treasure from your hand. Gain a Treasure to your hand costing up to $3 more than it.'
+    officialText: 'You may trash a Treasure from your hand. Gain a Treasure to your hand costing up to $3 more than it.',
+    edition: 'both'
   },
   'Moneylender': {
     name: 'Moneylender',
@@ -212,10 +230,11 @@ export const KINGDOM_CARDS: Record<CardName, Card> = {
     description: 'Trash a Copper from your hand. If you did, +$3.',
     expansion: 'Base',
     releaseYear: 2008,
-    officialText: 'You may trash a Copper from your hand. If you do, +$3.'
+    officialText: 'You may trash a Copper from your hand. If you do, +$3.',
+    edition: 'both'
   },
 
-  // Gaining System (2 cards)
+  // Gaining System
   'Workshop': {
     name: 'Workshop',
     type: 'action',
@@ -224,7 +243,8 @@ export const KINGDOM_CARDS: Record<CardName, Card> = {
     description: 'Gain a card costing up to $4.',
     expansion: 'Base',
     releaseYear: 2008,
-    officialText: 'Gain a card costing up to $4.'
+    officialText: 'Gain a card costing up to $4.',
+    edition: 'both'
   },
   'Feast': {
     name: 'Feast',
@@ -236,10 +256,11 @@ export const KINGDOM_CARDS: Record<CardName, Card> = {
     edition: '1E',
     releaseYear: 2008,
     officialText: 'Trash this card. Gain a card costing up to $5.',
-    rulings: ['Removed in 2nd Edition (2016), replaced by Artisan']
+    rulings: ['Removed in 2nd Edition (2016), replaced by Artisan'],
+    edition: '1st'  // Removed in 2nd edition
   },
 
-  // Attack System (5 cards)
+  // Attack System
   'Militia': {
     name: 'Militia',
     type: 'action-attack',
@@ -248,7 +269,8 @@ export const KINGDOM_CARDS: Record<CardName, Card> = {
     description: '+$2. Each other player discards down to 3 cards in hand.',
     expansion: 'Base',
     releaseYear: 2008,
-    officialText: '+$2. Each other player discards down to 3 cards in hand.'
+    officialText: '+$2. Each other player discards down to 3 cards in hand.',
+    edition: 'both'
   },
   'Witch': {
     name: 'Witch',
@@ -258,7 +280,8 @@ export const KINGDOM_CARDS: Record<CardName, Card> = {
     description: '+2 Cards. Each other player gains a Curse.',
     expansion: 'Base',
     releaseYear: 2008,
-    officialText: '+2 Cards. Each other player gains a Curse.'
+    officialText: '+2 Cards. Each other player gains a Curse.',
+    edition: 'both'
   },
   'Bureaucrat': {
     name: 'Bureaucrat',
@@ -268,7 +291,8 @@ export const KINGDOM_CARDS: Record<CardName, Card> = {
     description: 'Gain a Silver onto your deck. Each other player reveals a Victory card from hand and puts it onto their deck (or reveals hand if no Victory cards).',
     expansion: 'Base',
     releaseYear: 2008,
-    officialText: 'Gain a Silver onto your deck. Each other player reveals a Victory card from their hand and puts it onto their deck (or reveals a hand with no Victory cards).'
+    officialText: 'Gain a Silver onto your deck. Each other player reveals a Victory card from their hand and puts it onto their deck (or reveals a hand with no Victory cards).',
+    edition: 'both'
   },
   'Spy': {
     name: 'Spy',
@@ -280,7 +304,8 @@ export const KINGDOM_CARDS: Record<CardName, Card> = {
     edition: '1E',
     releaseYear: 2008,
     officialText: '+1 Card, +1 Action. Each player (including you) reveals the top card of their deck and either discards it or puts it back, your choice.',
-    rulings: ['Removed in 2nd Edition (2016), replaced by Sentry']
+    rulings: ['Removed in 2nd Edition (2016), replaced by Sentry'],
+    edition: '1st'  // Removed in 2nd edition
   },
   'Thief': {
     name: 'Thief',
@@ -292,10 +317,11 @@ export const KINGDOM_CARDS: Record<CardName, Card> = {
     edition: '1E',
     releaseYear: 2008,
     officialText: 'Each other player reveals the top 2 cards of their deck. If they revealed any Treasure cards, they trash one of them that you choose. You may gain any or all of these trashed cards. They discard the other revealed cards.',
-    rulings: ['Removed in 2nd Edition (2016), replaced by Bandit']
+    rulings: ['Removed in 2nd Edition (2016), replaced by Bandit'],
+    edition: '1st'  // Removed in 2nd edition
   },
 
-  // Reaction System (1 card)
+  // Reaction System
   'Moat': {
     name: 'Moat',
     type: 'action-reaction',
@@ -304,10 +330,11 @@ export const KINGDOM_CARDS: Record<CardName, Card> = {
     description: '+2 Cards. When another player plays an Attack card, you may reveal this from your hand. If you do, you are unaffected by that Attack.',
     expansion: 'Base',
     releaseYear: 2008,
-    officialText: '+2 Cards. When another player plays an Attack card, you may reveal this from your hand. If you do, you are unaffected by the Attack.'
+    officialText: '+2 Cards. When another player plays an Attack card, you may reveal this from your hand. If you do, you are unaffected by the Attack.',
+    edition: 'both'
   },
 
-  // Special Cards (5 cards)
+  // Special Cards
   'Throne Room': {
     name: 'Throne Room',
     type: 'action',
@@ -316,7 +343,8 @@ export const KINGDOM_CARDS: Record<CardName, Card> = {
     description: 'You may play an Action card from your hand twice.',
     expansion: 'Base',
     releaseYear: 2008,
-    officialText: 'You may play an Action card from your hand twice.'
+    officialText: 'You may play an Action card from your hand twice.',
+    edition: 'both'
   },
   'Adventurer': {
     name: 'Adventurer',
@@ -328,7 +356,8 @@ export const KINGDOM_CARDS: Record<CardName, Card> = {
     edition: '1E',
     releaseYear: 2008,
     officialText: 'Reveal cards from your deck until you reveal 2 Treasure cards. Put those Treasures into your hand and discard the other revealed cards.',
-    rulings: ['Removed in 2nd Edition (2016), replaced by Harbinger']
+    rulings: ['Removed in 2nd Edition (2016), replaced by Harbinger'],
+    edition: '1st'  // Removed in 2nd edition
   },
   'Chancellor': {
     name: 'Chancellor',
@@ -340,7 +369,8 @@ export const KINGDOM_CARDS: Record<CardName, Card> = {
     edition: '1E',
     releaseYear: 2008,
     officialText: '+$2. You may immediately put your deck into your discard pile.',
-    rulings: ['Removed in 2nd Edition (2016), replaced by Harbinger']
+    rulings: ['Removed in 2nd Edition (2016), replaced by Harbinger'],
+    edition: '1st'  // Removed in 2nd edition
   },
   'Library': {
     name: 'Library',
@@ -350,7 +380,8 @@ export const KINGDOM_CARDS: Record<CardName, Card> = {
     description: 'Draw until you have 7 cards in hand. You may set aside any Action cards drawn this way, as you draw them; discard the set aside cards after you finish drawing.',
     expansion: 'Base',
     releaseYear: 2008,
-    officialText: 'Draw until you have 7 cards in hand. You may set aside any Action cards drawn this way, as you draw them; discard the set aside cards after you finish drawing.'
+    officialText: 'Draw until you have 7 cards in hand. You may set aside any Action cards drawn this way, as you draw them; discard the set aside cards after you finish drawing.',
+    edition: 'both'
   },
   'Gardens': {
     name: 'Gardens',
@@ -361,7 +392,8 @@ export const KINGDOM_CARDS: Record<CardName, Card> = {
     victoryPoints: 0,  // Dynamic - calculated at game end based on deck size
     expansion: 'Base',
     releaseYear: 2008,
-    officialText: 'Worth 1 Victory Point for every 10 cards you have (round down).'
+    officialText: 'Worth 1 Victory Point for every 10 cards you have (round down).',
+    edition: 'both'
   }
 };
 
@@ -402,4 +434,22 @@ export function isReactionCard(name: CardName): boolean {
 export function getVictoryPoints(name: CardName): number {
   const card = getCard(name);
   return card.victoryPoints || 0;
+}
+
+/**
+ * Filter kingdom cards by edition
+ * @param edition - Which edition to filter by: '1st', '2nd', or 'mixed'
+ * @returns Array of card names available in the specified edition
+ */
+export function getKingdomCardsByEdition(edition: '1st' | '2nd' | 'mixed'): CardName[] {
+  const allKingdomCardNames = Object.keys(KINGDOM_CARDS) as CardName[];
+
+  if (edition === 'mixed') {
+    return allKingdomCardNames;
+  }
+
+  return allKingdomCardNames.filter(cardName => {
+    const card = KINGDOM_CARDS[cardName];
+    return card.edition === edition || card.edition === 'both';
+  });
 }

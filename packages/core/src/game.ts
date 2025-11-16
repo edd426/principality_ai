@@ -1,5 +1,5 @@
 import { GameState, PlayerState, Move, GameResult, Victory, CardName, GameOptions, PendingEffect } from './types';
-import { getCard, isActionCard, isTreasureCard, isVictoryCard, KINGDOM_CARDS } from './cards';
+import { getCard, isActionCard, isTreasureCard, isVictoryCard, KINGDOM_CARDS, getKingdomCardsByEdition } from './cards';
 import { SeededRandom, createStartingDeck, createDefaultSupply, calculateScore, getAllPlayerCards } from './utils';
 
 // @decision: Helper functions for Phase 4 card mechanics
@@ -197,14 +197,15 @@ export class GameEngine {
   }
 
   /**
-   * Select 10 random kingdom cards from the pool of 25 using Fisher-Yates shuffle
+   * Select 10 random kingdom cards from the pool using Fisher-Yates shuffle
    * Uses a fresh seeded random instance to ensure reproducibility across multiple calls
    *
+   * @param edition - Which edition to select from: '1st', '2nd', or 'mixed' (default: '2nd')
    * @returns Array of 10 randomly selected kingdom card names
    */
-  private selectRandomKingdom(): CardName[] {
-    // Get all 25 kingdom cards from KINGDOM_CARDS export
-    const kingdomPool = Object.keys(KINGDOM_CARDS);
+  private selectRandomKingdom(edition: '1st' | '2nd' | 'mixed' = '2nd'): CardName[] {
+    // Get kingdom cards filtered by edition
+    const kingdomPool = getKingdomCardsByEdition(edition);
 
     // Create a fresh seeded random instance for reproducibility
     // This ensures the same seed always produces the same kingdom selection
@@ -242,6 +243,9 @@ export class GameEngine {
     // Merge constructor options with call-time options (call-time takes precedence)
     const mergedOptions = { ...this.options, ...options };
 
+    // Get edition preference (default to '2nd')
+    const edition = mergedOptions.edition ?? '2nd';
+
     // Determine kingdom cards to use
     let kingdomCards: ReadonlyArray<CardName>;
     let selectedKingdomCards: ReadonlyArray<CardName> | undefined;
@@ -252,12 +256,12 @@ export class GameEngine {
       kingdomCards = mergedOptions.kingdomCards;
       selectedKingdomCards = mergedOptions.kingdomCards;
     } else if (mergedOptions.allCards) {
-      // Use all 25 kingdom cards from Phase 4
-      kingdomCards = Object.keys(KINGDOM_CARDS) as CardName[];
+      // Use all kingdom cards filtered by edition
+      kingdomCards = getKingdomCardsByEdition(edition);
       selectedKingdomCards = undefined;
     } else {
-      // Default: select 10 random kingdom cards
-      const selected = this.selectRandomKingdom();
+      // Default: select 10 random kingdom cards from the specified edition
+      const selected = this.selectRandomKingdom(edition);
       kingdomCards = selected;
       selectedKingdomCards = selected;
     }
