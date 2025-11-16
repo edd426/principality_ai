@@ -1105,6 +1105,10 @@ export class GameEngine {
           gameLog: [...baseState.gameLog, `Player ${baseState.currentPlayer + 1} played Moat`]
         };
 
+      // === Beneficial Effects to Other Players ===
+      case 'each_other_player_draws_1': // Council Room
+        return this.handleCouncilRoom(baseState);
+
       // === Special Cards ===
       case 'play_action_twice': // Throne Room
         return {
@@ -1450,6 +1454,44 @@ export class GameEngine {
           : p
       ),
       gameLog: [...state.gameLog, `Player ${state.currentPlayer + 1} drew to 7 cards (Library)`]
+    };
+  }
+
+  private handleCouncilRoom(state: GameState): GameState {
+    // Council Room: +4 Cards and +1 Buy (already applied in standard effects)
+    // Each other player draws 1 card
+    let newState = state;
+
+    // Make all other players draw 1 card
+    for (let i = 0; i < state.players.length; i++) {
+      if (i === state.currentPlayer) continue; // Skip current player
+
+      const opponent = newState.players[i];
+
+      // Draw 1 card for this opponent
+      const drawResult = this.drawCards(opponent.drawPile, opponent.discardPile, opponent.hand, 1);
+
+      const updatedPlayers = newState.players.map((p, idx) =>
+        idx === i
+          ? {
+              ...p,
+              hand: drawResult.newHand,
+              drawPile: drawResult.newDeck,
+              discardPile: drawResult.newDiscard
+            }
+          : p
+      );
+
+      newState = {
+        ...newState,
+        players: updatedPlayers,
+        gameLog: [...newState.gameLog, `Player ${i + 1} drew 1 card`]
+      };
+    }
+
+    return {
+      ...newState,
+      gameLog: [...newState.gameLog, `Player ${newState.currentPlayer + 1} played Council Room`]
     };
   }
 
