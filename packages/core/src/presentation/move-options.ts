@@ -954,8 +954,11 @@ export function generateMoveOptions(
       return generateChancellorOptions(player.drawPile.length);
 
     case 'spy_decision':
-      // Need revealed card and target player from pendingEffect
-      return [];
+      if (!pendingEffect.revealedCard || pendingEffect.targetPlayer === undefined) {
+        console.warn('spy_decision missing required pendingEffect data (revealedCard, targetPlayer)');
+        return [];
+      }
+      return generateSpyOptions(pendingEffect.revealedCard, pendingEffect.targetPlayer);
 
     case 'reveal_and_topdeck':
       // Use targetPlayer from pendingEffect (Bureaucrat affects opponent, not current player)
@@ -965,9 +968,8 @@ export function generateMoveOptions(
 
     case 'discard_to_hand_size':
       // Militia attack or similar: discard down to target hand size
-      const affectedPlayerIndex = pendingEffect.targetPlayer ?? state.currentPlayer;
-      const affectedPlayer = state.players[affectedPlayerIndex];
-      return generateMilitiaOptions(affectedPlayer.hand, 3);
+      const militiaTarget = state.players[pendingEffect.targetPlayer ?? state.currentPlayer];
+      return generateMilitiaOptions(militiaTarget.hand, 3);
 
     default:
       console.warn(`generateMoveOptions: Unknown effect type: ${pendingEffect.effect}`);

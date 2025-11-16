@@ -1105,6 +1105,10 @@ export class GameEngine {
           gameLog: [...baseState.gameLog, `Player ${baseState.currentPlayer + 1} played Moat`]
         };
 
+      // === Beneficial Effects to Other Players ===
+      case 'each_other_player_draws_1': // Council Room
+        return this.handleCouncilRoom(baseState);
+
       // === Special Cards ===
       case 'play_action_twice': // Throne Room
         return {
@@ -1453,6 +1457,44 @@ export class GameEngine {
     };
   }
 
+  private handleCouncilRoom(state: GameState): GameState {
+    // Council Room: +4 Cards and +1 Buy (already applied in standard effects)
+    // Each other player draws 1 card
+    let newState = state;
+
+    // Make all other players draw 1 card
+    for (let i = 0; i < state.players.length; i++) {
+      if (i === state.currentPlayer) continue; // Skip current player
+
+      const opponent = newState.players[i];
+
+      // Draw 1 card for this opponent
+      const drawResult = this.drawCards(opponent.drawPile, opponent.discardPile, opponent.hand, 1);
+
+      const updatedPlayers = newState.players.map((p, idx) =>
+        idx === i
+          ? {
+              ...p,
+              hand: drawResult.newHand,
+              drawPile: drawResult.newDeck,
+              discardPile: drawResult.newDiscard
+            }
+          : p
+      );
+
+      newState = {
+        ...newState,
+        players: updatedPlayers,
+        gameLog: [...newState.gameLog, `Player ${i + 1} drew 1 card`]
+      };
+    }
+
+    return {
+      ...newState,
+      gameLog: [...newState.gameLog, `Player ${newState.currentPlayer + 1} played Council Room`]
+    };
+  }
+
   private handleSpy(state: GameState): GameState {
     // Spy already drew +1 card and gave +1 action in standard effects
     // Each player (including attacker) reveals top card of deck
@@ -1495,12 +1537,14 @@ export class GameEngine {
     }
 
     // Set up pending effect for first player with cards
+    const revealedCard = newState.players[firstPlayer].drawPile[0];
     return {
       ...newState,
       pendingEffect: {
         card: 'Spy',
         effect: 'spy_decision',
-        targetPlayer: firstPlayer
+        targetPlayer: firstPlayer,
+        revealedCard: revealedCard
       },
       gameLog: [...newState.gameLog, `Player ${newState.currentPlayer + 1} played Spy (revealing top cards)`]
     };
@@ -1542,11 +1586,13 @@ export class GameEngine {
       }
 
       if (nextPlayer < state.players.length) {
+        const nextRevealedCard = state.players[nextPlayer].drawPile[0];
         return {
           ...state,
           pendingEffect: {
             ...state.pendingEffect,
-            targetPlayer: nextPlayer
+            targetPlayer: nextPlayer,
+            revealedCard: nextRevealedCard
           },
           gameLog: [...state.gameLog, `Player ${playerIndex + 1} has no cards to reveal for Spy`]
         };
@@ -1604,11 +1650,13 @@ export class GameEngine {
     // Update or clear pending effect
     if (nextPlayer < newState.players.length) {
       // More players to process
+      const nextRevealedCard = newState.players[nextPlayer].drawPile[0];
       return {
         ...newState,
         pendingEffect: {
           ...state.pendingEffect,
-          targetPlayer: nextPlayer
+          targetPlayer: nextPlayer,
+          revealedCard: nextRevealedCard
         }
       };
     } else {

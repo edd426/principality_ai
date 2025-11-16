@@ -41,6 +41,7 @@ export interface PendingEffect {
   throneRoomDouble?: boolean;
   destination?: 'hand' | 'discard' | 'topdeck';  // For Mine and other cards that gain to specific location
   deckSize?: number;  // For Chancellor decision
+  revealedCard?: CardName;  // For Spy decision - card revealed from top of deck
 }
 
 export interface GameState {
