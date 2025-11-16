@@ -155,7 +155,7 @@ describe('Parser', () => {
 
         // Stricter validation: '1.5' is not a pure integer, so it's invalid
         expect(result.type).toBe('invalid');
-        expect(result.error).toBeDefined();
+        expect(result.error).toBeTruthy();
       });
     });
   });
@@ -206,7 +206,7 @@ describe('Parser', () => {
       const result2 = parser.parseInput('1h', sampleMoves);
       // Stricter validation: '1h' is not a pure integer, so it's invalid
       expect(result2.type).toBe('invalid');
-      expect(result2.error).toBeDefined();
+      expect(result2.error).toBeTruthy();
     });
   });
 
@@ -397,7 +397,7 @@ describe('Parser', () => {
         invalidChains.forEach(chainInput => {
           const result = parser.parseInput(chainInput, sampleMoves);
           expect(result.type).toBe('invalid');
-          expect(result.error).toBeDefined();
+          expect(result.error).toBeTruthy();
         });
       });
     });
@@ -417,7 +417,7 @@ describe('Parser', () => {
       specialInputs.forEach(input => {
         const result = parser.parseInput(input, sampleMoves);
         expect(result.type).toBe('invalid');
-        expect(result.error).toBeDefined();
+        expect(result.error).toBeTruthy();
       });
     });
 
@@ -426,7 +426,7 @@ describe('Parser', () => {
 
       const result = parser.parseInput(longInput, sampleMoves);
       expect(result.type).toBe('invalid');
-      expect(result.error).toBeDefined();
+      expect(result.error).toBeTruthy();
     });
   });
 
@@ -435,7 +435,7 @@ describe('Parser', () => {
       // Move result
       const moveResult = parser.parseInput('1', sampleMoves);
       if (moveResult.type === 'move') {
-        expect(moveResult.move).toBeDefined();
+        expect(moveResult.move).toBeTruthy();
         expect(moveResult.command).toBeUndefined();
         expect(moveResult.error).toBeUndefined();
       }
@@ -443,7 +443,7 @@ describe('Parser', () => {
       // Command result
       const commandResult = parser.parseInput('help', sampleMoves);
       if (commandResult.type === 'command') {
-        expect(commandResult.command).toBeDefined();
+        expect(commandResult.command).toBeTruthy();
         expect(commandResult.move).toBeUndefined();
         expect(commandResult.error).toBeUndefined();
       }
@@ -451,7 +451,7 @@ describe('Parser', () => {
       // Invalid result
       const invalidResult = parser.parseInput('invalid', sampleMoves);
       if (invalidResult.type === 'invalid') {
-        expect(invalidResult.error).toBeDefined();
+        expect(invalidResult.error).toBeTruthy();
         expect(invalidResult.move).toBeUndefined();
         expect(invalidResult.command).toBeUndefined();
       }
