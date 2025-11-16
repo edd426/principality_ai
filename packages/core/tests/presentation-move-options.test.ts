@@ -396,7 +396,7 @@ describe('generateRemodelStep2Options', () => {
     expect(options[0].description).toContain('No cards available');
   });
 
-  it('should sort options by cost descending', () => {
+  it('should sort options by cost ascending', () => {
     const supply = new Map<CardName, number>([
       ['Copper', 46],      // $0
       ['Silver', 40],      // $3
@@ -404,10 +404,9 @@ describe('generateRemodelStep2Options', () => {
     ]);
     const options = generateRemodelStep2Options(4, supply);
 
-    // Check descending cost order (assuming we can access getCard)
+    // Check ascending cost order (consistent with rest of game)
     for (let i = 0; i < options.length - 1; i++) {
-      // This test will need card cost lookup - may need adjustment
-      expect(options[i].details.gainCost).toBeGreaterThanOrEqual(options[i + 1].details.gainCost);
+      expect(options[i].details.gainCost).toBeLessThanOrEqual(options[i + 1].details.gainCost);
     }
   });
 
