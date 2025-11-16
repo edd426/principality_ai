@@ -1136,9 +1136,117 @@ describe('Presentation Layer: Move Descriptions', () => {
 
     test('should handle play_all_treasures', () => {
       const move: Move = { type: 'play_all_treasures' };
-      // Note: getMoveDescriptionCompact doesn't explicitly handle play_all_treasures
-      // It falls through to default case
-      expect(getMoveDescriptionCompact(move)).toBe('Unknown move');
+      expect(getMoveDescriptionCompact(move)).toBe('Play all treasures');
+    });
+
+    test('should handle trash_cards with cards', () => {
+      const move: Move = { type: 'trash_cards', cards: ['Copper', 'Estate'] };
+      expect(getMoveDescriptionCompact(move)).toBe('Trash: Copper, Estate');
+    });
+
+    test('should handle trash_cards without cards', () => {
+      const move: Move = { type: 'trash_cards' };
+      expect(getMoveDescriptionCompact(move)).toBe('Trash cards');
+    });
+
+    test('should handle gain_card with cost', () => {
+      const move: Move = { type: 'gain_card', card: 'Silver' };
+      expect(getMoveDescriptionCompact(move)).toBe('Gain: Silver ($3)');
+    });
+
+    test('should handle gain_card without card', () => {
+      const move: Move = { type: 'gain_card' };
+      expect(getMoveDescriptionCompact(move)).toBe('Gain card');
+    });
+
+    test('should handle reveal_reaction with card', () => {
+      const move: Move = { type: 'reveal_reaction', card: 'Moat' };
+      expect(getMoveDescriptionCompact(move)).toBe('Reveal Moat');
+    });
+
+    test('should handle reveal_reaction without card', () => {
+      const move: Move = { type: 'reveal_reaction' };
+      expect(getMoveDescriptionCompact(move)).toBe('Reveal reaction');
+    });
+
+    test('should handle discard_to_hand_size with cards', () => {
+      const move: Move = { type: 'discard_to_hand_size', cards: ['Copper', 'Estate'] };
+      expect(getMoveDescriptionCompact(move)).toBe('Discard to hand size: Copper, Estate');
+    });
+
+    test('should handle discard_to_hand_size without cards', () => {
+      const move: Move = { type: 'discard_to_hand_size' };
+      expect(getMoveDescriptionCompact(move)).toBe('Discard to hand size');
+    });
+
+    test('should handle reveal_and_topdeck with card', () => {
+      const move: Move = { type: 'reveal_and_topdeck', card: 'Estate' };
+      expect(getMoveDescriptionCompact(move)).toBe('Topdeck: Estate');
+    });
+
+    test('should handle reveal_and_topdeck without card', () => {
+      const move: Move = { type: 'reveal_and_topdeck' };
+      expect(getMoveDescriptionCompact(move)).toBe('Topdeck victory card');
+    });
+
+    test('should handle spy_decision to discard', () => {
+      const move: Move = { type: 'spy_decision', choice: true };
+      expect(getMoveDescriptionCompact(move)).toBe('Discard revealed card');
+    });
+
+    test('should handle spy_decision to keep', () => {
+      const move: Move = { type: 'spy_decision', choice: false };
+      expect(getMoveDescriptionCompact(move)).toBe('Keep revealed card on top');
+    });
+
+    test('should handle select_treasure_to_trash with card', () => {
+      const move: Move = { type: 'select_treasure_to_trash', card: 'Copper' };
+      expect(getMoveDescriptionCompact(move)).toBe('Trash: Copper');
+    });
+
+    test('should handle select_treasure_to_trash without card', () => {
+      const move: Move = { type: 'select_treasure_to_trash' };
+      expect(getMoveDescriptionCompact(move)).toBe('Select treasure to trash');
+    });
+
+    test('should handle gain_trashed_card with card', () => {
+      const move: Move = { type: 'gain_trashed_card', card: 'Silver' };
+      expect(getMoveDescriptionCompact(move)).toBe('Gain from trash: Silver ($3)');
+    });
+
+    test('should handle gain_trashed_card without card', () => {
+      const move: Move = { type: 'gain_trashed_card' };
+      expect(getMoveDescriptionCompact(move)).toBe('Gain trashed treasure');
+    });
+
+    test('should handle select_action_for_throne with card', () => {
+      const move: Move = { type: 'select_action_for_throne', card: 'Village' };
+      expect(getMoveDescriptionCompact(move)).toBe('Play twice: Village');
+    });
+
+    test('should handle select_action_for_throne without card', () => {
+      const move: Move = { type: 'select_action_for_throne' };
+      expect(getMoveDescriptionCompact(move)).toBe('Select action for Throne Room');
+    });
+
+    test('should handle chancellor_decision to shuffle', () => {
+      const move: Move = { type: 'chancellor_decision', choice: true };
+      expect(getMoveDescriptionCompact(move)).toBe('Shuffle deck into discard');
+    });
+
+    test('should handle chancellor_decision to keep', () => {
+      const move: Move = { type: 'chancellor_decision', choice: false };
+      expect(getMoveDescriptionCompact(move)).toBe('Keep deck as is');
+    });
+
+    test('should handle library_set_aside with card', () => {
+      const move: Move = { type: 'library_set_aside', cards: ['Village'] };
+      expect(getMoveDescriptionCompact(move)).toBe('Set aside: Village');
+    });
+
+    test('should handle library_set_aside without cards', () => {
+      const move: Move = { type: 'library_set_aside' };
+      expect(getMoveDescriptionCompact(move)).toBe('Set aside action card');
     });
   });
 
@@ -1180,10 +1288,78 @@ describe('Presentation Layer: Move Descriptions', () => {
     });
 
     test('should generate discard_for_cellar command', () => {
+      const move: Move = { type: 'discard_for_cellar', cards: ['Copper', 'Estate'] };
+      expect(getMoveCommand(move)).toBe('discard_for_cellar Copper,Estate');
+    });
+
+    test('should generate discard_for_cellar command without cards', () => {
       const move: Move = { type: 'discard_for_cellar' };
-      // Note: getMoveCommand doesn't explicitly handle discard_for_cellar
-      // It falls through to default case
       expect(getMoveCommand(move)).toBe('discard_for_cellar');
+    });
+
+    test('should generate trash_cards command', () => {
+      const move: Move = { type: 'trash_cards', cards: ['Copper'] };
+      expect(getMoveCommand(move)).toBe('trash_cards Copper');
+    });
+
+    test('should generate gain_card command', () => {
+      const move: Move = { type: 'gain_card', card: 'Silver' };
+      expect(getMoveCommand(move)).toBe('gain_card Silver');
+    });
+
+    test('should generate reveal_reaction command', () => {
+      const move: Move = { type: 'reveal_reaction', card: 'Moat' };
+      expect(getMoveCommand(move)).toBe('reveal_reaction Moat');
+    });
+
+    test('should generate discard_to_hand_size command', () => {
+      const move: Move = { type: 'discard_to_hand_size', cards: ['Copper', 'Estate'] };
+      expect(getMoveCommand(move)).toBe('discard_to_hand_size Copper,Estate');
+    });
+
+    test('should generate reveal_and_topdeck command', () => {
+      const move: Move = { type: 'reveal_and_topdeck', card: 'Estate' };
+      expect(getMoveCommand(move)).toBe('reveal_and_topdeck Estate');
+    });
+
+    test('should generate spy_decision command for yes', () => {
+      const move: Move = { type: 'spy_decision', choice: true };
+      expect(getMoveCommand(move)).toBe('spy_decision yes');
+    });
+
+    test('should generate spy_decision command for no', () => {
+      const move: Move = { type: 'spy_decision', choice: false };
+      expect(getMoveCommand(move)).toBe('spy_decision no');
+    });
+
+    test('should generate select_treasure_to_trash command', () => {
+      const move: Move = { type: 'select_treasure_to_trash', card: 'Copper' };
+      expect(getMoveCommand(move)).toBe('select_treasure_to_trash Copper');
+    });
+
+    test('should generate gain_trashed_card command', () => {
+      const move: Move = { type: 'gain_trashed_card', card: 'Silver' };
+      expect(getMoveCommand(move)).toBe('gain_trashed_card Silver');
+    });
+
+    test('should generate select_action_for_throne command', () => {
+      const move: Move = { type: 'select_action_for_throne', card: 'Village' };
+      expect(getMoveCommand(move)).toBe('select_action_for_throne Village');
+    });
+
+    test('should generate chancellor_decision command for yes', () => {
+      const move: Move = { type: 'chancellor_decision', choice: true };
+      expect(getMoveCommand(move)).toBe('chancellor_decision yes');
+    });
+
+    test('should generate chancellor_decision command for no', () => {
+      const move: Move = { type: 'chancellor_decision', choice: false };
+      expect(getMoveCommand(move)).toBe('chancellor_decision no');
+    });
+
+    test('should generate library_set_aside command', () => {
+      const move: Move = { type: 'library_set_aside', cards: ['Village'] };
+      expect(getMoveCommand(move)).toBe('library_set_aside Village');
     });
   });
 

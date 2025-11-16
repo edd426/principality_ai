@@ -34,6 +34,47 @@ export function getMoveDescription(move: Move): string {
     case 'discard_for_cellar':
       return 'Discard cards for Cellar';
 
+    case 'trash_cards':
+      if (move.cards && move.cards.length > 0) {
+        return `Trash ${move.cards.join(', ')}`;
+      }
+      return 'Trash cards';
+
+    case 'gain_card':
+      return move.card ? `Gain ${move.card}` : 'Gain card';
+
+    case 'reveal_reaction':
+      return move.card ? `Reveal ${move.card}` : 'Reveal reaction';
+
+    case 'discard_to_hand_size':
+      if (move.cards && move.cards.length > 0) {
+        return `Discard ${move.cards.join(', ')} to hand size`;
+      }
+      return 'Discard to hand size';
+
+    case 'reveal_and_topdeck':
+      return move.card ? `Topdeck ${move.card}` : 'Topdeck victory card';
+
+    case 'spy_decision':
+      return move.choice ? 'Discard revealed card' : 'Keep revealed card on top';
+
+    case 'select_treasure_to_trash':
+      return move.card ? `Trash ${move.card}` : 'Select treasure to trash';
+
+    case 'gain_trashed_card':
+      return move.card ? `Gain ${move.card} from trash` : 'Gain trashed treasure';
+
+    case 'select_action_for_throne':
+      return move.card ? `Play ${move.card} twice` : 'Select action for Throne Room';
+
+    case 'chancellor_decision':
+      return move.choice ? 'Shuffle deck into discard' : 'Keep deck as is';
+
+    case 'library_set_aside':
+      return move.cards && move.cards.length > 0
+        ? `Set aside ${move.cards[0]}`
+        : 'Set aside action card';
+
     default:
       return 'Unknown move';
   }
@@ -128,6 +169,63 @@ export function getMoveDescriptionCompact(move: Move): string {
         ? `Gain: ${move.card} (from trash)`
         : 'Skip gaining';
 
+    case 'trash_cards':
+      if (move.cards && move.cards.length > 0) {
+        return `Trash: ${move.cards.join(', ')}`;
+      }
+      return 'Trash cards';
+
+    case 'gain_card':
+      if (move.card) {
+        try {
+          const card = getCard(move.card);
+          return `Gain: ${move.card} ($${card.cost})`;
+        } catch {
+          return `Gain: ${move.card}`;
+        }
+      }
+      return 'Gain card';
+
+    case 'reveal_reaction':
+      return move.card ? `Reveal ${move.card}` : 'Reveal reaction';
+
+    case 'discard_to_hand_size':
+      if (move.cards && move.cards.length > 0) {
+        return `Discard to hand size: ${move.cards.join(', ')}`;
+      }
+      return 'Discard to hand size';
+
+    case 'reveal_and_topdeck':
+      return move.card ? `Topdeck: ${move.card}` : 'Topdeck victory card';
+
+    case 'spy_decision':
+      return move.choice ? 'Discard revealed card' : 'Keep revealed card on top';
+
+    case 'select_treasure_to_trash':
+      return move.card ? `Trash: ${move.card}` : 'Select treasure to trash';
+
+    case 'gain_trashed_card':
+      if (move.card) {
+        try {
+          const card = getCard(move.card);
+          return `Gain from trash: ${move.card} ($${card.cost})`;
+        } catch {
+          return `Gain from trash: ${move.card}`;
+        }
+      }
+      return 'Gain trashed treasure';
+
+    case 'select_action_for_throne':
+      return move.card ? `Play twice: ${move.card}` : 'Select action for Throne Room';
+
+    case 'chancellor_decision':
+      return move.choice ? 'Shuffle deck into discard' : 'Keep deck as is';
+
+    case 'library_set_aside':
+      return move.cards && move.cards.length > 0
+        ? `Set aside: ${move.cards[0]}`
+        : 'Set aside action card';
+
     default:
       return 'Unknown move';
   }
@@ -154,6 +252,50 @@ export function getMoveCommand(move: Move): string {
 
     case 'end_phase':
       return 'end';
+
+    case 'discard_for_cellar':
+      return move.cards && move.cards.length > 0
+        ? `discard_for_cellar ${move.cards.join(',')}`
+        : 'discard_for_cellar';
+
+    case 'trash_cards':
+      return move.cards && move.cards.length > 0
+        ? `trash_cards ${move.cards.join(',')}`
+        : 'trash_cards';
+
+    case 'gain_card':
+      return move.card ? `gain_card ${move.card}` : 'gain_card';
+
+    case 'reveal_reaction':
+      return move.card ? `reveal_reaction ${move.card}` : 'reveal_reaction';
+
+    case 'discard_to_hand_size':
+      return move.cards && move.cards.length > 0
+        ? `discard_to_hand_size ${move.cards.join(',')}`
+        : 'discard_to_hand_size';
+
+    case 'reveal_and_topdeck':
+      return move.card ? `reveal_and_topdeck ${move.card}` : 'reveal_and_topdeck';
+
+    case 'spy_decision':
+      return `spy_decision ${move.choice ? 'yes' : 'no'}`;
+
+    case 'select_treasure_to_trash':
+      return move.card ? `select_treasure_to_trash ${move.card}` : 'select_treasure_to_trash';
+
+    case 'gain_trashed_card':
+      return move.card ? `gain_trashed_card ${move.card}` : 'gain_trashed_card';
+
+    case 'select_action_for_throne':
+      return move.card ? `select_action_for_throne ${move.card}` : 'select_action_for_throne';
+
+    case 'chancellor_decision':
+      return `chancellor_decision ${move.choice ? 'yes' : 'no'}`;
+
+    case 'library_set_aside':
+      return move.cards && move.cards.length > 0
+        ? `library_set_aside ${move.cards[0]}`
+        : 'library_set_aside';
 
     default:
       return move.type;
