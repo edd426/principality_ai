@@ -52,6 +52,9 @@ export function getMoveDescriptionCompact(move: Move): string {
     case 'play_treasure':
       return `Play ${move.card}`;
 
+    case 'play_all_treasures':
+      return 'Play all treasures';
+
     case 'buy':
       try {
         const card = getCard(move.card!);
@@ -64,7 +67,66 @@ export function getMoveDescriptionCompact(move: Move): string {
       return 'End Phase';
 
     case 'discard_for_cellar':
-      return 'Discard cards for Cellar';
+      return move.cards && move.cards.length > 0
+        ? `Discard: ${move.cards.join(', ')}`
+        : 'Discard nothing';
+
+    case 'trash_cards':
+      return move.cards && move.cards.length > 0
+        ? `Trash: ${move.cards.join(', ')}`
+        : 'Trash nothing';
+
+    case 'gain_card':
+      return move.card
+        ? `Gain: ${move.card}`
+        : 'Skip gaining';
+
+    case 'select_treasure_to_trash':
+      return move.card
+        ? `Trash: ${move.card}`
+        : 'Skip';
+
+    case 'library_set_aside':
+      return move.cards && move.cards.length > 0
+        ? move.choice
+          ? `Set aside: ${move.cards[0]}`
+          : `Keep: ${move.cards[0]}`
+        : 'Skip';
+
+    case 'select_action_for_throne':
+      return move.card
+        ? `Play: ${move.card} (twice)`
+        : 'Skip Throne Room';
+
+    case 'chancellor_decision':
+      return move.choice
+        ? 'Put deck into discard'
+        : 'Keep deck';
+
+    case 'spy_decision':
+      return move.choice
+        ? 'Discard revealed card'
+        : 'Keep card on top';
+
+    case 'reveal_and_topdeck':
+      return move.card
+        ? `Topdeck: ${move.card}`
+        : 'Reveal hand (no Victory cards)';
+
+    case 'discard_to_hand_size':
+      return move.cards && move.cards.length > 0
+        ? `Discard: ${move.cards.join(', ')}`
+        : 'No discard needed';
+
+    case 'reveal_reaction':
+      return move.card
+        ? `Reveal: ${move.card} (block attack)`
+        : 'Reveal reaction';
+
+    case 'gain_trashed_card':
+      return move.card
+        ? `Gain: ${move.card} (from trash)`
+        : 'Skip gaining';
 
     default:
       return 'Unknown move';

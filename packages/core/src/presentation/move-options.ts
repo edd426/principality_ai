@@ -178,6 +178,21 @@ export function formatMoveCommand(move: Move): string {
         ? `reveal_and_topdeck ${move.card}`
         : 'reveal_and_topdeck';
 
+    case 'discard_to_hand_size':
+      return move.cards && move.cards.length > 0
+        ? `discard_to_hand_size ${move.cards.join(',')}`
+        : 'discard_to_hand_size';
+
+    case 'reveal_reaction':
+      return move.card
+        ? `reveal_reaction ${move.card}`
+        : 'reveal_reaction';
+
+    case 'gain_trashed_card':
+      return move.card
+        ? `gain_trashed_card ${move.card}`
+        : 'gain_trashed_card';
+
     default:
       return move.type;
   }
