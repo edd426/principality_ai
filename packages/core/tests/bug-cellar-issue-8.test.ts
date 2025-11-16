@@ -68,7 +68,8 @@ describe('GitHub Issue #8: Cellar Card Bugs', () => {
       state = result.newState!;
 
       // Assert: pendingEffect should be created
-      expect(state.pendingEffect).toBeDefined();
+      expect(state.pendingEffect).toBeTruthy();
+      expect(typeof state.pendingEffect).toBe('object');
       expect(state.pendingEffect?.card).toBe('Cellar');
       expect(state.pendingEffect?.effect).toBe('discard_for_cellar');
 

@@ -181,7 +181,8 @@ describe('Feature 1: Multiplayer Game Engine', () => {
       const result = engine.executeMove(stateBuyPhase, { type: 'play_treasure', card: 'Copper' });
 
       expect(result.success).toBe(true);
-      expect(result.newState).toBeDefined();
+      expect(result.newState).toBeTruthy();
+      expect(typeof result.newState).toBe('object');
 
       if (result.newState) {
         const state2 = result.newState;
@@ -364,7 +365,8 @@ describe('Feature 1: Multiplayer Game Engine', () => {
 
       const state = engine.initializeGame(2);
 
-      expect(state.supply).toBeDefined();
+      expect(state.supply).toBeTruthy();
+      expect(state.supply instanceof Map).toBe(true);
       expect(state.supply.get('Copper')).toBe(60);
       expect(state.supply.get('Silver')).toBe(40);
       expect(state.supply.get('Gold')).toBe(30);

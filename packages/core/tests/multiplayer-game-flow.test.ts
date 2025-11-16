@@ -425,7 +425,8 @@ describe('Feature 3: Multiplayer Game Flow', () => {
       // This demonstrates the expected behavior
 
       const state = engine.initializeGame(2);
-      expect(state).toBeDefined();
+      expect(state).toBeTruthy();
+      expect(typeof state).toBe('object');
 
       // When implemented at MCP level:
       // - If no move provided within 30s, mark player as disconnected
@@ -448,7 +449,8 @@ describe('Feature 3: Multiplayer Game Flow', () => {
       // 3. Use AI.decideBestMove() for future moves
       // 4. Game continues seamlessly
 
-      expect(state.players[0]).toBeDefined();
+      expect(state.players[0]).toBeTruthy();
+      expect(typeof state.players[0]).toBe('object');
     });
   });
 
@@ -470,7 +472,8 @@ describe('Feature 3: Multiplayer Game Flow', () => {
         }
       }
 
-      expect(state).toBeDefined();
+      expect(state).toBeTruthy();
+      expect(typeof state).toBe('object');
       expect(state.players).toHaveLength(2);
     });
   });
@@ -502,7 +505,8 @@ describe('Feature 3: Multiplayer Game Flow', () => {
 
       const state = engine.initializeGame(2);
 
-      expect(state.gameLog).toBeDefined();
+      expect(Array.isArray(state.gameLog)).toBe(true);
+      expect(state.gameLog.length).toBeGreaterThanOrEqual(0);
       expect(state.gameLog.length).toBeGreaterThan(0);
 
       // When disconnect happens, should add:
@@ -589,7 +593,8 @@ describe('Feature 3: Multiplayer Game Flow', () => {
 
       const state = engine.initializeGame(2);
 
-      expect(state.gameLog).toBeDefined();
+      expect(Array.isArray(state.gameLog)).toBe(true);
+      expect(state.gameLog.length).toBeGreaterThanOrEqual(0);
       expect(state.gameLog.length).toBeGreaterThan(0);
 
       let currentState = state;
@@ -727,7 +732,8 @@ describe('Feature 3: Multiplayer Game Flow', () => {
       }
 
       expect(moveCount).toBeGreaterThan(20);
-      expect(state).toBeDefined();
+      expect(state).toBeTruthy();
+      expect(typeof state).toBe('object');
     });
   });
 
