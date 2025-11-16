@@ -15,6 +15,7 @@ export interface CLIOptions {
   stableNumbers?: boolean;
   autoPlayTreasures?: boolean;
   manualCleanup?: boolean;
+  debugMode?: boolean;
 }
 
 /**
@@ -37,7 +38,10 @@ export class PrincipalityCLI {
     this.numPlayers = players;
 
     // Initialize engine with options
-    this.engine = new GameEngine(gameSeed, { victoryPileSize: options.victoryPileSize });
+    this.engine = new GameEngine(gameSeed, {
+      victoryPileSize: options.victoryPileSize,
+      debugMode: options.debugMode
+    });
     this.gameState = this.engine.initializeGame(players);
 
     // Initialize AI with same seed for deterministic behavior
@@ -61,6 +65,14 @@ export class PrincipalityCLI {
   async start(): Promise<void> {
     this.isRunning = true;
     this.display.displayWelcome(this.gameState.seed, this.options.victoryPileSize, this.gameState);
+
+    // Show debug mode warning if enabled
+    if (this.options.debugMode) {
+      console.log('\n⚠️  DEBUG MODE ENABLED ⚠️');
+      console.log('  Debug commands: /deck [player], /discard [player], /trash, /state');
+      console.log('  WARNING: Provides perfect information about hidden game state');
+      console.log('');
+    }
 
     // Start the game loop
     await this.gameLoop();
@@ -394,10 +406,88 @@ export class PrincipalityCLI {
         break;
       }
 
+      // Debug commands (only available when debug mode is enabled)
+      case 'deck': {
+        if (!this.engine.isDebugMode()) {
+          console.log('✗ Error: Debug mode not enabled. Start game with --debug flag.');
+          break;
+        }
+        const playerIndex = parameter ? parseInt(parameter) - 1 : this.gameState.currentPlayer;
+        if (isNaN(playerIndex) || playerIndex < 0 || playerIndex >= this.gameState.players.length) {
+          console.log(`✗ Error: Invalid player index. Use 1-${this.gameState.players.length}`);
+          break;
+        }
+        const deck = this.engine.debugGetDeck(this.gameState, playerIndex);
+        const cardCounts = this.formatCardCounts(deck);
+        console.log(`\nPlayer ${playerIndex + 1}'s Deck (${deck.length} cards):`);
+        console.log(cardCounts || '  (empty)');
+        break;
+      }
+
+      case 'discard': {
+        if (!this.engine.isDebugMode()) {
+          console.log('✗ Error: Debug mode not enabled. Start game with --debug flag.');
+          break;
+        }
+        const playerIndex = parameter ? parseInt(parameter) - 1 : this.gameState.currentPlayer;
+        if (isNaN(playerIndex) || playerIndex < 0 || playerIndex >= this.gameState.players.length) {
+          console.log(`✗ Error: Invalid player index. Use 1-${this.gameState.players.length}`);
+          break;
+        }
+        const discard = this.engine.debugGetDiscard(this.gameState, playerIndex);
+        const cardCounts = this.formatCardCounts(discard);
+        console.log(`\nPlayer ${playerIndex + 1}'s Discard Pile (${discard.length} cards):`);
+        console.log(cardCounts || '  (empty)');
+        break;
+      }
+
+      case 'trash': {
+        if (!this.engine.isDebugMode()) {
+          console.log('✗ Error: Debug mode not enabled. Start game with --debug flag.');
+          break;
+        }
+        const trash = this.engine.debugGetTrash(this.gameState);
+        const cardCounts = this.formatCardCounts(trash);
+        console.log(`\nTrash Pile (${trash.length} cards):`);
+        console.log(cardCounts || '  (empty)');
+        break;
+      }
+
+      case 'state': {
+        if (!this.engine.isDebugMode()) {
+          console.log('✗ Error: Debug mode not enabled. Start game with --debug flag.');
+          break;
+        }
+        const fullState = this.engine.debugGetFullState(this.gameState);
+        console.log('\nFull Game State:');
+        console.log(JSON.stringify(fullState, null, 2));
+        break;
+      }
+
       default: {
         console.log(`✗ Error: Unknown command: ${command}`);
       }
     }
+  }
+
+  /**
+   * Format card counts for display
+   */
+  private formatCardCounts(cards: ReadonlyArray<string>): string {
+    if (cards.length === 0) {
+      return '';
+    }
+
+    const counts = new Map<string, number>();
+    cards.forEach(card => {
+      counts.set(card, (counts.get(card) || 0) + 1);
+    });
+
+    const lines: string[] = [];
+    for (const [card, count] of Array.from(counts.entries()).sort()) {
+      lines.push(`  ${card} x${count}`);
+    }
+    return lines.join('\n');
   }
 
   /**

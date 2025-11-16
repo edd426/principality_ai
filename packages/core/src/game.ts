@@ -147,11 +147,13 @@ export class GameEngine {
   private random: SeededRandom;
   private seed: string;
   private options: GameOptions;
+  private debugMode: boolean;
 
   constructor(seed: string, options: GameOptions = {}) {
     this.seed = seed;
     this.random = new SeededRandom(seed);
     this.options = options;
+    this.debugMode = options.debugMode ?? false;
   }
 
   /**
@@ -2508,5 +2510,108 @@ export class GameEngine {
     }
 
     return moves;
+  }
+
+  /**
+   * Check if debug mode is enabled
+   * @returns true if debug mode is enabled, false otherwise
+   */
+  isDebugMode(): boolean {
+    return this.debugMode;
+  }
+
+  /**
+   * Get player's deck (draw pile) contents
+   * Only available when debug mode is enabled
+   * @param state - Current game state
+   * @param playerIndex - Player index (0-based)
+   * @returns Array of card names in the deck
+   * @throws Error if debug mode is not enabled or player index is invalid
+   */
+  debugGetDeck(state: GameState, playerIndex: number): ReadonlyArray<CardName> {
+    if (!this.debugMode) {
+      throw new Error('Debug mode not enabled');
+    }
+
+    if (playerIndex < 0 || playerIndex >= state.players.length) {
+      throw new Error('Invalid player index');
+    }
+
+    // Return immutable copy
+    return [...state.players[playerIndex].drawPile];
+  }
+
+  /**
+   * Get player's hand contents
+   * Only available when debug mode is enabled
+   * @param state - Current game state
+   * @param playerIndex - Player index (0-based)
+   * @returns Array of card names in the hand
+   * @throws Error if debug mode is not enabled or player index is invalid
+   */
+  debugGetHand(state: GameState, playerIndex: number): ReadonlyArray<CardName> {
+    if (!this.debugMode) {
+      throw new Error('Debug mode not enabled');
+    }
+
+    if (playerIndex < 0 || playerIndex >= state.players.length) {
+      throw new Error('Invalid player index');
+    }
+
+    // Return immutable copy
+    return [...state.players[playerIndex].hand];
+  }
+
+  /**
+   * Get player's discard pile contents
+   * Only available when debug mode is enabled
+   * @param state - Current game state
+   * @param playerIndex - Player index (0-based)
+   * @returns Array of card names in the discard pile
+   * @throws Error if debug mode is not enabled or player index is invalid
+   */
+  debugGetDiscard(state: GameState, playerIndex: number): ReadonlyArray<CardName> {
+    if (!this.debugMode) {
+      throw new Error('Debug mode not enabled');
+    }
+
+    if (playerIndex < 0 || playerIndex >= state.players.length) {
+      throw new Error('Invalid player index');
+    }
+
+    // Return immutable copy
+    return [...state.players[playerIndex].discardPile];
+  }
+
+  /**
+   * Get trash pile contents
+   * Only available when debug mode is enabled
+   * @param state - Current game state
+   * @returns Array of card names in the trash pile
+   * @throws Error if debug mode is not enabled
+   */
+  debugGetTrash(state: GameState): ReadonlyArray<CardName> {
+    if (!this.debugMode) {
+      throw new Error('Debug mode not enabled');
+    }
+
+    // Return immutable copy
+    return [...state.trash];
+  }
+
+  /**
+   * Get complete game state (for advanced debugging)
+   * Only available when debug mode is enabled
+   * @param state - Current game state
+   * @returns Complete game state object
+   * @throws Error if debug mode is not enabled
+   */
+  debugGetFullState(state: GameState): GameState {
+    if (!this.debugMode) {
+      throw new Error('Debug mode not enabled');
+    }
+
+    // Return the state as-is (already immutable)
+    return state;
   }
 }
