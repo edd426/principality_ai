@@ -42,6 +42,9 @@ export interface PendingEffect {
   destination?: 'hand' | 'discard' | 'topdeck';  // For Mine and other cards that gain to specific location
   deckSize?: number;  // For Chancellor decision
   revealedCard?: CardName;  // For Spy decision - card revealed from top of deck
+  drawnCard?: CardName;  // For Library decision - action card that was drawn
+  setAsideCards?: CardName[];  // For Library - cards set aside during drawing
+  targetHandSize?: number;  // For Library - target hand size (usually 7)
 }
 
 export interface GameState {

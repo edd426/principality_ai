@@ -943,9 +943,11 @@ export function generateMoveOptions(
       return [];
 
     case 'library_set_aside':
-      // Card to consider is in pendingEffect or needs to be passed differently
-      // For now, we'll handle this in the game engine integration
-      return [];
+      if (!pendingEffect.drawnCard) {
+        console.warn('library_set_aside missing drawnCard in pendingEffect');
+        return [];
+      }
+      return generateLibraryOptions(pendingEffect.drawnCard);
 
     case 'select_action_for_throne':
       return generateThroneRoomOptions(player.hand);
