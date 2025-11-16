@@ -416,10 +416,10 @@ export function generateRemodelStep2Options(
     ];
   }
 
-  // Sort by cost descending, then alphabetically
+  // Sort by cost ascending, then alphabetically
   availableCards.sort((a, b) => {
     if (a.cost !== b.cost) {
-      return b.cost - a.cost; // Higher cost first
+      return a.cost - b.cost; // Lower cost first
     }
     return a.name.localeCompare(b.name); // Alphabetical
   });
@@ -508,10 +508,10 @@ export function generateMineStep2Options(
     ];
   }
 
-  // Sort by cost descending, then alphabetically
+  // Sort by cost ascending, then alphabetically
   availableTreasures.sort((a, b) => {
     if (a.cost !== b.cost) {
-      return b.cost - a.cost; // Higher cost first
+      return a.cost - b.cost; // Lower cost first
     }
     return a.name.localeCompare(b.name); // Alphabetical
   });
@@ -562,10 +562,10 @@ export function generateWorkshopOptions(
     ];
   }
 
-  // Sort by cost descending, then alphabetically
+  // Sort by cost ascending, then alphabetically
   availableCards.sort((a, b) => {
     if (a.cost !== b.cost) {
-      return b.cost - a.cost; // Higher cost first
+      return a.cost - b.cost; // Lower cost first
     }
     return a.name.localeCompare(b.name); // Alphabetical
   });
