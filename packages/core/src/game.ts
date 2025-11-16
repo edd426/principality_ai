@@ -1495,12 +1495,14 @@ export class GameEngine {
     }
 
     // Set up pending effect for first player with cards
+    const revealedCard = newState.players[firstPlayer].drawPile[0];
     return {
       ...newState,
       pendingEffect: {
         card: 'Spy',
         effect: 'spy_decision',
-        targetPlayer: firstPlayer
+        targetPlayer: firstPlayer,
+        revealedCard: revealedCard
       },
       gameLog: [...newState.gameLog, `Player ${newState.currentPlayer + 1} played Spy (revealing top cards)`]
     };
@@ -1542,11 +1544,13 @@ export class GameEngine {
       }
 
       if (nextPlayer < state.players.length) {
+        const nextRevealedCard = state.players[nextPlayer].drawPile[0];
         return {
           ...state,
           pendingEffect: {
             ...state.pendingEffect,
-            targetPlayer: nextPlayer
+            targetPlayer: nextPlayer,
+            revealedCard: nextRevealedCard
           },
           gameLog: [...state.gameLog, `Player ${playerIndex + 1} has no cards to reveal for Spy`]
         };
@@ -1604,11 +1608,13 @@ export class GameEngine {
     // Update or clear pending effect
     if (nextPlayer < newState.players.length) {
       // More players to process
+      const nextRevealedCard = newState.players[nextPlayer].drawPile[0];
       return {
         ...newState,
         pendingEffect: {
           ...state.pendingEffect,
-          targetPlayer: nextPlayer
+          targetPlayer: nextPlayer,
+          revealedCard: nextRevealedCard
         }
       };
     } else {
