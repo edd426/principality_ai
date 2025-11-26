@@ -803,6 +803,13 @@ export function generateMoveOptions(
       }
       return [];
 
+    case 'gain_treasure':
+      // Mine card specific: gain a treasure to hand
+      if (pendingEffect.card === 'Mine') {
+        return generateMineStep2Options(pendingEffect.maxGainCost || 0, state.supply);
+      }
+      return [];
+
     case 'library_set_aside':
       // Card to consider is in pendingEffect or needs to be passed differently
       // For now, we'll handle this in the game engine integration
