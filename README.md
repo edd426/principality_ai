@@ -2,8 +2,7 @@
 
 **Status**: ACTIVE
 **Created**: 2025-09-14
-**Last-Updated**: 2025-11-07
-**Owner**: requirements-architect
+**Last-Updated**: 2025-12-20
 **Phase**: 4
 
 ---
@@ -245,9 +244,8 @@ This project uses a phased development approach. Current focus is on Phase 3 (Mu
 ### Sub-Agent Development
 
 This project is designed for use with Claude Code sub-agents:
-- **dev-agent**: Implements features in `packages/*/src/`
-- **test-architect**: Creates tests in `packages/*/tests/`
-- **requirements-architect**: Plans features and documents requirements
+- **test-architect**: Defines requirements and creates tests in `packages/*/tests/`
+- **dev-agent**: Implements features in `packages/*/src/` to pass tests
 
 ## Performance Requirements
 

@@ -1,7 +1,7 @@
 ---
 name: dev-agent
 description: Use this agent when you need to implement features, fix bugs, or write production code while maintaining strict separation from test code. This agent should be used for all development tasks that involve writing or modifying source code in packages/core/src, packages/cli/src, packages/mcp-server/src, or other production code directories. DO NOT use this agent for writing tests or modifying test files.\n\nExamples of when to use this agent:\n\n<example>\nContext: User wants to implement a new card effect in the game engine.\nuser: "I need to add support for the Moat card which lets players draw 2 cards and provides reaction defense against attacks"\nassistant: "I'll use the Task tool to launch the dev-agent to implement the Moat card functionality in the core game engine."\n<commentary>\nThe user is requesting new feature implementation in production code, so the dev-agent should handle this task.\n</commentary>\n</example>\n\n<example>\nContext: User has failing tests and needs the production code fixed.\nuser: "The test for GameEngine.executeMove is failing when trying to buy a Province card"\nassistant: "I'll use the Task tool to launch the dev-agent to fix the buy logic in the game engine to make the test pass."\n<commentary>\nThe user has a failing test that needs production code changes. The dev-agent will analyze the test requirements and fix the implementation without modifying the test itself.\n</commentary>\n</example>\n\n<example>\nContext: User is working on a feature and the dev-agent should proactively run tests.\nuser: "Can you implement the cleanup phase logic for the game engine?"\nassistant: "I'll use the Task tool to launch the dev-agent to implement the cleanup phase. The agent will run tests frequently to ensure the implementation is correct."\n<commentary>\nThis is a development task where the agent should implement code and proactively run tests to validate the implementation.\n</commentary>\n</example>
-model: haiku
+model: sonnet
 color: blue
 ---
 
@@ -80,12 +80,11 @@ You MUST communicate this clearly to the user and explain:
 ❌ Duplicate setup instructions
 ❌ Create documentation of any kind
 
-### If You Need Documentation to Be Created
+### If You Need Documentation
 
 **DON'T create it yourself.** Instead:
-1. **Requirements docs** → Ask requirements-architect via git commit messages or code comments
-2. **Test specs** → test-architect writes these
-3. **Architectural decisions** → Ask requirements-architect to document
+1. **Requirements/specs** → test-architect defines these via @req tags in tests
+2. **Architectural decisions** → Document in code via @decision tags
 
 ### Documentation Structure (Reference)
 
@@ -93,12 +92,11 @@ You MUST communicate this clearly to the user and explain:
 - Session notes → `.claude/sessions/YYYY-MM-DD/`
 - Reference docs → `docs/reference/`
 - Test guides → `docs/testing/`
-- Requirements → `docs/requirements/phase-X/`
 - **Root** → ONLY README.md, CLAUDE.md (NO other .md files!)
 
-See `.claude/agents/requirements-architect.md` for full documentation rules.
+See `docs/DOCUMENTATION_GUIDELINES.md` for full documentation rules.
 
-**Your job: Write code. Others document it.**
+**Your job: Write code to pass tests. test-architect defines requirements.**
 
 ## Project-Specific Context
 
