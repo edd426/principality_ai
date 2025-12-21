@@ -680,6 +680,12 @@ export class GameExecuteTool {
 
   /**
    * Format valid moves for auto-return
+   *
+   * @blocker: Pending effect moves return only move.type (line 696)
+   * Issue: Returns "select_treasure_to_trash" instead of "select_treasure_to_trash Silver"
+   * Fix: Use formatMoveCommand() from @principality/core for all move types
+   * Impact: MCP clients receive incomplete commands for pending effects
+   * Tests: See packages/core/tests/move-parser-pending-effects.test.ts (44/50 failing)
    */
   private formatValidMovesForAutoReturn(state: GameState): string[] {
     const validMoves = this.gameEngine.getValidMoves(state);
@@ -693,6 +699,7 @@ export class GameExecuteTool {
       } else if (move.type === 'end_phase') {
         return 'end';
       }
+      // @blocker: Line 696 - should use formatMoveCommand(move) here
       return move.type;
     });
   }

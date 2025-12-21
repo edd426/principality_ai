@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-**Status**: ACTIVE | **Phase**: 4 | **Last-Updated**: 2025-12-20
+**Status**: ACTIVE | **Phase**: 4 | **Last-Updated**: 2025-12-21
 
 ---
 
@@ -86,6 +86,12 @@ supply['Copper']      // ✗
 **Agent communication**: Via @ tags in code/tests.
 → See [.claude/AGENT_COMMUNICATION.md](./.claude/AGENT_COMMUNICATION.md)
 
+**Session reports**: Work logs, playtests, and reviews go in `docs/sessions/`.
+→ Keep `.claude/` for configuration only (agents, skills, settings).
+
+**MCP playtesting**: Use `game-tester` agent to run automated game tests.
+→ See [docs/testing/mcp-playtests/](./docs/testing/mcp-playtests/)
+
 ---
 
 ## Quick Links
@@ -94,3 +100,4 @@ supply['Copper']      // ✗
 - [Development Guide](./docs/reference/DEVELOPMENT_GUIDE.md)
 - [Performance Benchmarks](./docs/reference/PERFORMANCE.md)
 - [Phase 4 Requirements](./docs/requirements/phase-4/)
+- [MCP Playtest Scenarios](./docs/testing/mcp-playtests/SCENARIOS.md)

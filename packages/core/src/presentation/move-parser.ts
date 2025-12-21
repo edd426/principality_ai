@@ -8,6 +8,16 @@
  * - Natural: "play Village", "buy Province" (both)
  * - Special: "end", "treasures" (both)
  *
+ * @blocker: Missing parsers for pending effect commands
+ * Issue: formatMoveCommand() in move-options.ts generates commands like:
+ *   - "select_treasure_to_trash Silver"
+ *   - "gain_card Gold"
+ *   - "trash_cards Copper,Estate"
+ * But parseMove() cannot parse these - returns "Cannot parse move" error
+ * Fix: Add handlers for all 9 pending effect command types (see tests)
+ * Tests: packages/core/tests/move-parser-pending-effects.test.ts (44/50 failing)
+ * Impact: MCP server cannot parse pending effect commands
+ *
  * @module presentation/move-parser
  */
 
