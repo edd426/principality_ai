@@ -14,6 +14,10 @@ export const GAME_OBSERVE_SCHEMA = {
         type: 'string',
         enum: ['minimal', 'standard', 'full'],
         description: 'Level of detail: minimal (4 fields ~60 tokens), standard (hand+moves ~250 tokens), full (complete state ~1000 tokens)'
+      },
+      gameId: {
+        type: 'string',
+        description: 'Optional game ID (uses default game if omitted)'
       }
     },
     required: ['detail_level']

@@ -1,60 +1,31 @@
 /**
  * game_session Tool Implementation
  *
- * Manages game lifecycle (start, end) with idempotent operations
+ * Manages game lifecycle (start, end, list) with idempotent operations
  */
 
-import { GameEngine, GameState } from '@principality/core';
+import { GameState } from '@principality/core';
 import { calculateScore, getAllPlayerCards } from '@principality/core';
-import { GameInstance, GameSessionRequest, GameSessionResponse } from '../types/tools';
+import { GameSessionRequest, GameSessionResponse } from '../types/tools';
+import { GameRegistryManager } from '../game-registry';
 import { Logger } from '../logger';
 
 export class GameSessionTool {
-  private currentGame: GameInstance | null = null;
-  private gameHistory: GameInstance[] = [];
-
   constructor(
-    private gameEngine: GameEngine,
+    private registry: GameRegistryManager,
     private defaultModel: 'haiku' | 'sonnet' = 'haiku',
-    private setState: (state: GameState) => void,
-    private getState: () => GameState | null,
     private logger?: Logger
   ) {}
 
   async execute(request: GameSessionRequest): Promise<GameSessionResponse> {
-    const { command, seed, model = this.defaultModel } = request;
+    const { command, seed, model = this.defaultModel, gameId } = request;
 
     if (command === 'new') {
-      // Idempotent: end current game if active
-      if (this.currentGame) {
-        this.logger?.info('Previous game ended, starting new game', {
-          previousGameId: this.currentGame.id,
-          moves: this.currentGame.moves
-        });
-        this.gameHistory.push(this.currentGame);
-      }
-
-      // Start new game
-      const gameId = `game-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-
-      // Create new engine with seed if provided
-      const engine = new GameEngine(seed || gameId);
-      const state = engine.initializeGame(1);
-
-      this.currentGame = {
-        id: gameId,
-        state,
-        model,
-        seed,
-        startTime: new Date().toISOString(),
-        moves: 0
-      };
-
-      // Update server state
-      this.setState(state);
+      // Create new game via registry
+      const game = this.registry.createGame(seed, model);
 
       this.logger?.info('New game started', {
-        gameId,
+        gameId: game.id,
         seed,
         model,
         players: 1
@@ -62,60 +33,53 @@ export class GameSessionTool {
 
       return {
         success: true,
-        gameId,
+        gameId: game.id,
         command: 'new',
-        initialState: state
+        initialState: game.state
       };
     }
 
     if (command === 'end') {
-      const currentState = this.getState();
-      if (!currentState) {
-        this.logger?.warn('Attempted to end game but no active game');
+      const game = this.registry.endGame(gameId);
+
+      if (!game) {
+        this.logger?.warn('Attempted to end game but no active game', { gameId });
         return {
           success: false,
           error: 'No active game to end. Use game_session(command="new") to start a game.'
         };
       }
 
-      if (this.currentGame) {
-        this.logger?.info('Game ended', {
-          gameId: this.currentGame.id,
-          moves: this.currentGame.moves,
-          duration: new Date().getTime() - new Date(this.currentGame.startTime).getTime()
-        });
-        this.gameHistory.push(this.currentGame);
-        this.currentGame = null;
-      }
+      return {
+        success: true,
+        gameId: game.id,
+        command: 'end',
+        finalState: game.state,
+        winner: this.determineWinner(game.state)
+      };
+    }
+
+    if (command === 'list') {
+      const gameIds = this.registry.listGames();
+
+      this.logger?.info('Listed active games', {
+        count: gameIds.length,
+        gameIds
+      });
 
       return {
         success: true,
-        command: 'end',
-        finalState: currentState,
-        winner: this.determineWinner(currentState)
+        command: 'list',
+        gameId: gameIds.join(', ') || 'No active games'
       };
     }
 
     return {
       success: false,
-      error: `Unknown command: "${command}". Must be "new" or "end".`
+      error: `Unknown command: "${command}". Must be "new", "end", or "list".`
     };
   }
 
-  getCurrentGame(): GameInstance | null {
-    return this.currentGame;
-  }
-
-  getGameHistory(): GameInstance[] {
-    return this.gameHistory;
-  }
-
-  updateCurrentGameState(newState: GameState): void {
-    if (this.currentGame) {
-      this.currentGame.state = newState;
-      this.currentGame.moves++;
-    }
-  }
 
   private determineWinner(state: GameState): number | undefined {
     if (!state || !state.players) return undefined;

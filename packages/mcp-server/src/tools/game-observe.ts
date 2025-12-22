@@ -6,7 +6,6 @@
  */
 
 import {
-  GameEngine,
   GameState,
   groupHand,
   formatHand,
@@ -18,19 +17,19 @@ import {
   getGameOverReason
 } from '@principality/core';
 import { GameObserveRequest, GameObserveResponse } from '../types/tools';
+import { GameRegistryManager } from '../game-registry';
 import { Logger } from '../logger';
 
 export class GameObserveTool {
   private cache = new Map<string, GameObserveResponse>();
 
   constructor(
-    private gameEngine: GameEngine,
-    private getState: () => GameState | null,
+    private registry: GameRegistryManager,
     private logger?: Logger
   ) {}
 
   async execute(request: GameObserveRequest): Promise<GameObserveResponse> {
-    const { detail_level } = request;
+    const { detail_level, gameId } = request;
 
     // Validate detail_level
     if (!['minimal', 'standard', 'full'].includes(detail_level)) {
@@ -40,15 +39,17 @@ export class GameObserveTool {
       };
     }
 
-    // Get current state
-    const state = this.getState();
-    if (!state) {
-      this.logger?.warn('Game state requested but no active game');
+    // Get game instance
+    const game = this.registry.getGame(gameId);
+    if (!game) {
+      this.logger?.warn('Game state requested but no active game', { gameId });
       return {
         success: false,
         error: 'No active game. Use game_session(command="new") to start.'
       };
     }
+
+    const state = game.state;
 
     // Log observation (verbose - for strategy analysis)
     this.logger?.info('Game state observed', {
@@ -125,7 +126,7 @@ export class GameObserveTool {
     }
 
     // Always add valid moves
-    const validMoves = this.gameEngine.getValidMoves(state);
+    const validMoves = game.engine.getValidMoves(state);
     response.validMoves = formatValidMoves(validMoves, detail_level);
     response.moveSummary = {
       playableCount: validMoves.filter((m: any) => m.type === 'play_action').length,

@@ -29,19 +29,20 @@
 
 import { GameObserveTool } from '../../src/tools/game-observe';
 import { GameExecuteTool } from '../../src/tools/game-execute';
+import { GameRegistryManager } from '../../src/game-registry';
 import { GameEngine } from '@principality/core';
 
 describe('Game-End Detection Bug (Critical)', () => {
   let gameEngine: GameEngine;
   let observeTool: GameObserveTool;
   let executeTool: GameExecuteTool;
-  let gameState: any;
+  let registry: GameRegistryManager;
+  let gameId: string;
   let mockLogger: any;
 
   beforeEach(() => {
     // Initialize game engine with seed
     gameEngine = new GameEngine('test-seed');
-    gameState = gameEngine.initializeGame(1);
 
     // Mock logger to capture warnings
     mockLogger = {
@@ -50,19 +51,16 @@ describe('Game-End Detection Bug (Critical)', () => {
       info: jest.fn()
     };
 
-    // Create tools with mocked state getter/setter
-    observeTool = new GameObserveTool(
-      gameEngine,
-      () => gameState,
-      mockLogger
-    );
+    // Create registry and tools
+    registry = new GameRegistryManager(10, 3600000, mockLogger);
+    observeTool = new GameObserveTool(registry, mockLogger);
+    executeTool = new GameExecuteTool(registry, mockLogger);
+    const game = registry.createGame('test-seed');
+    gameId = game.id;
+  });
 
-    executeTool = new GameExecuteTool(
-      gameEngine,
-      () => gameState,
-      (newState: any) => { gameState = newState; },
-      mockLogger
-    );
+  afterEach(() => {
+    registry.stop();
   });
 
   describe('Bug Reproduction: Province Depletion', () => {
@@ -73,19 +71,27 @@ describe('Game-End Detection Bug (Critical)', () => {
 
       // Setup: Simulate game state with all 8 Provinces purchased (in quick-game mode)
       // This is what happened at turn 24 in Oct 27 session
-      gameState.supply.set('Province', 0);  // ← Province pile is now EMPTY
-      gameState.supply.set('Copper', 5);
-      gameState.supply.set('Silver', 5);
-      gameState.supply.set('Gold', 5);
-      gameState.supply.set('Estate', 8);
-      gameState.supply.set('Duchy', 8);
-      gameState.turnNumber = 24;
-      gameState.phase = 'action';
-      gameState.currentPlayer = 0;
+      const state = registry.getState(gameId)!;
+      const newSupply = new Map(state.supply);
+      newSupply.set('Province', 0);  // ← Province pile is now EMPTY
+      newSupply.set('Copper', 5);
+      newSupply.set('Silver', 5);
+      newSupply.set('Gold', 5);
+      newSupply.set('Estate', 8);
+      newSupply.set('Duchy', 8);
+      const newState = {
+        ...state,
+        supply: newSupply as ReadonlyMap<string, number>,
+        turnNumber: 24,
+        phase: 'action' as const,
+        currentPlayer: 0
+      };
+      registry.setState(gameId, newState);
 
       // TEST 1: game_observe() should report gameOver = true
       const observeResponse = await observeTool.execute({
-        detail_level: 'full'
+        detail_level: 'full',
+        gameId
       });
 
       console.log('Observe Response:', {
@@ -121,13 +127,15 @@ describe('Game-End Detection Bug (Critical)', () => {
       // @edge: Reproduces turn 25+ moves that should have been blocked
 
       // Setup: Same state as above - Province = 0
-      gameState.supply.set('Province', 0);
-      gameState.turnNumber = 25;
-      gameState.phase = 'buy';
-      gameState.currentPlayer = 0;
-      gameState.players[0].hand = ['Copper', 'Gold'];
-      gameState.players[0].coins = 5;
-      gameState.players[0].buys = 1;
+      const state = registry.getState(gameId)!;
+      state.supply.set('Province', 0);
+      state.turnNumber = 25;
+      state.phase = 'buy';
+      state.currentPlayer = 0;
+      state.players[0].hand = ['Copper', 'Gold'];
+      state.players[0].coins = 5;
+      state.players[0].buys = 1;
+      registry.setState(gameId, state);
 
       // Clear previous log calls
       mockLogger.warn.mockClear();
@@ -135,7 +143,8 @@ describe('Game-End Detection Bug (Critical)', () => {
       // Attempt to execute a move (should be blocked)
       const moveResponse = await executeTool.execute({
         move: 'buy Gold',
-        reasoning: 'This should be blocked because game is over'
+        reasoning: 'This should be blocked because game is over',
+        gameId
       });
 
       console.log('Move Response:', {
@@ -166,9 +175,11 @@ describe('Game-End Detection Bug (Critical)', () => {
       // @edge: Turn 25-35 were attempted in logs; all should have failed
       // @why: Demonstrates the bug wasn't one-time but systematic
 
-      gameState.supply.set('Province', 0);
-      gameState.turnNumber = 25;
-      gameState.phase = 'buy';
+      const state = registry.getState(gameId)!;
+      state.supply.set('Province', 0);
+      state.turnNumber = 25;
+      state.phase = 'buy';
+      registry.setState(gameId, state);
 
       // Try different move types - all should fail
       const moves = [
@@ -180,7 +191,7 @@ describe('Game-End Detection Bug (Critical)', () => {
       for (const move of moves) {
         mockLogger.warn.mockClear();
 
-        const response = await executeTool.execute({ move });
+        const response = await executeTool.execute({ move, gameId });
 
         expect(response.success).toBe(false);
         expect(response.error?.message).toContain('Game is over');
@@ -196,15 +207,18 @@ describe('Game-End Detection Bug (Critical)', () => {
       // @why: Ensure both conditions work when Province pile not empty
 
       // Setup: 3 piles empty but Province > 0
-      gameState.supply.set('Village', 0);
-      gameState.supply.set('Smithy', 0);
-      gameState.supply.set('Copper', 0);
-      gameState.supply.set('Province', 2);
-      gameState.turnNumber = 28;
-      gameState.phase = 'action';
+      const state = registry.getState(gameId)!;
+      state.supply.set('Village', 0);
+      state.supply.set('Smithy', 0);
+      state.supply.set('Copper', 0);
+      state.supply.set('Province', 2);
+      state.turnNumber = 28;
+      state.phase = 'action';
+      registry.setState(gameId, state);
 
       const observeResponse = await observeTool.execute({
-        detail_level: 'standard'
+        detail_level: 'standard',
+        gameId
       });
 
       // These should also fail (BUG affects both conditions)
@@ -226,15 +240,21 @@ describe('Game-End Detection Bug (Critical)', () => {
       // @why: Verify game state correctly reflects Province purchases
 
       // Simulate buying a Province
-      gameState.supply.set('Province', 7);  // Start with 8, buy 1
-      const initialCount = gameState.supply.get('Province');
+      let state = registry.getState(gameId)!;
+      state.supply.set('Province', 7);  // Start with 8, buy 1
+      registry.setState(gameId, state);
+
+      const initialCount = state.supply.get('Province');
 
       // Verify count is readable
       expect(initialCount).toBe(7);
 
       // Now set to 0 (all purchased)
-      gameState.supply.set('Province', 0);
-      const finalCount = gameState.supply.get('Province');
+      state = registry.getState(gameId)!;
+      state.supply.set('Province', 0);
+      registry.setState(gameId, state);
+
+      const finalCount = state.supply.get('Province');
 
       expect(finalCount).toBe(0);
       console.log(`✓ Province tracking works: 7 → 0`);
@@ -243,10 +263,13 @@ describe('Game-End Detection Bug (Critical)', () => {
     test('should help diagnose: is gameOver flag being set in responses?', async () => {
       // @why: Verify response structure includes gameOver field
 
-      gameState.supply.set('Province', 0);
+      const state = registry.getState(gameId)!;
+      state.supply.set('Province', 0);
+      registry.setState(gameId, state);
 
       const response = await observeTool.execute({
-        detail_level: 'standard'
+        detail_level: 'standard',
+        gameId
       });
 
       expect(response).toHaveProperty('gameOver');
@@ -254,7 +277,7 @@ describe('Game-End Detection Bug (Critical)', () => {
 
       // Check all detail levels include gameOver
       for (const level of ['minimal', 'standard', 'full'] as const) {
-        const resp = await observeTool.execute({ detail_level: level });
+        const resp = await observeTool.execute({ detail_level: level, gameId });
         expect(resp).toHaveProperty('gameOver');
         console.log(`✓ gameOver present in ${level} detail:`, resp.gameOver);
       }
@@ -263,11 +286,13 @@ describe('Game-End Detection Bug (Critical)', () => {
     test('should help diagnose: is logger being called?', async () => {
       // @why: Verify logging infrastructure is working
 
-      gameState.supply.set('Province', 0);
+      const state = registry.getState(gameId)!;
+      state.supply.set('Province', 0);
+      registry.setState(gameId, state);
 
       mockLogger.warn.mockClear();
 
-      await observeTool.execute({ detail_level: 'full' });
+      await observeTool.execute({ detail_level: 'full', gameId });
 
       const warnCallCount = mockLogger.warn.mock.calls.length;
       console.log(`✓ Logger.warn called ${warnCallCount} times`);

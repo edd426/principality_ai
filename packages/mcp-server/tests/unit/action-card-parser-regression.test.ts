@@ -18,25 +18,26 @@
 
 import { GameEngine } from '@principality/core';
 import { GameExecuteTool } from '../../src/tools/game-execute';
+import { GameRegistryManager } from '../../src/game-registry';
 
 describe('Regression: Action Card Parser Auto-Detection', () => {
   let gameEngine: GameEngine;
   let gameExecuteTool: GameExecuteTool;
-  let gameState: any;
-  let setState: jest.Mock;
-  let getState: jest.Mock;
+  let registry: GameRegistryManager;
+  let gameId: string;
 
   beforeEach(() => {
     gameEngine = new GameEngine('regression-test-seed');
-    gameState = gameEngine.initializeGame(1);
 
-    // Create getter/setter for state
-    setState = jest.fn((newState) => {
-      gameState = newState;
-    });
-    getState = jest.fn(() => gameState);
+    // Create registry and tool
+    registry = new GameRegistryManager(10, 3600000);
+    gameExecuteTool = new GameExecuteTool(registry);
+    const game = registry.createGame('regression-test-seed');
+    gameId = game.id;
+  });
 
-    gameExecuteTool = new GameExecuteTool(gameEngine, getState, setState);
+  afterEach(() => {
+    registry.stop();
   });
 
   describe('UT-REGRESSION-1: Play Action Card by Index', () => {
@@ -47,7 +48,7 @@ describe('Regression: Action Card Parser Auto-Detection', () => {
       // @blocker: Prior to fix, this returned play_action regardless of actual card
 
       // Find an action card in hand
-      const handWithAction = gameState.players[gameState.currentPlayer].hand;
+      const state = registry.getState(gameId)!; const handWithAction = state.players[state.currentPlayer].hand;
       let actionCardIndex = -1;
 
       for (let i = 0; i < handWithAction.length; i++) {
@@ -62,21 +63,22 @@ describe('Regression: Action Card Parser Auto-Detection', () => {
       // If no action card in hand, we need to test with a modified state
       if (actionCardIndex === -1) {
         // Create test state with Village at index 0
-        gameState = {
-          ...gameState,
+        let state = registry.getState(gameId)!; state = {
+          ...state,
           phase: 'action',
           players: [{
-            ...gameState.players[0],
+            ...state.players[0],
             hand: ['Village', 'Copper', 'Estate'],
             coins: 0,
             actions: 1,
             buys: 1
           }]
         };
+        registry.setState(gameId, state);
         actionCardIndex = 0;
       }
 
-      const move = await gameExecuteTool.execute({
+      const move = await gameExecuteTool.execute({ gameId,
         move: `play ${actionCardIndex}`,
         return_detail: 'minimal'
       });
@@ -94,20 +96,21 @@ describe('Regression: Action Card Parser Auto-Detection', () => {
       // @blocker: Prior bug returned play_action for all "play N" commands
 
       // Create test state with treasures in hand in buy phase
-      gameState = {
-        ...gameState,
+      let state = registry.getState(gameId)!; state = {
+        ...state,
         phase: 'buy',
         players: [{
-          ...gameState.players[0],
+          ...state.players[0],
           hand: ['Copper', 'Copper', 'Estate'],
           coins: 0,
           actions: 0,
           buys: 1
         }]
       };
+      registry.setState(gameId, state);
 
       // Playing Copper (index 0) in buy phase should return play_treasure
-      const move = await gameExecuteTool.execute({
+      const move = await gameExecuteTool.execute({ gameId,
         move: 'play 0',
         return_detail: 'minimal'
       });
@@ -121,19 +124,21 @@ describe('Regression: Action Card Parser Auto-Detection', () => {
       // @why: Provides explicit syntax for treasures
       // @clarify: Added in bug fix to provide alternative syntax
 
-      gameState = {
-        ...gameState,
+      let state = registry.getState(gameId)!;
+      state = {
+        ...state,
         phase: 'buy',
         players: [{
-          ...gameState.players[0],
+          ...state.players[0],
           hand: ['Copper', 'Silver', 'Gold'],
           coins: 0,
           actions: 0,
           buys: 1
         }]
       };
+      registry.setState(gameId, state as any);
 
-      const move = await gameExecuteTool.execute({
+      const move = await gameExecuteTool.execute({ gameId,
         move: 'play_treasure Copper',
         return_detail: 'minimal'
       });
@@ -149,19 +154,21 @@ describe('Regression: Action Card Parser Auto-Detection', () => {
       // @why: Provides alternative to index-based play
       // @resolved: Added in bug fix, now properly validates action cards
 
-      gameState = {
-        ...gameState,
+      let state = registry.getState(gameId)!;
+      state = {
+        ...state,
         phase: 'action',
         players: [{
-          ...gameState.players[0],
+          ...state.players[0],
           hand: ['Village', 'Copper', 'Estate'],
           coins: 0,
           actions: 1,
           buys: 1
         }]
       };
+      registry.setState(gameId, state as any);
 
-      const move = await gameExecuteTool.execute({
+      const move = await gameExecuteTool.execute({ gameId,
         move: 'play_action Village',
         return_detail: 'minimal'
       });
@@ -177,27 +184,29 @@ describe('Regression: Action Card Parser Auto-Detection', () => {
       // @why: Real game states always have mixed cards
       // @blocker: Without type detection, this would fail
 
-      gameState = {
-        ...gameState,
+      let state = registry.getState(gameId)!;
+      state = {
+        ...state,
         phase: 'action',
         players: [{
-          ...gameState.players[0],
+          ...state.players[0],
           hand: ['Village', 'Copper', 'Smithy', 'Silver'],
           coins: 0,
           actions: 1,
           buys: 1
         }]
       };
+      registry.setState(gameId, state as any);
 
       // Play Village (index 0, action)
-      const move1 = await gameExecuteTool.execute({
+      const move1 = await gameExecuteTool.execute({ gameId,
         move: 'play 0',
         return_detail: 'minimal'
       });
       expect(move1).toBeDefined();
 
       // Play Smithy (index 2, also action)
-      const move2 = await gameExecuteTool.execute({
+      const move2 = await gameExecuteTool.execute({ gameId,
         move: 'play 2',
         return_detail: 'minimal'
       });
@@ -212,20 +221,22 @@ describe('Regression: Action Card Parser Auto-Detection', () => {
       // @why: Prevents cryptic errors downstream
       // @resolved: Parser checks index < hand.length
 
-      gameState = {
-        ...gameState,
+      let state = registry.getState(gameId)!;
+      state = {
+        ...state,
         phase: 'action',
         players: [{
-          ...gameState.players[0],
+          ...state.players[0],
           hand: ['Copper', 'Estate'],
           coins: 0,
           actions: 1,
           buys: 1
         }]
       };
+      registry.setState(gameId, state as any);
 
       // This should fail gracefully (index 10 doesn't exist)
-      const move = await gameExecuteTool.execute({
+      const move = await gameExecuteTool.execute({ gameId,
         move: 'play 10',
         return_detail: 'minimal'
       });
@@ -241,20 +252,22 @@ describe('Regression: Action Card Parser Auto-Detection', () => {
       // @edge: lowercase input, Title case storage
       // @why: Users might type "play_treasure copper" (lowercase)
 
-      gameState = {
-        ...gameState,
+      let state = registry.getState(gameId)!;
+      state = {
+        ...state,
         phase: 'buy',
         players: [{
-          ...gameState.players[0],
+          ...state.players[0],
           hand: ['Copper', 'Copper', 'Estate'],
           coins: 0,
           actions: 0,
           buys: 1
         }]
       };
+      registry.setState(gameId, state as any);
 
       // Try lowercase (parser should normalize)
-      const move = await gameExecuteTool.execute({
+      const move = await gameExecuteTool.execute({ gameId,
         move: 'play_treasure copper',  // lowercase
         return_detail: 'minimal'
       });
