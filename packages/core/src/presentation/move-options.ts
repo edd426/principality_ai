@@ -942,6 +942,13 @@ export function generateMoveOptions(
       }
       return [];
 
+    case 'gain_treasure':
+      // Mine card specific: gain a treasure to hand
+      if (pendingEffect.card === 'Mine') {
+        return generateMineStep2Options(pendingEffect.maxGainCost || 0, state.supply);
+      }
+      return [];
+
     case 'library_set_aside':
       if (!pendingEffect.drawnCard) {
         console.warn('library_set_aside missing drawnCard in pendingEffect');

@@ -7,14 +7,14 @@ import * as path from 'path';
 /**
  * Load game configuration from game-config.json
  */
-function loadGameConfig(): { game?: { victoryPileSize?: number; edition?: '1st' | '2nd' | 'mixed' } } {
+function loadGameConfig(): { game?: { victoryPileSize?: number; edition?: '1E' | '2E' | 'mixed' } } {
   try {
     const configPath = path.join(__dirname, '..', 'game-config.json');
     const configContent = fs.readFileSync(configPath, 'utf-8');
     return JSON.parse(configContent);
   } catch (error) {
     // If config file doesn't exist or is invalid, use defaults
-    return { game: { victoryPileSize: 4, edition: '2nd' } };
+    return { game: { victoryPileSize: 4, edition: '2E' } };
   }
 }
 
@@ -25,7 +25,7 @@ async function main(): Promise<void> {
   // Load configuration
   const config = loadGameConfig();
   const victoryPileSize = config.game?.victoryPileSize ?? 4;
-  const edition = config.game?.edition ?? '2nd';
+  const edition = config.game?.edition ?? '2E';
 
   // Parse command line arguments
   const args = process.argv.slice(2);
@@ -33,7 +33,7 @@ async function main(): Promise<void> {
   let players = 1;
   let stableNumbers = false;
   let manualCleanup = false;
-  let editionOverride: '1st' | '2nd' | 'mixed' | undefined;
+  let editionOverride: '1E' | '2E' | 'mixed' | undefined;
   let debugMode = false;
 
   // Look for flags
@@ -58,12 +58,12 @@ async function main(): Promise<void> {
       manualCleanup = true;
     } else if (args[i].startsWith('--edition=')) {
       const editionValue = args[i].split('=')[1];
-      if (editionValue === '1st' || editionValue === '2nd' || editionValue === 'mixed') {
+      if (editionValue === '1E' || editionValue === '2E' || editionValue === 'mixed') {
         editionOverride = editionValue;
       }
     } else if (args[i] === '--edition' && i + 1 < args.length) {
       const editionValue = args[i + 1];
-      if (editionValue === '1st' || editionValue === '2nd' || editionValue === 'mixed') {
+      if (editionValue === '1E' || editionValue === '2E' || editionValue === 'mixed') {
         editionOverride = editionValue;
       }
     } else if (args[i] === '--debug') {

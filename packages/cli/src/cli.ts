@@ -15,7 +15,7 @@ export interface CLIOptions {
   stableNumbers?: boolean;
   autoPlayTreasures?: boolean;
   manualCleanup?: boolean;
-  edition?: '1st' | '2nd' | 'mixed';
+  edition?: '1E' | '2E' | 'mixed';
   debugMode?: boolean;
 }
 

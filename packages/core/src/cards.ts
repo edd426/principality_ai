@@ -146,11 +146,10 @@ export const KINGDOM_CARDS: Record<CardName, Card> = {
     effect: { coins: 2, buys: 1 },
     description: '+1 Buy, +2 Coins',
     expansion: 'Base',
-    edition: '1E',
+    edition: '1E',  // Removed in 2nd edition
     releaseYear: 2008,
     officialText: '+1 Buy, +$2',
-    rulings: ['Removed in 2nd Edition (2016), replaced by Merchant'],
-    edition: '1st'  // Removed in 2nd edition
+    rulings: ['Removed in 2nd Edition (2016), replaced by Merchant']
   },
   'Festival': {
     name: 'Festival',
@@ -253,11 +252,10 @@ export const KINGDOM_CARDS: Record<CardName, Card> = {
     effect: { special: 'trash_self_gain_card' },
     description: 'Trash this card. Gain a card costing up to $5.',
     expansion: 'Base',
-    edition: '1E',
+    edition: '1E',  // Removed in 2nd edition
     releaseYear: 2008,
     officialText: 'Trash this card. Gain a card costing up to $5.',
-    rulings: ['Removed in 2nd Edition (2016), replaced by Artisan'],
-    edition: '1st'  // Removed in 2nd edition
+    rulings: ['Removed in 2nd Edition (2016), replaced by Artisan']
   },
 
   // Attack System
@@ -301,11 +299,10 @@ export const KINGDOM_CARDS: Record<CardName, Card> = {
     effect: { cards: 1, actions: 1, special: 'attack_reveal_top_card' },
     description: '+1 Card, +1 Action. Each player (including you) reveals the top card of their deck and discards it or puts it back, your choice.',
     expansion: 'Base',
-    edition: '1E',
+    edition: '1E',  // Removed in 2nd edition
     releaseYear: 2008,
     officialText: '+1 Card, +1 Action. Each player (including you) reveals the top card of their deck and either discards it or puts it back, your choice.',
-    rulings: ['Removed in 2nd Edition (2016), replaced by Sentry'],
-    edition: '1st'  // Removed in 2nd edition
+    rulings: ['Removed in 2nd Edition (2016), replaced by Sentry']
   },
   'Thief': {
     name: 'Thief',
@@ -314,11 +311,10 @@ export const KINGDOM_CARDS: Record<CardName, Card> = {
     effect: { special: 'attack_reveal_2_trash_treasure' },
     description: 'Each other player reveals the top 2 cards of their deck. If they revealed any Treasure cards, they trash one of them that you choose. You may gain any or all of these trashed cards. They discard the other revealed cards.',
     expansion: 'Base',
-    edition: '1E',
+    edition: '1E',  // Removed in 2nd edition
     releaseYear: 2008,
     officialText: 'Each other player reveals the top 2 cards of their deck. If they revealed any Treasure cards, they trash one of them that you choose. You may gain any or all of these trashed cards. They discard the other revealed cards.',
-    rulings: ['Removed in 2nd Edition (2016), replaced by Bandit'],
-    edition: '1st'  // Removed in 2nd edition
+    rulings: ['Removed in 2nd Edition (2016), replaced by Bandit']
   },
 
   // Reaction System
@@ -356,8 +352,7 @@ export const KINGDOM_CARDS: Record<CardName, Card> = {
     edition: '1E',
     releaseYear: 2008,
     officialText: 'Reveal cards from your deck until you reveal 2 Treasure cards. Put those Treasures into your hand and discard the other revealed cards.',
-    rulings: ['Removed in 2nd Edition (2016), replaced by Harbinger'],
-    edition: '1st'  // Removed in 2nd edition
+    rulings: ['Removed in 2nd Edition (2016), replaced by Harbinger']
   },
   'Chancellor': {
     name: 'Chancellor',
@@ -369,8 +364,7 @@ export const KINGDOM_CARDS: Record<CardName, Card> = {
     edition: '1E',
     releaseYear: 2008,
     officialText: '+$2. You may immediately put your deck into your discard pile.',
-    rulings: ['Removed in 2nd Edition (2016), replaced by Harbinger'],
-    edition: '1st'  // Removed in 2nd edition
+    rulings: ['Removed in 2nd Edition (2016), replaced by Harbinger']
   },
   'Library': {
     name: 'Library',
@@ -438,10 +432,10 @@ export function getVictoryPoints(name: CardName): number {
 
 /**
  * Filter kingdom cards by edition
- * @param edition - Which edition to filter by: '1st', '2nd', or 'mixed'
+ * @param edition - Which edition to filter by: '1E', '2E', or 'mixed'
  * @returns Array of card names available in the specified edition
  */
-export function getKingdomCardsByEdition(edition: '1st' | '2nd' | 'mixed'): CardName[] {
+export function getKingdomCardsByEdition(edition: '1E' | '2E' | 'mixed'): CardName[] {
   const allKingdomCardNames = Object.keys(KINGDOM_CARDS) as CardName[];
 
   if (edition === 'mixed') {

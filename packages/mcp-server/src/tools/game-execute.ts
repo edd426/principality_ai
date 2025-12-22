@@ -690,20 +690,11 @@ export class GameExecuteTool {
 
   /**
    * Format valid moves for auto-return
+   *
+   * @resolved: Now uses formatMoveCommand() for all move types
    */
   private formatValidMovesForAutoReturn(state: GameState): string[] {
     const validMoves = this.gameEngine.getValidMoves(state);
-    return validMoves.map(move => {
-      if (move.type === 'play_action') {
-        return `play_action ${move.card}`;
-      } else if (move.type === 'play_treasure') {
-        return `play_treasure ${move.card}`;
-      } else if (move.type === 'buy') {
-        return `buy ${move.card}`;
-      } else if (move.type === 'end_phase') {
-        return 'end';
-      }
-      return move.type;
-    });
+    return validMoves.map(move => formatMoveCommand(move));
   }
 }

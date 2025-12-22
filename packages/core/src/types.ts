@@ -15,10 +15,10 @@ export type Expansion = 'Base' | 'Intrigue' | 'Seaside' | 'Alchemy' | 'Prosperit
                         'Menagerie' | 'Allies' | 'Plunder' | 'Rising Sun';
 
 /**
- * Card edition (1st or 2nd edition)
+ * Card edition (1st or 2nd edition, or both)
  * Some cards were changed or removed in 2nd edition (2016 update)
  */
-export type Edition = '1E' | '2E';
+export type Edition = '1E' | '2E' | 'both';
 
 export interface CardEffect {
   cards?: number;
@@ -118,6 +118,6 @@ export interface GameOptions {
   victoryPileSize?: number; // Number of Estate/Duchy/Province cards (default: 4)
   kingdomCards?: ReadonlyArray<CardName>; // Kingdom cards to include in supply (default: Phase 1 cards)
   allCards?: boolean; // Include all Phase 4 cards (ignores kingdomCards if true)
-  edition?: '1st' | '2nd' | 'mixed'; // Edition selection: '1st', '2nd', or 'mixed' (default: '2nd')
+  edition?: '1E' | '2E' | 'mixed'; // Edition selection: '1E', '2E', or 'mixed' (default: '2E')
   debugMode?: boolean; // Enable debug mode for inspecting hidden game state (default: false)
 }
