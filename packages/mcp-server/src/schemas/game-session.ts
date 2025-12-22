@@ -6,14 +6,14 @@
 
 export const GAME_SESSION_SCHEMA = {
   name: 'game_session',
-  description: 'Manage game lifecycle. "new" command starts game (implicitly ends active game, idempotent). "end" command ends current game. Supports seed for reproducibility and model tracking.',
+  description: 'Manage game lifecycle. "new" command starts game. "end" command ends game. "list" command shows active games. Supports seed for reproducibility and model tracking.',
   inputSchema: {
     type: 'object' as const,
     properties: {
       command: {
         type: 'string',
-        enum: ['new', 'end'],
-        description: 'Lifecycle command: "new" to start fresh game, "end" to finish current'
+        enum: ['new', 'end', 'list'],
+        description: 'Lifecycle command: "new" to start game, "end" to finish game, "list" to show active games'
       },
       seed: {
         type: 'string',
@@ -23,6 +23,10 @@ export const GAME_SESSION_SCHEMA = {
         type: 'string',
         enum: ['haiku', 'sonnet'],
         description: 'LLM model selection (default: haiku). Tracked for performance analysis.'
+      },
+      gameId: {
+        type: 'string',
+        description: 'Optional game ID (for "end" command; uses default if omitted)'
       }
     },
     required: ['command']

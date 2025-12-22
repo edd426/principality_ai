@@ -4,12 +4,12 @@
  * Main server class that registers and manages the three core tools
  */
 
-import { GameEngine, GameState } from '@principality/core';
 import { Logger } from './logger';
 import { DEFAULT_CONFIG, MCPServerConfig } from './config';
 import { GameObserveTool } from './tools/game-observe';
 import { GameExecuteTool } from './tools/game-execute';
 import { GameSessionTool } from './tools/game-session';
+import { GameRegistryManager } from './game-registry';
 import { GAME_OBSERVE_SCHEMA } from './schemas/game-observe';
 import { GAME_EXECUTE_SCHEMA } from './schemas/game-execute';
 import { GAME_SESSION_SCHEMA } from './schemas/game-session';
@@ -20,13 +20,12 @@ import { z } from 'zod';
 
 export class MCPGameServer {
   private server: McpServer;
-  private gameEngine: GameEngine;
+  private gameRegistry: GameRegistryManager;
   private observeTool: GameObserveTool;
   private executeTool: GameExecuteTool;
   private sessionTool: GameSessionTool;
   private logger: Logger;
   private config: MCPServerConfig;
-  private currentState: GameState | null = null;
   private tools: Map<string, ToolSchema>;
   private requestHandlers: Map<string, (args: any) => Promise<any>>;
 
@@ -40,13 +39,17 @@ export class MCPGameServer {
       version: this.config.version
     });
 
-    // Initialize game engine (singleton for session)
-    this.gameEngine = new GameEngine('mcp-session');
+    // Initialize game registry
+    this.gameRegistry = new GameRegistryManager(
+      this.config.maxConcurrentGames,
+      this.config.gameTTLMs,
+      this.logger
+    );
 
-    // Initialize tools with logger
-    this.observeTool = new GameObserveTool(this.gameEngine, () => this.currentState, this.logger);
-    this.executeTool = new GameExecuteTool(this.gameEngine, () => this.currentState, (state) => { this.currentState = state; }, this.logger);
-    this.sessionTool = new GameSessionTool(this.gameEngine, this.config.defaultModel, (state) => { this.currentState = state; }, () => this.currentState, this.logger);
+    // Initialize tools with registry
+    this.observeTool = new GameObserveTool(this.gameRegistry, this.logger);
+    this.executeTool = new GameExecuteTool(this.gameRegistry, this.logger);
+    this.sessionTool = new GameSessionTool(this.gameRegistry, this.config.defaultModel, this.logger);
 
     // Register tool schemas
     this.tools = new Map();
@@ -65,7 +68,8 @@ export class MCPGameServer {
       'game_observe',
       GAME_OBSERVE_SCHEMA.description,
       {
-        detail_level: z.enum(['minimal', 'standard', 'full']).describe('Level of detail for game state')
+        detail_level: z.enum(['minimal', 'standard', 'full']).describe('Level of detail for game state'),
+        gameId: z.string().optional().describe('Optional game ID (uses default game if omitted)')
       },
       async (args) => {
         const result = await this.observeTool.execute(args);
@@ -79,7 +83,8 @@ export class MCPGameServer {
       GAME_EXECUTE_SCHEMA.description,
       {
         move: z.string().describe('The move to execute (e.g., "play 0", "buy Silver", "end")'),
-        reasoning: z.string().optional().describe('Optional brief rationale for this move (1-2 sentences). Recommended for strategy analysis.')
+        reasoning: z.string().optional().describe('Optional brief rationale for this move (1-2 sentences). Recommended for strategy analysis.'),
+        gameId: z.string().optional().describe('Optional game ID (uses default game if omitted)')
       },
       async (args) => {
         const result = await this.executeTool.execute(args);
@@ -92,7 +97,10 @@ export class MCPGameServer {
       'game_session',
       GAME_SESSION_SCHEMA.description,
       {
-        command: z.enum(['new', 'end']).describe('Session command')
+        command: z.enum(['new', 'end', 'list']).describe('Session command'),
+        seed: z.string().optional().describe('Optional seed for deterministic shuffle'),
+        model: z.enum(['haiku', 'sonnet']).optional().describe('LLM model selection'),
+        gameId: z.string().optional().describe('Optional game ID (for end command)')
       },
       async (args) => {
         const result = await this.sessionTool.execute(args);
@@ -200,6 +208,7 @@ export class MCPGameServer {
    */
   async stop(): Promise<void> {
     this.logger.info('MCP Server shutting down gracefully');
+    this.gameRegistry.stop();
     process.exit(0);
   }
 
@@ -212,7 +221,8 @@ export class MCPGameServer {
       version: this.config.version,
       toolCount: this.tools.size,
       tools: Array.from(this.tools.keys()),
-      currentGame: this.currentState ? 'active' : null,
+      activeGames: this.gameRegistry.getGameCount(),
+      gameIds: this.gameRegistry.listGames(),
       defaultModel: this.config.defaultModel
     };
   }

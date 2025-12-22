@@ -11,6 +11,8 @@ export interface MCPServerConfig {
   defaultModel: 'haiku' | 'sonnet';
   requestTimeout: number;
   maxConcurrentRequests: number;
+  maxConcurrentGames: number;
+  gameTTLMs: number;
 }
 
 export const DEFAULT_CONFIG: MCPServerConfig = {
@@ -21,5 +23,7 @@ export const DEFAULT_CONFIG: MCPServerConfig = {
   logFile: process.env.LOG_FILE,
   defaultModel: (process.env.DEFAULT_MODEL as any) || 'haiku',
   requestTimeout: 30000,
-  maxConcurrentRequests: 10
+  maxConcurrentRequests: 10,
+  maxConcurrentGames: 10,
+  gameTTLMs: 3600000 // 1 hour
 };

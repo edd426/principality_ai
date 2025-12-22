@@ -22,6 +22,10 @@ export const GAME_EXECUTE_SCHEMA = {
       reasoning: {
         type: 'string',
         description: 'Optional brief rationale for this move (1-2 sentences). Recommended for strategy analysis and debugging. Example: "Buying Village to build engine" or "Playing all treasures for maximum coins"'
+      },
+      gameId: {
+        type: 'string',
+        description: 'Optional game ID (uses default game if omitted)'
       }
     },
     required: ['move']

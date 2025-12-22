@@ -5,7 +5,6 @@
  */
 
 import {
-  GameEngine,
   GameState,
   Move,
   isActionCard,
@@ -26,6 +25,7 @@ import {
   formatMoveCommand
 } from '@principality/core';
 import { GameExecuteRequest, GameExecuteResponse } from '../types/tools';
+import { GameRegistryManager } from '../game-registry';
 import { Logger } from '../logger';
 
 export class GameExecuteTool {
@@ -36,35 +36,17 @@ export class GameExecuteTool {
     timestamp: string;
   }> = [];
 
-  // Internal state for test mode
-  private testState: GameState | null = null;
-
   constructor(
-    private gameEngine: GameEngine,
-    getState?: () => GameState | null,
-    setState?: (state: GameState) => void,
+    private registry: GameRegistryManager,
     private logger?: Logger
-  ) {
-    // If getState/setState not provided, use internal test state
-    if (!getState || !setState) {
-      this.getState = () => this.testState;
-      this.setState = (state: GameState) => { this.testState = state; };
-    } else {
-      this.getState = getState;
-      this.setState = setState;
-    }
-  }
-
-  // Public for test access
-  private getState: () => GameState | null;
-  public setState: (state: GameState) => void;
+  ) {}
 
   async execute(request: GameExecuteRequest): Promise<GameExecuteResponse> {
-    const { move, return_detail = 'minimal', reasoning } = request;
+    const { move, return_detail = 'minimal', reasoning, gameId } = request;
 
-    const state = this.getState();
-    if (!state) {
-      this.logger?.warn('Move executed without active game', { move });
+    const game = this.registry.getGame(gameId);
+    if (!game) {
+      this.logger?.warn('Move executed without active game', { move, gameId });
       return {
         success: false,
         error: {
@@ -73,6 +55,8 @@ export class GameExecuteTool {
         }
       };
     }
+
+    const state = game.state;
 
     // Check if game is over (before parsing move)
     if (isGameOver(state)) {
@@ -116,11 +100,11 @@ export class GameExecuteTool {
     // Handle batch treasure playing specially (before standard validation)
     // Batch moves bypass validation since they're not in standard validMoves list
     if (parsedMove.type === 'play_all_treasures') {
-      return this.executeBatchTreasures(move, state, reasoning);
+      return this.executeBatchTreasures(move, state, reasoning, gameId);
     }
 
     // Validate move before executing
-    const validMoves = this.gameEngine.getValidMoves(state);
+    const validMoves = game.engine.getValidMoves(state);
     const isValid = isMoveValid(parsedMove, validMoves);
 
     if (!isValid) {
@@ -137,7 +121,7 @@ export class GameExecuteTool {
 
       // Auto-return state for error recovery
       const gameState = this.formatStateForAutoReturn(state);
-      const formattedValidMoves = this.formatValidMovesForAutoReturn(state);
+      const formattedValidMoves = this.formatValidMovesForAutoReturn(state, game.engine);
 
       return {
         success: false,
@@ -157,14 +141,14 @@ export class GameExecuteTool {
 
     // Execute move
     try {
-      const result = this.gameEngine.executeMove(state, parsedMove);
+      const result = game.engine.executeMove(state, parsedMove);
 
       if (!result.success) {
         this.logger?.error('Move execution failed', { move, error: result.error });
 
         // Auto-return current state even on failure (for recovery)
         const gameState = this.formatStateForAutoReturn(state);
-        const validMoves = this.formatValidMovesForAutoReturn(state);
+        const validMoves = this.formatValidMovesForAutoReturn(state, game.engine);
 
         return {
           success: false,
@@ -180,7 +164,7 @@ export class GameExecuteTool {
 
       // Update server state
       if (result.newState) {
-        this.setState(result.newState);
+        this.registry.setState(game.id, result.newState);
       }
 
       // Log successful move
@@ -229,7 +213,7 @@ export class GameExecuteTool {
       // Auto-return game state and valid moves
       const finalState = result.newState || state;
       const gameState = this.formatStateForAutoReturn(finalState);
-      const validMoves = this.formatValidMovesForAutoReturn(finalState);
+      const validMoves = this.formatValidMovesForAutoReturn(finalState, game.engine);
 
       // Return response with auto-returned state
       const response: GameExecuteResponse = {
@@ -253,7 +237,7 @@ export class GameExecuteTool {
       // Auto-skip cleanup phase (no player choices in MVP)
       let finalStateAfterAutoSkip = result.newState || state;
       if (finalStateAfterAutoSkip.phase === 'cleanup') {
-        const cleanupResult = this.gameEngine.executeMove(finalStateAfterAutoSkip, {
+        const cleanupResult = game.engine.executeMove(finalStateAfterAutoSkip, {
           type: 'end_phase'
         });
 
@@ -270,7 +254,7 @@ export class GameExecuteTool {
 
           // Update response with final state (after cleanup auto-skip)
           response.gameState = this.formatStateForAutoReturn(finalStateAfterAutoSkip);
-          response.validMoves = this.formatValidMovesForAutoReturn(finalStateAfterAutoSkip);
+          response.validMoves = this.formatValidMovesForAutoReturn(finalStateAfterAutoSkip, game.engine);
           response.message = `${move} → Cleanup auto-skipped → ${finalStateAfterAutoSkip.phase} phase`;
 
           // Log the cleanup-to-next-phase transition
@@ -282,7 +266,7 @@ export class GameExecuteTool {
           });
 
           // Update server state with final state
-          this.setState(finalStateAfterAutoSkip);
+          this.registry.setState(game.id, finalStateAfterAutoSkip);
         }
       }
 
@@ -318,7 +302,7 @@ export class GameExecuteTool {
       // Log game-end event if game is over
       if (isGameOver(finalStateAfterAutoSkip)) {
         const emptyPiles: string[] = [];
-        finalStateAfterAutoSkip.supply.forEach((quantity, cardName) => {
+        finalStateAfterAutoSkip.supply.forEach((quantity: number, cardName: string) => {
           if (quantity === 0) {
             emptyPiles.push(cardName);
           }
@@ -331,7 +315,7 @@ export class GameExecuteTool {
         const vpBreakdowns: Record<string, any> = {};
         const deckCompositions: Record<string, any> = {};
 
-        finalStateAfterAutoSkip.players.forEach((player, index) => {
+        finalStateAfterAutoSkip.players.forEach((player: any, index: number) => {
           const allCards = getAllPlayerCards(player.drawPile, player.hand, player.discardPile);
           const score = calculateScore(allCards);
           finalScores.push(score);
@@ -379,7 +363,7 @@ export class GameExecuteTool {
 
         // Convert supply to object for logging
         const supplyAtEnd: Record<string, number> = {};
-        finalStateAfterAutoSkip.supply.forEach((quantity, cardName) => {
+        finalStateAfterAutoSkip.supply.forEach((quantity: number, cardName: string) => {
           supplyAtEnd[cardName] = quantity;
         });
 
@@ -402,7 +386,7 @@ export class GameExecuteTool {
       // Phase 4.2: Check for pending effect and generate options
       if (finalStateAfterAutoSkip.pendingEffect) {
         const pendingEffect = finalStateAfterAutoSkip.pendingEffect;
-        const validMovesForOptions = this.gameEngine.getValidMoves(finalStateAfterAutoSkip);
+        const validMovesForOptions = game.engine.getValidMoves(finalStateAfterAutoSkip);
         const options = generateMoveOptions(finalStateAfterAutoSkip, validMovesForOptions);
 
         if (options.length > 0) {
@@ -423,7 +407,7 @@ export class GameExecuteTool {
             card: pendingEffect.card,
             effect: pendingEffect.effect,
             step,
-            options: options.map(opt => ({
+            options: options.map((opt: any) => ({
               index: opt.index,
               description: opt.description,
               command: formatMoveCommand(opt.move)
@@ -440,7 +424,7 @@ export class GameExecuteTool {
             card: pendingEffect.card,
             effect: pendingEffect.effect,
             error: 'Options generation not implemented for this effect type',
-            validMoves: validMovesForOptions.map(m => formatMoveCommand(m))
+            validMoves: validMovesForOptions.map((m: any) => formatMoveCommand(m))
           };
           response.message = `Warning: Card requires choice but option generation is incomplete. Card: ${pendingEffect.card}, Effect: ${pendingEffect.effect}. Try using raw move commands.`;
         }
@@ -472,14 +456,27 @@ export class GameExecuteTool {
   private async executeBatchTreasures(
     originalMove: string,
     state: GameState,
-    reasoning?: string
+    reasoning?: string,
+    gameId?: string
   ): Promise<GameExecuteResponse> {
     const player = state.players[state.currentPlayer];
+
+    // Get game instance for engine access
+    const game = this.registry.getGame(gameId);
+    if (!game) {
+      return {
+        success: false,
+        error: {
+          message: 'Game not found.',
+          suggestion: 'Call game_session(command="new") to begin a new game.'
+        }
+      };
+    }
 
     // Validate phase
     if (state.phase !== 'buy') {
       const gameState = this.formatStateForAutoReturn(state);
-      const validMoves = this.formatValidMovesForAutoReturn(state);
+      const validMoves = this.formatValidMovesForAutoReturn(state, game.engine);
 
       return {
         success: false,
@@ -498,7 +495,7 @@ export class GameExecuteTool {
 
     if (treasures.length === 0) {
       const gameState = this.formatStateForAutoReturn(state);
-      const validMoves = this.formatValidMovesForAutoReturn(state);
+      const validMoves = this.formatValidMovesForAutoReturn(state, game.engine);
 
       return {
         success: false,
@@ -523,7 +520,7 @@ export class GameExecuteTool {
         card: treasure
       };
 
-      const result = this.gameEngine.executeMove(currentState, treasureMove);
+      const result = game.engine.executeMove(currentState, treasureMove);
 
       if (result.success && result.newState) {
         currentState = result.newState;
@@ -538,7 +535,7 @@ export class GameExecuteTool {
     }
 
     // Update server state with final state
-    this.setState(currentState);
+    this.registry.setState(game.id, currentState);
 
     // Log successful batch move
     this.moveHistory.push({
@@ -565,7 +562,7 @@ export class GameExecuteTool {
 
     // Auto-return game state and valid moves
     const gameState = this.formatStateForAutoReturn(currentState);
-    const validMoves = this.formatValidMovesForAutoReturn(currentState);
+    const validMoves = this.formatValidMovesForAutoReturn(currentState, game.engine);
 
     // Return success response with auto-returned state
     const coins = currentState.players[currentState.currentPlayer].coins;
@@ -693,8 +690,8 @@ export class GameExecuteTool {
    *
    * @resolved: Now uses formatMoveCommand() for all move types
    */
-  private formatValidMovesForAutoReturn(state: GameState): string[] {
-    const validMoves = this.gameEngine.getValidMoves(state);
-    return validMoves.map(move => formatMoveCommand(move));
+  private formatValidMovesForAutoReturn(state: GameState, engine: any): string[] {
+    const validMoves = engine.getValidMoves(state);
+    return validMoves.map((move: any) => formatMoveCommand(move));
   }
 }

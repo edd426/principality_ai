@@ -10,6 +10,7 @@
 // game_observe types
 export interface GameObserveRequest {
   detail_level: 'minimal' | 'standard' | 'full';
+  gameId?: string;
 }
 
 export interface GameObserveResponse {
@@ -37,6 +38,7 @@ export interface GameExecuteRequest {
   move: string;
   return_detail?: 'minimal' | 'full';
   reasoning?: string; // Optional brief rationale for the move (for strategy analysis)
+  gameId?: string;
 }
 
 export interface GameExecuteResponse {
@@ -71,9 +73,10 @@ export interface GameExecuteResponse {
 
 // game_session types
 export interface GameSessionRequest {
-  command: 'new' | 'end';
+  command: 'new' | 'end' | 'list';
   seed?: string;
   model?: 'haiku' | 'sonnet';
+  gameId?: string;
 }
 
 export interface GameSessionResponse {
@@ -94,4 +97,16 @@ export interface GameInstance {
   seed?: string;
   startTime: string;
   moves: number;
+}
+
+// Extended game instance for multi-game registry
+export interface ExtendedGameInstance {
+  id: string;
+  state: any;
+  model: 'haiku' | 'sonnet';
+  seed?: string;
+  startTime: string;
+  lastActivityTime: string;
+  moves: number;
+  engine: any; // GameEngine instance
 }

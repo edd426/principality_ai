@@ -1,7 +1,7 @@
 /**
  * @file MCP Integration Tests - Pending Effect Handling
  * @phase 4.2
- * @status RED (implementation doesn't exist yet - TDD approach)
+ * @status GREEN (updated to use GameRegistryManager)
  *
  * These tests verify that the MCP server correctly detects and returns structured
  * pendingEffect responses when interactive cards are played. This enables AI agents
@@ -10,17 +10,32 @@
 
 import { GameEngine, CardName, GameState, generateMoveOptions } from '@principality/core';
 
-// NOTE: These imports will fail until implementation is created
 import { GameExecuteTool } from '../../src/tools/game-execute';
+import { GameRegistryManager } from '../../src/game-registry';
 
 describe('MCP Pending Effect Detection', () => {
   let tool: GameExecuteTool;
+  let registry: GameRegistryManager;
+  let gameId: string;
   let engine: GameEngine;
 
   beforeEach(() => {
     engine = new GameEngine('test-mcp-pending');
-    tool = new GameExecuteTool(engine);
+    registry = new GameRegistryManager(10, 3600000);
+    tool = new GameExecuteTool(registry);
+    // Create a game instance to get gameId
+    const game = registry.createGame('test-mcp-pending');
+    gameId = game.id;
   });
+
+  afterEach(() => {
+    registry.stop();
+  });
+
+  // Helper to set state for the current game
+  const setState = (state: GameState): void => {
+    registry.setState(gameId, state);
+  };
 
   // Helper to create game state with card in hand ready to play
   const createStateWithCardInHand = (card: CardName): GameState => {
@@ -42,9 +57,9 @@ describe('MCP Pending Effect Detection', () => {
 
     it('should detect pendingEffect after Cellar is played', async () => {
       const state = createStateWithCardInHand('Cellar');
-      tool.setState(state);
+      setState(state);
 
-      const response = await tool.execute({ move: 'play_action Cellar' });
+      const response = await tool.execute({ move: 'play_action Cellar', gameId });
 
       expect(response.success).toBe(true);
       expect(response.pendingEffect).toBeDefined();
@@ -53,9 +68,9 @@ describe('MCP Pending Effect Detection', () => {
 
     it('should NOT include pendingEffect for normal moves', async () => {
       const state = createStateWithCardInHand('Village');
-      tool.setState(state);
+      setState(state);
 
-      const response = await tool.execute({ move: 'play_action Village' });
+      const response = await tool.execute({ move: 'play_action Village', gameId });
 
       expect(response.success).toBe(true);
       expect(response.pendingEffect).toBeUndefined();
@@ -63,9 +78,9 @@ describe('MCP Pending Effect Detection', () => {
 
     it('should detect pendingEffect after Chapel is played', async () => {
       const state = createStateWithCardInHand('Chapel');
-      tool.setState(state);
+      setState(state);
 
-      const response = await tool.execute({ move: 'play_action Chapel' });
+      const response = await tool.execute({ move: 'play_action Chapel', gameId });
 
       expect(response.success).toBe(true);
       expect(response.pendingEffect).toBeDefined();
@@ -74,9 +89,9 @@ describe('MCP Pending Effect Detection', () => {
 
     it('should detect pendingEffect after Remodel is played', async () => {
       const state = createStateWithCardInHand('Remodel');
-      tool.setState(state);
+      setState(state);
 
-      const response = await tool.execute({ move: 'play_action Remodel' });
+      const response = await tool.execute({ move: 'play_action Remodel', gameId });
 
       expect(response.success).toBe(true);
       expect(response.pendingEffect).toBeDefined();
@@ -86,9 +101,9 @@ describe('MCP Pending Effect Detection', () => {
 
     it('should detect pendingEffect after Mine is played', async () => {
       const state = createStateWithCardInHand('Mine');
-      tool.setState(state);
+      setState(state);
 
-      const response = await tool.execute({ move: 'play_action Mine' });
+      const response = await tool.execute({ move: 'play_action Mine', gameId });
 
       expect(response.success).toBe(true);
       expect(response.pendingEffect).toBeDefined();
@@ -98,9 +113,9 @@ describe('MCP Pending Effect Detection', () => {
 
     it('should detect pendingEffect after Workshop is played', async () => {
       const state = createStateWithCardInHand('Workshop');
-      tool.setState(state);
+      setState(state);
 
-      const response = await tool.execute({ move: 'play_action Workshop' });
+      const response = await tool.execute({ move: 'play_action Workshop', gameId });
 
       expect(response.success).toBe(true);
       expect(response.pendingEffect).toBeDefined();
@@ -109,9 +124,9 @@ describe('MCP Pending Effect Detection', () => {
 
     it('should detect pendingEffect after Feast is played', async () => {
       const state = createStateWithCardInHand('Feast');
-      tool.setState(state);
+      setState(state);
 
-      const response = await tool.execute({ move: 'play_action Feast' });
+      const response = await tool.execute({ move: 'play_action Feast', gameId });
 
       expect(response.success).toBe(true);
       expect(response.pendingEffect).toBeDefined();
@@ -120,9 +135,9 @@ describe('MCP Pending Effect Detection', () => {
 
     it('should detect pendingEffect after Library is played', async () => {
       const state = createStateWithCardInHand('Library');
-      tool.setState(state);
+      setState(state);
 
-      const response = await tool.execute({ move: 'play_action Library' });
+      const response = await tool.execute({ move: 'play_action Library', gameId });
 
       // Library may or may not have pending effect depending on hand/deck state
       // If action card is drawn, there should be pending effect
@@ -132,9 +147,9 @@ describe('MCP Pending Effect Detection', () => {
 
     it('should detect pendingEffect after Throne Room is played', async () => {
       const state = createStateWithCardInHand('Throne Room');
-      tool.setState(state);
+      setState(state);
 
-      const response = await tool.execute({ move: 'play_action Throne Room' });
+      const response = await tool.execute({ move: 'play_action Throne Room', gameId });
 
       expect(response.success).toBe(true);
       expect(response.pendingEffect).toBeDefined();
@@ -143,9 +158,9 @@ describe('MCP Pending Effect Detection', () => {
 
     it('should detect pendingEffect after Chancellor is played', async () => {
       const state = createStateWithCardInHand('Chancellor');
-      tool.setState(state);
+      setState(state);
 
-      const response = await tool.execute({ move: 'play_action Chancellor' });
+      const response = await tool.execute({ move: 'play_action Chancellor', gameId });
 
       expect(response.success).toBe(true);
       expect(response.pendingEffect).toBeDefined();
@@ -159,9 +174,9 @@ describe('MCP Pending Effect Detection', () => {
 
     it('should return structured options for Cellar', async () => {
       const state = createStateWithCardInHand('Cellar');
-      tool.setState(state);
+      setState(state);
 
-      const response = await tool.execute({ move: 'play_action Cellar' });
+      const response = await tool.execute({ move: 'play_action Cellar', gameId });
 
       expect(response.pendingEffect).toMatchObject({
         card: 'Cellar',
@@ -179,12 +194,12 @@ describe('MCP Pending Effect Detection', () => {
 
     it('should return options with sequential indices starting from 1', async () => {
       const state = createStateWithCardInHand('Cellar');
-      tool.setState(state);
+      setState(state);
 
-      const response = await tool.execute({ move: 'play_action Cellar' });
+      const response = await tool.execute({ move: 'play_action Cellar', gameId });
 
       expect(response.pendingEffect).toBeDefined();
-      const options = response.pendingEffect!.options;
+      const options = response.pendingEffect?.options!;
       options.forEach((opt, idx) => {
         expect(opt.index).toBe(idx + 1);
       });
@@ -192,32 +207,32 @@ describe('MCP Pending Effect Detection', () => {
 
     it('should return executable move commands', async () => {
       const state = createStateWithCardInHand('Cellar');
-      tool.setState(state);
+      setState(state);
 
-      const response = await tool.execute({ move: 'play_action Cellar' });
+      const response = await tool.execute({ move: 'play_action Cellar', gameId });
 
       expect(response.pendingEffect).toBeDefined();
-      const options = response.pendingEffect!.options;
+      const options = response.pendingEffect?.options!;
       expect(options[0].command).toMatch(/^discard_for_cellar/);
     });
 
     it('should return human-readable descriptions', async () => {
       const state = createStateWithCardInHand('Cellar');
-      tool.setState(state);
+      setState(state);
 
-      const response = await tool.execute({ move: 'play_action Cellar' });
+      const response = await tool.execute({ move: 'play_action Cellar', gameId });
 
       expect(response.pendingEffect).toBeDefined();
-      const options = response.pendingEffect!.options;
+      const options = response.pendingEffect?.options!;
       expect(options[0].description).toBeTruthy();
       expect(options[0].description.length).toBeGreaterThan(5);
     });
 
     it('should include step number for multi-step cards', async () => {
       const state = createStateWithCardInHand('Remodel');
-      tool.setState(state);
+      setState(state);
 
-      const response = await tool.execute({ move: 'play_action Remodel' });
+      const response = await tool.execute({ move: 'play_action Remodel', gameId });
 
       expect(response.pendingEffect!.step).toBe(1);
     });
@@ -229,15 +244,15 @@ describe('MCP Pending Effect Detection', () => {
 
     it('should execute move command successfully', async () => {
       const state = createStateWithCardInHand('Cellar');
-      tool.setState(state);
+      setState(state);
 
       // Step 1: Play Cellar
-      const response1 = await tool.execute({ move: 'play_action Cellar' });
+      const response1 = await tool.execute({ move: 'play_action Cellar', gameId });
       expect(response1.pendingEffect).toBeDefined();
-      const command = response1.pendingEffect!.options[0].command;
+      const command = response1.pendingEffect?.options?.[0]?.command!;
 
       // Step 2: Execute command
-      const response2 = await tool.execute({ move: command });
+      const response2 = await tool.execute({ move: command, gameId });
 
       expect(response2.success).toBe(true);
       expect(response2.pendingEffect).toBeUndefined(); // Cleared
@@ -245,24 +260,24 @@ describe('MCP Pending Effect Detection', () => {
 
     it('should handle empty discard command for Cellar', async () => {
       const state = createStateWithCardInHand('Cellar');
-      tool.setState(state);
+      setState(state);
 
-      await tool.execute({ move: 'play_action Cellar' });
+      await tool.execute({ move: 'play_action Cellar', gameId });
 
       // Execute discard nothing
-      const response = await tool.execute({ move: 'discard_for_cellar' });
+      const response = await tool.execute({ move: 'discard_for_cellar', gameId });
 
       expect(response.success).toBe(true);
     });
 
     it('should handle multi-card discard command for Cellar', async () => {
       const state = createStateWithCardInHand('Cellar');
-      tool.setState(state);
+      setState(state);
 
-      await tool.execute({ move: 'play_action Cellar' });
+      await tool.execute({ move: 'play_action Cellar', gameId });
 
       // Execute discard 2 Coppers
-      const response = await tool.execute({ move: 'discard_for_cellar Copper,Copper' });
+      const response = await tool.execute({ move: 'discard_for_cellar Copper,Copper', gameId });
 
       expect(response.success).toBe(true);
     });
@@ -274,38 +289,38 @@ describe('MCP Pending Effect Detection', () => {
 
     it('should accept numeric selection', async () => {
       const state = createStateWithCardInHand('Cellar');
-      tool.setState(state);
+      setState(state);
 
       // Play Cellar
-      const response1 = await tool.execute({ move: 'play_action Cellar' });
+      const response1 = await tool.execute({ move: 'play_action Cellar', gameId });
 
       // Select option 2
-      const response2 = await tool.execute({ move: 'select 2' });
+      const response2 = await tool.execute({ move: 'select 2', gameId });
 
       expect(response2.success).toBe(true);
     });
 
     it('should accept plain number as selection', async () => {
       const state = createStateWithCardInHand('Cellar');
-      tool.setState(state);
+      setState(state);
 
-      await tool.execute({ move: 'play_action Cellar' });
+      await tool.execute({ move: 'play_action Cellar', gameId });
 
       // Select option 1 (just the number)
-      const response = await tool.execute({ move: '1' });
+      const response = await tool.execute({ move: '1', gameId });
 
       expect(response.success).toBe(true);
     });
 
     it('should reject out-of-range selection', async () => {
       const state = createStateWithCardInHand('Cellar');
-      tool.setState(state);
+      setState(state);
 
       // Play Cellar (e.g., 8 options)
-      await tool.execute({ move: 'play_action Cellar' });
+      await tool.execute({ move: 'play_action Cellar', gameId });
 
       // Select invalid option
-      const response = await tool.execute({ move: 'select 99' });
+      const response = await tool.execute({ move: 'select 99', gameId });
 
       expect(response.success).toBe(false);
       expect(response.error).toBeDefined();
@@ -314,13 +329,13 @@ describe('MCP Pending Effect Detection', () => {
 
     it('should provide helpful error for invalid numeric selection', async () => {
       const state = createStateWithCardInHand('Cellar');
-      tool.setState(state);
+      setState(state);
 
-      const response1 = await tool.execute({ move: 'play_action Cellar' });
+      const response1 = await tool.execute({ move: 'play_action Cellar', gameId });
       expect(response1.pendingEffect).toBeDefined();
-      const optionCount = response1.pendingEffect!.options.length;
+      const optionCount = response1.pendingEffect?.options!.length;
 
-      const response2 = await tool.execute({ move: 'select 100' });
+      const response2 = await tool.execute({ move: 'select 100', gameId });
 
       expect(response2.success).toBe(false);
       if (response2.error) {
@@ -335,75 +350,75 @@ describe('MCP Pending Effect Detection', () => {
 
     it('should complete Remodel 2-step process', async () => {
       const state = createStateWithCardInHand('Remodel');
-      tool.setState(state);
+      setState(state);
 
       // Step 1: Play Remodel
-      const step1 = await tool.execute({ move: 'play_action Remodel' });
+      const step1 = await tool.execute({ move: 'play_action Remodel', gameId });
       expect(step1.pendingEffect).toBeDefined();
       expect(step1.pendingEffect!.step).toBe(1);
       expect(step1.pendingEffect!.card).toBe('Remodel');
 
       // Step 2: Trash Estate
-      const trashCmd = step1.pendingEffect!.options[0].command;
-      const step2 = await tool.execute({ move: trashCmd });
+      const trashCmd = step1.pendingEffect?.options?.[0]?.command!;
+      const step2 = await tool.execute({ move: trashCmd, gameId });
       expect(step2.pendingEffect).toBeDefined();
       expect(step2.pendingEffect!.step).toBe(2);
 
       // Step 3: Gain card
-      const gainCmd = step2.pendingEffect!.options[0].command;
-      const final = await tool.execute({ move: gainCmd });
+      const gainCmd = step2.pendingEffect?.options?.[0]?.command!;
+      const final = await tool.execute({ move: gainCmd, gameId });
       expect(final.success).toBe(true);
       expect(final.pendingEffect).toBeUndefined(); // Cleared
     });
 
     it('should complete Mine 2-step process', async () => {
       const state = createStateWithCardInHand('Mine');
-      tool.setState(state);
+      setState(state);
 
       // Step 1: Play Mine
-      const step1 = await tool.execute({ move: 'play_action Mine' });
+      const step1 = await tool.execute({ move: 'play_action Mine', gameId });
       expect(step1.pendingEffect).toBeDefined();
       expect(step1.pendingEffect!.step).toBe(1);
 
       // Step 2: Trash treasure
-      const trashCmd = step1.pendingEffect!.options[0].command;
-      const step2 = await tool.execute({ move: trashCmd });
+      const trashCmd = step1.pendingEffect?.options?.[0]?.command!;
+      const step2 = await tool.execute({ move: trashCmd, gameId });
       expect(step2.pendingEffect).toBeDefined();
       expect(step2.pendingEffect!.step).toBe(2);
 
       // Step 3: Gain treasure to hand
-      const gainCmd = step2.pendingEffect!.options[0].command;
-      const final = await tool.execute({ move: gainCmd });
+      const gainCmd = step2.pendingEffect?.options?.[0]?.command!;
+      const final = await tool.execute({ move: gainCmd, gameId });
       expect(final.success).toBe(true);
       expect(final.pendingEffect).toBeUndefined();
     });
 
     it('should include step description in message', async () => {
       const state = createStateWithCardInHand('Remodel');
-      tool.setState(state);
+      setState(state);
 
-      const step1 = await tool.execute({ move: 'play_action Remodel' });
+      const step1 = await tool.execute({ move: 'play_action Remodel', gameId });
       expect(step1.message).toContain('Step 1');
 
       expect(step1.pendingEffect).toBeDefined();
-      const trashCmd = step1.pendingEffect!.options[0].command;
-      const step2 = await tool.execute({ move: trashCmd });
+      const trashCmd = step1.pendingEffect?.options?.[0]?.command!;
+      const step2 = await tool.execute({ move: trashCmd, gameId });
       expect(step2.message).toContain('Step 2');
     });
 
     it('should update maxGainCost based on trashed card', async () => {
       const state = createStateWithCardInHand('Remodel');
-      tool.setState(state);
+      setState(state);
 
-      const step1 = await tool.execute({ move: 'play_action Remodel' });
+      const step1 = await tool.execute({ move: 'play_action Remodel', gameId });
 
       expect(step1.pendingEffect).toBeDefined();
       // Trash Estate ($2) - should enable gain up to $4
-      const trashEstateCmd = step1.pendingEffect!.options.find(opt =>
+      const trashEstateCmd = step1.pendingEffect?.options?.find(opt =>
         opt.description.includes('Estate')
-      )?.command;
+      )?.command ?? '';
 
-      const step2 = await tool.execute({ move: trashEstateCmd! });
+      const step2 = await tool.execute({ move: trashEstateCmd!, gameId });
 
       // Verify step 2 options respect maxGainCost of $4
       expect(step2.pendingEffect).toBeDefined();
@@ -428,10 +443,10 @@ describe('MCP Pending Effect Detection', () => {
           hand: ['Library', 'Estate', 'Estate'] as const // Start with 2 in hand
         }]
       };
-      tool.setState(state);
+      setState(state);
 
       // Play Library
-      const response1 = await tool.execute({ move: 'play_action Library' });
+      const response1 = await tool.execute({ move: 'play_action Library', gameId });
 
       // Should prompt for first action card (Village)
       if (response1.pendingEffect) {
@@ -439,8 +454,8 @@ describe('MCP Pending Effect Detection', () => {
         expect(response1.message).toContain('Village');
 
         // Set aside Village
-        const setAsideCmd = response1.pendingEffect.options[0].command;
-        const response2 = await tool.execute({ move: setAsideCmd });
+        const setAsideCmd = response1.pendingEffect?.options?.[0]?.command ?? '';
+        const response2 = await tool.execute({ move: setAsideCmd, gameId });
 
         // Should prompt for second action card (Smithy)
         if (response2.pendingEffect) {
@@ -463,17 +478,17 @@ describe('MCP Pending Effect Detection', () => {
           initialState.players[1]
         ]
       };
-      tool.setState(state);
+      setState(state);
 
       // Play Spy
-      const response1 = await tool.execute({ move: 'play_action Spy' });
+      const response1 = await tool.execute({ move: 'play_action Spy', gameId });
 
       // Should prompt for player 0's revealed card
       if (response1.pendingEffect) {
         expect(response1.pendingEffect.card).toBe('Spy');
 
-        const decision1Cmd = response1.pendingEffect.options[0].command;
-        const response2 = await tool.execute({ move: decision1Cmd });
+        const decision1Cmd = response1.pendingEffect?.options?.[0]?.command ?? '';
+        const response2 = await tool.execute({ move: decision1Cmd, gameId });
 
         // Should prompt for player 1's revealed card
         if (response2.pendingEffect) {
@@ -499,10 +514,10 @@ describe('MCP Pending Effect Detection', () => {
           }
         ]
       };
-      tool.setState(state);
+      setState(state);
 
       // Play Bureaucrat
-      const response1 = await tool.execute({ move: 'play_action Bureaucrat' });
+      const response1 = await tool.execute({ move: 'play_action Bureaucrat', gameId });
 
       // Should prompt for opponent's victory card choice
       if (response1.pendingEffect) {
@@ -518,12 +533,12 @@ describe('MCP Pending Effect Detection', () => {
 
     it('should handle invalid move during pending effect', async () => {
       const state = createStateWithCardInHand('Cellar');
-      tool.setState(state);
+      setState(state);
 
-      await tool.execute({ move: 'play_action Cellar' });
+      await tool.execute({ move: 'play_action Cellar', gameId });
 
       // Try to play another card while pending effect active
-      const response = await tool.execute({ move: 'play_action Village' });
+      const response = await tool.execute({ move: 'play_action Village', gameId });
 
       expect(response.success).toBe(false);
       expect(response.error).toBeDefined();
@@ -532,12 +547,12 @@ describe('MCP Pending Effect Detection', () => {
 
     it('should handle wrong pending effect type', async () => {
       const state = createStateWithCardInHand('Cellar');
-      tool.setState(state);
+      setState(state);
 
-      await tool.execute({ move: 'play_action Cellar' });
+      await tool.execute({ move: 'play_action Cellar', gameId });
 
       // Submit wrong move type
-      const response = await tool.execute({ move: 'trash_cards Copper' });
+      const response = await tool.execute({ move: 'trash_cards Copper', gameId });
 
       expect(response.success).toBe(false);
       expect(response.error).toBeDefined();
@@ -546,29 +561,29 @@ describe('MCP Pending Effect Detection', () => {
 
     it('should preserve state on error', async () => {
       const state = createStateWithCardInHand('Cellar');
-      tool.setState(state);
+      setState(state);
 
-      const response1 = await tool.execute({ move: 'play_action Cellar' });
+      const response1 = await tool.execute({ move: 'play_action Cellar', gameId });
       expect(response1.pendingEffect).toBeDefined();
       const originalPendingEffect = response1.pendingEffect!;
 
       // Submit invalid selection (should fail but preserve pending effect)
-      const errorResponse = await tool.execute({ move: 'select 999' });
+      const errorResponse = await tool.execute({ move: 'select 999', gameId });
       expect(errorResponse.success).toBe(false);
 
       // Try a valid move to verify pending effect is still there
-      const validResponse = await tool.execute({ move: originalPendingEffect.options[0].command });
+      const validResponse = await tool.execute({ move: originalPendingEffect.options?.[0]?.command ?? '', gameId });
       // If this succeeds, it means the pending effect was preserved
       expect(validResponse).toBeDefined();
     });
 
     it('should provide helpful error messages', async () => {
       const state = createStateWithCardInHand('Cellar');
-      tool.setState(state);
+      setState(state);
 
-      await tool.execute({ move: 'play_action Cellar' });
+      await tool.execute({ move: 'play_action Cellar', gameId });
 
-      const response = await tool.execute({ move: 'invalid_command' });
+      const response = await tool.execute({ move: 'invalid_command', gameId });
 
       expect(response.success).toBe(false);
       expect(response.error).toBeDefined();
@@ -587,14 +602,14 @@ describe('MCP Pending Effect Detection', () => {
       emptySupply.set('Village', 0);
       emptySupply.set('Smithy', 0);
       const state = { ...initialState, supply: emptySupply as ReadonlyMap<string, number> };
-      tool.setState(state);
+      setState(state);
 
-      const response = await tool.execute({ move: 'play_action Workshop' });
+      const response = await tool.execute({ move: 'play_action Workshop', gameId });
 
       expect(response.success).toBe(true);
       expect(response.pendingEffect).toBeDefined();
-      expect(response.pendingEffect!.options).toHaveLength(1);
-      expect(response.pendingEffect!.options[0].description).toContain('No cards available');
+      expect(response.pendingEffect?.options).toHaveLength(1);
+      expect(response.pendingEffect?.options?.[0]?.description).toContain('No cards available');
     });
   });
 
@@ -614,13 +629,14 @@ describe('MCP Pending Effect Detection', () => {
           ] as const
         }]
       };
-      tool.setState(state);
+      setState(state);
 
-      const response = await tool.execute({ move: 'play_action Cellar' });
+      const response = await tool.execute({ move: 'play_action Cellar', gameId });
 
       expect(response.pendingEffect).toBeDefined();
-      expect(response.pendingEffect!.options.length).toBeLessThanOrEqual(50);
-      if (response.pendingEffect!.options.length === 50) {
+      const optionsLength = response.pendingEffect?.options?.length ?? 0;
+      expect(optionsLength).toBeLessThanOrEqual(50);
+      if (optionsLength === 50) {
         expect(response.message).toContain('Showing first 50');
       }
     });
@@ -636,12 +652,12 @@ describe('MCP Pending Effect Detection', () => {
           ] as const
         }]
       };
-      tool.setState(state);
+      setState(state);
 
-      await tool.execute({ move: 'play_action Cellar' });
+      await tool.execute({ move: 'play_action Cellar', gameId });
 
       // Submit valid command that might not be in displayed 50
-      const response = await tool.execute({ move: 'discard_for_cellar Copper' });
+      const response = await tool.execute({ move: 'discard_for_cellar Copper', gameId });
 
       expect(response.success).toBe(true);
     });
@@ -653,37 +669,37 @@ describe('MCP Pending Effect Detection', () => {
 
     it('should complete full Cellar workflow', async () => {
       const state = createStateWithCardInHand('Cellar');
-      tool.setState(state);
+      setState(state);
 
-      const response1 = await tool.execute({ move: 'play_action Cellar' });
+      const response1 = await tool.execute({ move: 'play_action Cellar', gameId });
       expect(response1.pendingEffect).toBeDefined();
 
-      const response2 = await tool.execute({ move: response1.pendingEffect!.options[0].command });
+      const response2 = await tool.execute({ move: response1.pendingEffect?.options?.[0]?.command ?? '', gameId });
       expect(response2.success).toBe(true);
       expect(response2.pendingEffect).toBeUndefined();
     });
 
     it('should complete full Chapel workflow', async () => {
       const state = createStateWithCardInHand('Chapel');
-      tool.setState(state);
+      setState(state);
 
-      const response1 = await tool.execute({ move: 'play_action Chapel' });
+      const response1 = await tool.execute({ move: 'play_action Chapel', gameId });
       expect(response1.pendingEffect).toBeDefined();
 
-      const response2 = await tool.execute({ move: response1.pendingEffect!.options[0].command });
+      const response2 = await tool.execute({ move: response1.pendingEffect?.options?.[0]?.command ?? '', gameId });
       expect(response2.success).toBe(true);
       expect(response2.pendingEffect).toBeUndefined();
     });
 
     it('should complete full Remodel workflow', async () => {
       const state = createStateWithCardInHand('Remodel');
-      tool.setState(state);
+      setState(state);
 
-      const step1 = await tool.execute({ move: 'play_action Remodel' });
+      const step1 = await tool.execute({ move: 'play_action Remodel', gameId });
       expect(step1.pendingEffect).toBeDefined();
-      const step2 = await tool.execute({ move: step1.pendingEffect!.options[0].command });
+      const step2 = await tool.execute({ move: step1.pendingEffect?.options?.[0]?.command ?? '', gameId });
       expect(step2.pendingEffect).toBeDefined();
-      const final = await tool.execute({ move: step2.pendingEffect!.options[0].command });
+      const final = await tool.execute({ move: step2.pendingEffect?.options?.[0]?.command ?? '', gameId });
 
       expect(final.success).toBe(true);
       expect(final.pendingEffect).toBeUndefined();
@@ -691,13 +707,13 @@ describe('MCP Pending Effect Detection', () => {
 
     it('should complete full Mine workflow', async () => {
       const state = createStateWithCardInHand('Mine');
-      tool.setState(state);
+      setState(state);
 
-      const step1 = await tool.execute({ move: 'play_action Mine' });
+      const step1 = await tool.execute({ move: 'play_action Mine', gameId });
       expect(step1.pendingEffect).toBeDefined();
-      const step2 = await tool.execute({ move: step1.pendingEffect!.options[0].command });
+      const step2 = await tool.execute({ move: step1.pendingEffect?.options?.[0]?.command ?? '', gameId });
       expect(step2.pendingEffect).toBeDefined();
-      const final = await tool.execute({ move: step2.pendingEffect!.options[0].command });
+      const final = await tool.execute({ move: step2.pendingEffect?.options?.[0]?.command ?? '', gameId });
 
       expect(final.success).toBe(true);
       expect(final.pendingEffect).toBeUndefined();
@@ -705,11 +721,11 @@ describe('MCP Pending Effect Detection', () => {
 
     it('should complete full Workshop workflow', async () => {
       const state = createStateWithCardInHand('Workshop');
-      tool.setState(state);
+      setState(state);
 
-      const response1 = await tool.execute({ move: 'play_action Workshop' });
+      const response1 = await tool.execute({ move: 'play_action Workshop', gameId });
       expect(response1.pendingEffect).toBeDefined();
-      const response2 = await tool.execute({ move: response1.pendingEffect!.options[0].command });
+      const response2 = await tool.execute({ move: response1.pendingEffect?.options?.[0]?.command ?? '', gameId });
 
       expect(response2.success).toBe(true);
       expect(response2.pendingEffect).toBeUndefined();
@@ -717,11 +733,11 @@ describe('MCP Pending Effect Detection', () => {
 
     it('should complete full Feast workflow', async () => {
       const state = createStateWithCardInHand('Feast');
-      tool.setState(state);
+      setState(state);
 
-      const response1 = await tool.execute({ move: 'play_action Feast' });
+      const response1 = await tool.execute({ move: 'play_action Feast', gameId });
       expect(response1.pendingEffect).toBeDefined();
-      const response2 = await tool.execute({ move: response1.pendingEffect!.options[0].command });
+      const response2 = await tool.execute({ move: response1.pendingEffect?.options?.[0]?.command ?? '', gameId });
 
       expect(response2.success).toBe(true);
       expect(response2.pendingEffect).toBeUndefined();
@@ -737,22 +753,24 @@ describe('MCP Pending Effect Detection', () => {
           hand: [...state.players[0].hand, 'Village'] as const
         }]
       };
-      tool.setState(stateWithVillage);
+      setState(stateWithVillage);
 
-      const response1 = await tool.execute({ move: 'play_action Throne Room' });
+      const response1 = await tool.execute({ move: 'play_action Throne Room', gameId });
       expect(response1.pendingEffect).toBeDefined();
-      const response2 = await tool.execute({ move: response1.pendingEffect!.options[0].command });
+      const cmd1 = response1.pendingEffect?.options?.[0]?.command ?? '';
+      const response2 = await tool.execute({ move: cmd1, gameId });
 
       expect(response2.success).toBe(true);
     });
 
     it('should complete full Chancellor workflow', async () => {
       const state = createStateWithCardInHand('Chancellor');
-      tool.setState(state);
+      setState(state);
 
-      const response1 = await tool.execute({ move: 'play_action Chancellor' });
+      const response1 = await tool.execute({ move: 'play_action Chancellor', gameId });
       expect(response1.pendingEffect).toBeDefined();
-      const response2 = await tool.execute({ move: response1.pendingEffect!.options[0].command });
+      const cmd2 = response1.pendingEffect?.options?.[0]?.command ?? '';
+      const response2 = await tool.execute({ move: cmd2, gameId });
 
       expect(response2.success).toBe(true);
       expect(response2.pendingEffect).toBeUndefined();

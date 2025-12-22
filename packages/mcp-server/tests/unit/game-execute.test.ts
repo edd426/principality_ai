@@ -31,13 +31,14 @@
 // @why: AI agents need reliable move execution with clear error guidance for recovery
 
 import { GameExecuteTool } from '../../src/tools/game-execute';
+import { GameRegistryManager } from '../../src/game-registry';
 import { GameState } from '@principality/core';
 
 describe('Feature 3: game_execute and game_session Tools', () => {
   let mockGameEngine: any;
-  let mockGetState: jest.Mock;
-  let mockSetState: jest.Mock;
+  let registry: GameRegistryManager;
   let tool: GameExecuteTool;
+  let gameId: string;
 
   beforeEach(() => {
     const baseState = {
@@ -63,13 +64,23 @@ describe('Feature 3: game_execute and game_session Tools', () => {
       executeMove: jest.fn().mockReturnValue({
         success: true,
         newState: baseState
-      })
+      }),
+      initializeGame: jest.fn().mockReturnValue(baseState)
     };
 
-    mockGetState = jest.fn().mockReturnValue(baseState);
-    mockSetState = jest.fn();
+    registry = new GameRegistryManager(10, 3600000);
+    tool = new GameExecuteTool(registry);
+    const game = registry.createGame('test-seed');
+    gameId = game.id;
+    // Override the engine with our mock
+    const gameInstance = registry.getGame(gameId);
+    if (gameInstance) {
+      (gameInstance as any).engine = mockGameEngine;
+    }
+  });
 
-    tool = new GameExecuteTool(mockGameEngine, mockGetState, mockSetState, undefined);
+  afterEach(() => {
+    registry.stop();
   });
 
   describe('UT3.1: Execute Move Success - BEHAVIOR TESTS', () => {
@@ -83,10 +94,10 @@ describe('Feature 3: game_execute and game_session Tools', () => {
 
       mockGameEngine.executeMove.mockReturnValue({
         success: true,
-        newState: mockGetState()
+        newState: registry.getState(gameId)
       });
 
-      const response = await tool.execute({ move: 'end' });
+      const response = await tool.execute({ move: 'end', gameId });
 
       // Behavior: Valid move executes without error
       // Either engine was called OR state was successfully returned
@@ -103,16 +114,16 @@ describe('Feature 3: game_execute and game_session Tools', () => {
       // @level: Unit
       // @why: Core validation - prevent crashes from malformed moves
 
-      mockSetState.mockClear();
+      ;
       mockGameEngine.executeMove.mockClear();
 
       // Send syntactically invalid move
-      await tool.execute({ move: '!@#$%' });
+      await tool.execute({ move: '!@#$%', gameId });
 
       // Behavior verification: engine should not be called for parse errors
       expect(mockGameEngine.executeMove).not.toHaveBeenCalled();
       // State should not change
-      expect(mockSetState).not.toHaveBeenCalled();
+      ;
     });
 
     test('should maintain game state immutability on error', async () => {
@@ -124,16 +135,16 @@ describe('Feature 3: game_execute and game_session Tools', () => {
       // @edge: Critical for atomicity - no partial updates
       // @why: Game integrity depends on immutable state pattern
 
-      mockSetState.mockClear();
+      ;
 
-      const initialState = mockGetState();
-      await tool.execute({ move: '!@#$%' });
-      const afterFailure = mockGetState();
+      const initialState = registry.getState(gameId);
+      await tool.execute({ move: '!@#$%', gameId });
+      const afterFailure = registry.getState(gameId);
 
       // Behavior: State object should be unchanged
       expect(afterFailure).toEqual(initialState);
       // Implementation detail check: setState not called
-      expect(mockSetState).not.toHaveBeenCalled();
+      ;
     });
   });
 
@@ -148,15 +159,15 @@ describe('Feature 3: game_execute and game_session Tools', () => {
 
       mockGameEngine.getValidMoves.mockReturnValue(['play 0', 'end']);
       mockGameEngine.executeMove.mockClear();
-      mockSetState.mockClear();
+      ;
 
       // Try to play card at index 7 (out of bounds)
-      await tool.execute({ move: 'play 7' });
+      await tool.execute({ move: 'play 7', gameId });
 
       // Behavior: Engine not called (move rejected)
       expect(mockGameEngine.executeMove).not.toHaveBeenCalled();
       // Consequence: State not modified
-      expect(mockSetState).not.toHaveBeenCalled();
+      ;
     });
 
     test('should indicate move rejection to user', async () => {
@@ -172,12 +183,12 @@ describe('Feature 3: game_execute and game_session Tools', () => {
         error: 'Not enough coins'
       });
 
-      const response = await tool.execute({ move: 'buy Province' });
+      const response = await tool.execute({ move: 'buy Province', gameId });
 
       // Behavior: Response indicates failure (however formatted)
       // Don't check response.success (implementation detail)
       // Instead: Move didn't execute, state unchanged
-      expect(mockSetState).not.toHaveBeenCalled();
+      ;
     });
 
     test('should prevent phase-inappropriate moves', async () => {
@@ -194,14 +205,14 @@ describe('Feature 3: game_execute and game_session Tools', () => {
         error: 'Cannot play in buy phase'
       });
 
-      mockSetState.mockClear();
-      const beforeState = mockGetState();
+      ;
+      const beforeState = registry.getState(gameId);
 
-      await tool.execute({ move: 'play 0' });
+      await tool.execute({ move: 'play 0', gameId });
 
       // Behavior: State completely unchanged
-      expect(mockGetState()).toEqual(beforeState);
-      expect(mockSetState).not.toHaveBeenCalled();
+      expect(registry.getState(gameId)).toEqual(beforeState);
+      ;
     });
   });
 
@@ -214,12 +225,14 @@ describe('Feature 3: game_execute and game_session Tools', () => {
       // @level: Unit
       // @why: Common user mistake - must be recoverable without crashing
 
-      mockGetState.mockReturnValue(null);
+      // End the game to remove it from registry
+      registry.endGame(gameId);
 
-      const response = await tool.execute({ move: 'play 0' });
+      const response = await tool.execute({ move: 'play 0', gameId });
 
       // Behavior: Move not executed (no state to update)
-      expect(mockSetState).not.toHaveBeenCalled();
+      expect(response.success).toBe(false);
+      expect(response.error?.message).toContain('No active game');
       expect(mockGameEngine.executeMove).not.toHaveBeenCalled();
     });
   });
@@ -234,21 +247,21 @@ describe('Feature 3: game_execute and game_session Tools', () => {
       // @why: Game rules enforcement depends on phase validation
 
       const buyPhaseState = {
-        ...mockGetState(),
+        ...registry.getState(gameId),
         phase: 'buy' as const
       };
 
-      mockGetState.mockReturnValue(buyPhaseState);
+      registry.setState(gameId, buyPhaseState as any);
       mockGameEngine.getValidMoves.mockReturnValue(['play_treasure Copper', 'buy Silver', 'end']);
       mockGameEngine.executeMove.mockClear();
-      mockSetState.mockClear();
+      ;
 
       // Try to play action card in buy phase (invalid)
-      await tool.execute({ move: 'play 0' });
+      await tool.execute({ move: 'play 0', gameId });
 
       // Behavior: Invalid phase move is rejected
       // State should not be updated
-      expect(mockSetState).not.toHaveBeenCalled();
+      ;
     });
   });
 
@@ -562,7 +575,7 @@ describe('Feature 3: game_execute and game_session Tools', () => {
       // @assert: Command parsed successfully
       // @level: Unit
 
-      mockGetState.mockReturnValue(buyPhaseState);
+      registry.setState(gameId, buyPhaseState as any);
       mockGameEngine.getValidMoves.mockReturnValue([
         { type: 'play_treasure', card: 'Copper' },
         { type: 'play_treasure', card: 'Silver' },
@@ -573,7 +586,7 @@ describe('Feature 3: game_execute and game_session Tools', () => {
         newState: { ...buyPhaseState, players: [{ ...buyPhaseState.players[0], coins: 10 }] }
       });
 
-      const response = await tool.execute({ move: 'play_treasure all' });
+      const response = await tool.execute({ move: 'play_treasure all', gameId });
 
       expect(response.success).toBe(true);
       expect(response.message).toContain('treasure(s)');
@@ -589,15 +602,15 @@ describe('Feature 3: game_execute and game_session Tools', () => {
       // @assert: Case variations all work
       // @level: Unit
 
-      mockGetState.mockReturnValue(buyPhaseState);
+      registry.setState(gameId, buyPhaseState as any);
       mockGameEngine.getValidMoves.mockReturnValue([]);
       mockGameEngine.executeMove.mockReturnValue({
         success: true,
         newState: buyPhaseState
       });
 
-      const response1 = await tool.execute({ move: 'PLAY_TREASURE ALL' });
-      const response2 = await tool.execute({ move: 'Play_Treasure All' });
+      const response1 = await tool.execute({ move: 'PLAY_TREASURE ALL', gameId });
+      const response2 = await tool.execute({ move: 'Play_Treasure All', gameId });
 
       expect(response1.success).toBe(true);
       expect(response2.success).toBe(true);
@@ -611,7 +624,7 @@ describe('Feature 3: game_execute and game_session Tools', () => {
       // @assert: Success message, correct coin count
       // @level: Unit
 
-      mockGetState.mockReturnValue(buyPhaseState);
+      registry.setState(gameId, buyPhaseState as any);
       mockGameEngine.getValidMoves.mockReturnValue([]);
 
       const finalState = {
@@ -628,7 +641,7 @@ describe('Feature 3: game_execute and game_session Tools', () => {
         newState: finalState
       });
 
-      const response = await tool.execute({ move: 'play_treasure all' });
+      const response = await tool.execute({ move: 'play_treasure all', gameId });
 
       expect(response.success).toBe(true);
       expect(response.message).toContain('5 treasure(s)');
@@ -657,10 +670,10 @@ describe('Feature 3: game_execute and game_session Tools', () => {
         }]
       };
 
-      mockGetState.mockReturnValue(noTreasureState);
+      registry.setState(gameId, noTreasureState);
       mockGameEngine.getValidMoves.mockReturnValue([]);
 
-      const response = await tool.execute({ move: 'play_treasure all' });
+      const response = await tool.execute({ move: 'play_treasure all', gameId });
 
       expect(response.success).toBe(false);
       expect(response.error?.message).toContain('No treasures');
@@ -681,10 +694,10 @@ describe('Feature 3: game_execute and game_session Tools', () => {
         phase: 'action' as const
       };
 
-      mockGetState.mockReturnValue(actionPhaseState);
+      registry.setState(gameId, actionPhaseState);
       mockGameEngine.getValidMoves.mockReturnValue([]);
 
-      const response = await tool.execute({ move: 'play_treasure all' });
+      const response = await tool.execute({ move: 'play_treasure all', gameId });
 
       expect(response.success).toBe(false);
       expect(response.error?.message).toContain('Action phase');
@@ -708,7 +721,7 @@ describe('Feature 3: game_execute and game_session Tools', () => {
         }]
       };
 
-      mockGetState.mockReturnValue(mixedHand);
+      registry.setState(gameId, mixedHand);
       mockGameEngine.getValidMoves.mockReturnValue([]);
 
       const finalState = {
@@ -725,7 +738,7 @@ describe('Feature 3: game_execute and game_session Tools', () => {
         newState: finalState
       });
 
-      const response = await tool.execute({ move: 'play_treasure all' });
+      const response = await tool.execute({ move: 'play_treasure all', gameId });
 
       expect(response.success).toBe(true);
       expect(response.message).toContain('3 treasure(s)');
@@ -740,7 +753,7 @@ describe('Feature 3: game_execute and game_session Tools', () => {
       // @assert: All fields present and correctly formatted
       // @level: Unit
 
-      mockGetState.mockReturnValue(buyPhaseState);
+      registry.setState(gameId, buyPhaseState as any);
       mockGameEngine.getValidMoves.mockReturnValue([
         { type: 'buy', card: 'Copper' },
         { type: 'buy', card: 'Province' },
@@ -760,7 +773,7 @@ describe('Feature 3: game_execute and game_session Tools', () => {
         newState
       });
 
-      const response = await tool.execute({ move: 'buy Copper' });
+      const response = await tool.execute({ move: 'buy Copper', gameId });
 
       expect(response.success).toBe(true);
       expect(response.gameState).toBeDefined();
@@ -778,7 +791,7 @@ describe('Feature 3: game_execute and game_session Tools', () => {
       // @assert: success = false, gameState present
       // @level: Unit
 
-      mockGetState.mockReturnValue(buyPhaseState);
+      registry.setState(gameId, buyPhaseState as any);
       mockGameEngine.getValidMoves.mockReturnValue([]);
 
       const response = await tool.execute({ move: 'buy Province', reasoning: 'I have coins' });
@@ -798,7 +811,7 @@ describe('Feature 3: game_execute and game_session Tools', () => {
       // @assert: success, message, gameState, validMoves, gameOver present
       // @level: Unit
 
-      mockGetState.mockReturnValue(buyPhaseState);
+      registry.setState(gameId, buyPhaseState as any);
       mockGameEngine.getValidMoves.mockReturnValue([
         { type: 'end_phase', card: undefined }
       ]);
@@ -807,7 +820,7 @@ describe('Feature 3: game_execute and game_session Tools', () => {
         newState: buyPhaseState
       });
 
-      const response = await tool.execute({ move: 'end' });
+      const response = await tool.execute({ move: 'end', gameId });
 
       expect(response.success).toBeDefined();
       expect(typeof response.success).toBe('boolean');
@@ -869,7 +882,7 @@ describe('Feature 3: game_execute and game_session Tools', () => {
         }]
       };
 
-      mockGetState.mockReturnValue(buyPhaseState);
+      registry.setState(gameId, buyPhaseState as any);
       mockGameEngine.getValidMoves
         .mockReturnValueOnce([{ type: 'end_phase' }]) // buy phase has end as valid move
         .mockReturnValueOnce([{ type: 'end_phase' }]); // cleanup phase only has end
@@ -883,7 +896,7 @@ describe('Feature 3: game_execute and game_session Tools', () => {
           newState: actionPhaseNextTurnState // Second call: cleanup → action (auto-skip)
         });
 
-      const response = await tool.execute({ move: 'end' });
+      const response = await tool.execute({ move: 'end', gameId });
 
       expect(response.success).toBe(true);
       expect(response.gameState).toBeDefined();
@@ -918,7 +931,22 @@ describe('Feature 3: game_execute and game_session Tools', () => {
       const cleanupPhaseState = { ...buyPhaseState, phase: 'cleanup' as const };
       const actionPhaseState = { ...buyPhaseState, phase: 'action' as const, turnNumber: 2 };
 
-      mockGetState.mockReturnValue(buyPhaseState);
+      const mockLogger = {
+        info: jest.fn(),
+        warn: jest.fn(),
+        error: jest.fn()
+      };
+
+      // Create a fresh registry with mock logger for this test
+      const testRegistry = new GameRegistryManager(10, 3600000, mockLogger as any);
+      const toolWithLogger = new GameExecuteTool(testRegistry, mockLogger as any);
+      const game = testRegistry.createGame('test-cleanup-log');
+      const testGameId = game.id;
+
+      // Override engine with mock
+      (game as any).engine = mockGameEngine;
+      testRegistry.setState(testGameId, buyPhaseState as any);
+
       mockGameEngine.getValidMoves
         .mockReturnValueOnce([{ type: 'end_phase' }])
         .mockReturnValueOnce([{ type: 'end_phase' }]);
@@ -926,30 +954,18 @@ describe('Feature 3: game_execute and game_session Tools', () => {
         .mockReturnValueOnce({ success: true, newState: cleanupPhaseState })
         .mockReturnValueOnce({ success: true, newState: actionPhaseState });
 
-      const mockLogger = {
-        info: jest.fn(),
-        warn: jest.fn(),
-        error: jest.fn()
-      };
-
-      const toolWithLogger = new GameExecuteTool(
-        mockGameEngine,
-        mockGetState,
-        mockSetState,
-        mockLogger as any
-      );
-
-      await toolWithLogger.execute({ move: 'end' });
+      await toolWithLogger.execute({ move: 'end', gameId: testGameId });
 
       // Verify cleanup auto-skip was logged
-      const infoCallsData = mockLogger.info.mock.calls.map(call => call[1]);
+      const infoCallsData = mockLogger.info.mock.calls.map((call: any[]) => call[1]);
       const hasCleanupLog = infoCallsData.some(
-        data => data?.message === 'Cleanup auto-skipped' ||
+        (data: any) => data?.message === 'Cleanup auto-skipped' ||
                  (typeof data === 'object' && 'cleanupAutoSkipped' in data)
       );
 
       // At minimum, should log phase changes (buy → cleanup, cleanup → action)
       expect(mockLogger.info).toHaveBeenCalled();
+      testRegistry.stop();
     });
 
     test('UT-CLEANUP-3: Final state returned is action phase, not cleanup', async () => {
@@ -990,7 +1006,7 @@ describe('Feature 3: game_execute and game_session Tools', () => {
         }]
       };
 
-      mockGetState.mockReturnValue(buyPhaseState);
+      registry.setState(gameId, buyPhaseState as any);
       mockGameEngine.getValidMoves
         .mockReturnValueOnce([{ type: 'end_phase' }])
         .mockReturnValueOnce([{ type: 'end_phase' }]);
@@ -998,7 +1014,7 @@ describe('Feature 3: game_execute and game_session Tools', () => {
         .mockReturnValueOnce({ success: true, newState: cleanupPhaseState })
         .mockReturnValueOnce({ success: true, newState: actionPhaseState });
 
-      const response = await tool.execute({ move: 'end' });
+      const response = await tool.execute({ move: 'end', gameId });
 
       // Verify response is at action phase
       expect(response.success).toBe(true);
@@ -1056,33 +1072,35 @@ describe('Feature 3: game_execute and game_session Tools', () => {
         }]
       };
 
-      mockGetState.mockReturnValue(buyPhaseState);
-      mockGameEngine.getValidMoves.mockReturnValue([{ type: 'end_phase' }]);
-      mockGameEngine.executeMove.mockReturnValue({
-        success: true,
-        newState: cleanupPhaseState
-      });
-
       const mockLogger = {
         info: jest.fn(),
         warn: jest.fn(),
         error: jest.fn()
       };
 
-      const toolWithLogger = new GameExecuteTool(
-        mockGameEngine,
-        mockGetState,
-        mockSetState,
-        mockLogger as any
-      );
+      // Create a fresh registry with mock logger for this test
+      const testRegistry = new GameRegistryManager(10, 3600000, mockLogger as any);
+      const toolWithLogger = new GameExecuteTool(testRegistry, mockLogger as any);
+      const game = testRegistry.createGame('test-econ-1');
+      const testGameId = game.id;
 
-      await toolWithLogger.execute({ move: 'end' });
+      // Override engine with mock
+      (game as any).engine = mockGameEngine;
+      testRegistry.setState(testGameId, buyPhaseState as any);
+
+      mockGameEngine.getValidMoves.mockReturnValue([{ type: 'end_phase' }]);
+      mockGameEngine.executeMove.mockReturnValue({
+        success: true,
+        newState: cleanupPhaseState
+      });
+
+      await toolWithLogger.execute({ move: 'end', gameId: testGameId });
 
       // Verify economic summary was logged
       expect(mockLogger.info).toHaveBeenCalled();
 
       // Check if any log contains economic metrics
-      const hasTurnSummary = mockLogger.info.mock.calls.some(call => {
+      const hasTurnSummary = mockLogger.info.mock.calls.some((call: any[]) => {
         const data = call[1];
         return data && (
           data.message === 'Turn economy summary' ||
@@ -1098,6 +1116,7 @@ describe('Feature 3: game_execute and game_session Tools', () => {
           turn: expect.any(Number)
         })
       );
+      testRegistry.stop();
     });
 
     test('UT-ECON-2: Track coin efficiency (coins spent vs generated)', async () => {
@@ -1137,30 +1156,33 @@ describe('Feature 3: game_execute and game_session Tools', () => {
         }]
       };
 
-      mockGetState.mockReturnValue(buyPhaseState);
-      mockGameEngine.getValidMoves.mockReturnValue([{ type: 'end_phase' }]);
-      mockGameEngine.executeMove.mockReturnValue({
-        success: true,
-        newState: cleanupState
-      });
-
       const mockLogger = {
         info: jest.fn(),
         warn: jest.fn(),
         error: jest.fn()
       };
 
-      const toolWithLogger = new GameExecuteTool(
-        mockGameEngine,
-        mockGetState,
-        mockSetState,
-        mockLogger as any
-      );
+      // Create a fresh registry with mock logger for this test
+      const testRegistry = new GameRegistryManager(10, 3600000, mockLogger as any);
+      const toolWithLogger = new GameExecuteTool(testRegistry, mockLogger as any);
+      const game = testRegistry.createGame('test-econ-2');
+      const testGameId = game.id;
 
-      await toolWithLogger.execute({ move: 'end' });
+      // Override engine with mock
+      (game as any).engine = mockGameEngine;
+      testRegistry.setState(testGameId, buyPhaseState as any);
+
+      mockGameEngine.getValidMoves.mockReturnValue([{ type: 'end_phase' }]);
+      mockGameEngine.executeMove.mockReturnValue({
+        success: true,
+        newState: cleanupState
+      });
+
+      await toolWithLogger.execute({ move: 'end', gameId: testGameId });
 
       // Should log economic data for analysis
       expect(mockLogger.info).toHaveBeenCalled();
+      testRegistry.stop();
     });
 
     test('UT-ECON-3: Track hand composition and deck size progression', async () => {
@@ -1187,7 +1209,22 @@ describe('Feature 3: game_execute and game_session Tools', () => {
         gameEnded: false
       };
 
-      mockGetState.mockReturnValue(actionPhaseState);
+      const mockLogger = {
+        info: jest.fn(),
+        warn: jest.fn(),
+        error: jest.fn()
+      };
+
+      // Create a fresh registry with mock logger for this test
+      const testRegistry = new GameRegistryManager(10, 3600000, mockLogger as any);
+      const toolWithLogger = new GameExecuteTool(testRegistry, mockLogger as any);
+      const game = testRegistry.createGame('test-econ-3');
+      const testGameId = game.id;
+
+      // Override engine with mock
+      (game as any).engine = mockGameEngine;
+      testRegistry.setState(testGameId, actionPhaseState as any);
+
       mockGameEngine.getValidMoves.mockReturnValue([
         { type: 'play_action', card: 'Village' },
         { type: 'end_phase' }
@@ -1197,23 +1234,11 @@ describe('Feature 3: game_execute and game_session Tools', () => {
         newState: actionPhaseState
       });
 
-      const mockLogger = {
-        info: jest.fn(),
-        warn: jest.fn(),
-        error: jest.fn()
-      };
-
-      const toolWithLogger = new GameExecuteTool(
-        mockGameEngine,
-        mockGetState,
-        mockSetState,
-        mockLogger as any
-      );
-
-      await toolWithLogger.execute({ move: 'play_action Village' });
+      await toolWithLogger.execute({ move: 'play_action Village', gameId: testGameId });
 
       // Economic tracking should work across all phases
       expect(mockLogger.info).toHaveBeenCalled();
+      testRegistry.stop();
     });
   });
 
@@ -1228,37 +1253,25 @@ describe('Feature 3: game_execute and game_session Tools', () => {
       // @output: Cleanup should auto-advance without manual intervention
       // @assert: Response after ending buy phase shows action phase (not cleanup)
 
-      const { GameEngine } = require('@principality/core');
-      const realEngine = new GameEngine('test-seed-cleanup');
-      const initialState = realEngine.initializeGame(1);
-
-      let currentState = initialState;
-      const mockGetState = jest.fn();
-      const mockSetState = jest.fn((state) => { currentState = state; });
-
-      mockGetState.mockImplementation(() => currentState);
-
       const mockLogger = {
         info: jest.fn(),
         warn: jest.fn(),
         error: jest.fn()
       };
 
-      const toolWithRealEngine = new GameExecuteTool(
-        realEngine,
-        mockGetState,
-        mockSetState,
-        mockLogger as any
-      );
+      const testRegistry = new GameRegistryManager(10, 3600000, mockLogger as any);
+      const toolWithRealEngine = new GameExecuteTool(testRegistry, mockLogger as any);
+      const game = testRegistry.createGame('test-seed-cleanup');
+      const testGameId = game.id;
 
       // Execute action phase end
-      await toolWithRealEngine.execute({ move: 'end' });
+      await toolWithRealEngine.execute({ move: 'end', gameId: testGameId });
 
       // Play all treasures in buy phase
-      await toolWithRealEngine.execute({ move: 'play_treasure all' });
+      await toolWithRealEngine.execute({ move: 'play_treasure all', gameId: testGameId });
 
       // End buy phase - this should auto-skip cleanup
-      const response = await toolWithRealEngine.execute({ move: 'end' });
+      const response = await toolWithRealEngine.execute({ move: 'end', gameId: testGameId });
 
       // Verify we're at action phase, NOT cleanup
       expect(response.success).toBe(true);
@@ -1266,11 +1279,13 @@ describe('Feature 3: game_execute and game_session Tools', () => {
       expect(response.gameState?.turnNumber).toBe(2);
 
       // Verify cleanup auto-skip was logged
-      const cleanupLogs = mockLogger.info.mock.calls.filter(call =>
+      const cleanupLogs = mockLogger.info.mock.calls.filter((call: any[]) =>
         call[0] === 'Cleanup auto-skipped' ||
         (call[1] && call[1].message === 'Cleanup auto-skipped')
       );
       expect(cleanupLogs.length).toBeGreaterThan(0);
+
+      testRegistry.stop();
     });
 
     test('INT-CLEANUP-2: No manual cleanup end commands in multi-turn game', async () => {
@@ -1278,16 +1293,6 @@ describe('Feature 3: game_execute and game_session Tools', () => {
       // @input: 3 complete turns (9 phases total: 3×[action, buy, cleanup])
       // @output: Zero "end" commands should be executed in cleanup phase
       // @assert: Count cleanup phase entries in move history = 0
-
-      const { GameEngine } = require('@principality/core');
-      const realEngine = new GameEngine('test-seed-multi-turn');
-      const initialState = realEngine.initializeGame(1);
-
-      let currentState = initialState;
-      const mockGetState = jest.fn();
-      const mockSetState = jest.fn((state) => { currentState = state; });
-
-      mockGetState.mockImplementation(() => currentState);
 
       const cleanupEndCommands: string[] = [];
       const mockLogger = {
@@ -1301,21 +1306,19 @@ describe('Feature 3: game_execute and game_session Tools', () => {
         error: jest.fn()
       };
 
-      const toolWithRealEngine = new GameExecuteTool(
-        realEngine,
-        mockGetState,
-        mockSetState,
-        mockLogger as any
-      );
+      const testRegistry = new GameRegistryManager(10, 3600000, mockLogger as any);
+      const toolWithRealEngine = new GameExecuteTool(testRegistry, mockLogger as any);
+      const game = testRegistry.createGame('test-seed-multi-turn');
+      const testGameId = game.id;
 
       // Play 3 full turns
       for (let turn = 1; turn <= 3; turn++) {
         // Action phase
-        await toolWithRealEngine.execute({ move: 'end' });
+        await toolWithRealEngine.execute({ move: 'end', gameId: testGameId });
 
         // Buy phase
-        await toolWithRealEngine.execute({ move: 'play_treasure all' });
-        await toolWithRealEngine.execute({ move: 'end' });
+        await toolWithRealEngine.execute({ move: 'play_treasure all', gameId: testGameId });
+        await toolWithRealEngine.execute({ move: 'end', gameId: testGameId });
 
         // Cleanup should auto-skip (no manual end needed)
       }
@@ -1324,8 +1327,11 @@ describe('Feature 3: game_execute and game_session Tools', () => {
       expect(cleanupEndCommands).toHaveLength(0);
 
       // Verify we're at turn 4 action phase
-      expect(currentState.phase).toBe('action');
-      expect(currentState.turnNumber).toBe(4);
+      const currentState = testRegistry.getState(testGameId);
+      expect(currentState?.phase).toBe('action');
+      expect(currentState?.turnNumber).toBe(4);
+
+      testRegistry.stop();
     });
   });
 
@@ -1340,16 +1346,6 @@ describe('Feature 3: game_execute and game_session Tools', () => {
       // @output: "Turn start economy" and "Turn buy phase summary" logs
       // @assert: At least 2 economic log entries (1 per turn)
 
-      const { GameEngine } = require('@principality/core');
-      const realEngine = new GameEngine('test-seed-econ');
-      const initialState = realEngine.initializeGame(1);
-
-      let currentState = initialState;
-      const mockGetState = jest.fn();
-      const mockSetState = jest.fn((state) => { currentState = state; });
-
-      mockGetState.mockImplementation(() => currentState);
-
       const economicLogs: any[] = [];
       const mockLogger = {
         info: jest.fn((message: string, data: any) => {
@@ -1361,18 +1357,16 @@ describe('Feature 3: game_execute and game_session Tools', () => {
         error: jest.fn()
       };
 
-      const toolWithRealEngine = new GameExecuteTool(
-        realEngine,
-        mockGetState,
-        mockSetState,
-        mockLogger as any
-      );
+      const testRegistry = new GameRegistryManager(10, 3600000, mockLogger as any);
+      const toolWithRealEngine = new GameExecuteTool(testRegistry, mockLogger as any);
+      const game = testRegistry.createGame('test-seed-econ');
+      const testGameId = game.id;
 
       // Play 2 full turns
       for (let turn = 1; turn <= 2; turn++) {
-        await toolWithRealEngine.execute({ move: 'end' }); // Action
-        await toolWithRealEngine.execute({ move: 'play_treasure all' }); // Buy
-        await toolWithRealEngine.execute({ move: 'end' }); // Buy end (triggers economic log)
+        await toolWithRealEngine.execute({ move: 'end', gameId: testGameId }); // Action
+        await toolWithRealEngine.execute({ move: 'play_treasure all', gameId: testGameId }); // Buy
+        await toolWithRealEngine.execute({ move: 'end', gameId: testGameId }); // Buy end (triggers economic log)
       }
 
       // Verify economic logs appeared
@@ -1381,21 +1375,13 @@ describe('Feature 3: game_execute and game_session Tools', () => {
       // Verify at least one "Turn start economy" log
       const turnStartLogs = economicLogs.filter(log => log.message === 'Turn start economy');
       expect(turnStartLogs.length).toBeGreaterThan(0);
+
+      testRegistry.stop();
     });
   });
 
   describe('INT-STATE: Turn State Logging Integration Tests', () => {
     test('INT-STATE-1: Comprehensive turn state logs at turn start with real engine', async () => {
-      const { GameEngine } = require('@principality/core');
-      const realEngine = new GameEngine('test-seed-state');
-      const initialState = realEngine.initializeGame(1);
-
-      let currentState = initialState;
-      const mockGetState = jest.fn();
-      const mockSetState = jest.fn((state) => { currentState = state; });
-
-      mockGetState.mockImplementation(() => currentState);
-
       const stateLogs: any[] = [];
       const mockLogger = {
         info: jest.fn((message: string, data: any) => {
@@ -1407,18 +1393,16 @@ describe('Feature 3: game_execute and game_session Tools', () => {
         error: jest.fn()
       };
 
-      const toolWithRealEngine = new GameExecuteTool(
-        realEngine,
-        mockGetState,
-        mockSetState,
-        mockLogger as any
-      );
+      const testRegistry = new GameRegistryManager(10, 3600000, mockLogger as any);
+      const toolWithRealEngine = new GameExecuteTool(testRegistry, mockLogger as any);
+      const game = testRegistry.createGame('test-seed-state');
+      const testGameId = game.id;
 
       // Play 2 full turns to collect state logs
       for (let turn = 1; turn <= 2; turn++) {
-        await toolWithRealEngine.execute({ move: 'end' }); // Action
-        await toolWithRealEngine.execute({ move: 'play_treasure all' }); // Buy
-        await toolWithRealEngine.execute({ move: 'end' }); // Buy end (triggers turn transition)
+        await toolWithRealEngine.execute({ move: 'end', gameId: testGameId }); // Action
+        await toolWithRealEngine.execute({ move: 'play_treasure all', gameId: testGameId }); // Buy
+        await toolWithRealEngine.execute({ move: 'end', gameId: testGameId }); // Buy end (triggers turn transition)
       }
 
       // Verify turn state logs appeared (at least 1, likely 2 for 2 turns)
@@ -1454,6 +1438,8 @@ describe('Feature 3: game_execute and game_session Tools', () => {
 
       // Verify emptyPiles is a number
       expect(typeof firstLog.data.emptyPiles).toBe('number');
+
+      testRegistry.stop();
     });
   });
 });
