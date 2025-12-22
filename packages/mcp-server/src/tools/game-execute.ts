@@ -433,6 +433,16 @@ export class GameExecuteTool {
           // Update message to indicate pending effect
           const stepText = step ? ` - Step ${step}` : '';
           response.message = `Card requires choice: ${pendingEffect.card}${stepText}`;
+        } else {
+          // Fallback: Options generation not implemented for this effect type
+          // Provide raw valid moves so LLM can still attempt to make progress
+          response.pendingEffect = {
+            card: pendingEffect.card,
+            effect: pendingEffect.effect,
+            error: 'Options generation not implemented for this effect type',
+            validMoves: validMovesForOptions.map(m => formatMoveCommand(m))
+          };
+          response.message = `Warning: Card requires choice but option generation is incomplete. Card: ${pendingEffect.card}, Effect: ${pendingEffect.effect}. Try using raw move commands.`;
         }
       }
 

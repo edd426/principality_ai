@@ -56,22 +56,26 @@ export interface MoveOption {
 // ============================================================
 
 /**
- * Generate all combinations of items from an array up to maxSize
- * Uses iterative bit-masking approach for efficiency
+ * Generate all UNIQUE combinations of items from an array up to maxSize
+ * Handles duplicate items correctly by grouping by value
  *
- * @param arr - Array of items to combine
+ * @param arr - Array of items to combine (may contain duplicates)
  * @param maxSize - Maximum size of combinations to generate
- * @returns Array of all combinations (including empty)
+ * @returns Array of all unique combinations (including empty)
  *
  * @example
  * getCombinations(['A', 'B'], 2) => [[], ['A'], ['B'], ['A', 'B']]
+ * getCombinations(['A', 'A', 'B'], 2) => [[], ['A'], ['A', 'A'], ['B'], ['A', 'B']]
+ *
+ * @bug-fix GH-8-BUG-2: Previous implementation used bit-masking on array positions,
+ * treating duplicate items as distinct, creating duplicate combinations.
+ * New implementation groups items by value and generates unique combinations.
  */
 export function getCombinations<T>(
   arr: readonly T[],
   maxSize: number
 ): ReadonlyArray<ReadonlyArray<T>> {
   const n = arr.length;
-  const combinations: T[][] = [];
 
   // Edge case: empty array
   if (n === 0) {
@@ -86,26 +90,43 @@ export function getCombinations<T>(
   // Limit maxSize to array length
   const effectiveMaxSize = Math.min(maxSize, n);
 
-  // Generate all combinations using bit-masking
-  // For n items, there are 2^n combinations (including empty)
-  const totalCombinations = Math.pow(2, n);
+  // Group items by value and count occurrences
+  const itemCounts = new Map<T, number>();
+  arr.forEach(item => {
+    itemCounts.set(item, (itemCounts.get(item) || 0) + 1);
+  });
 
-  for (let mask = 0; mask < totalCombinations; mask++) {
-    const combination: T[] = [];
+  const uniqueItems = Array.from(itemCounts.keys());
+  const combinations: T[][] = [];
 
-    for (let i = 0; i < n; i++) {
-      // Check if bit i is set in mask
-      if ((mask & (1 << i)) !== 0) {
-        combination.push(arr[i]);
+  // Generate all unique combinations using recursive backtracking
+  const generateCombinations = (index: number, currentCombo: T[]) => {
+    // Base case: processed all unique items
+    if (index === uniqueItems.length) {
+      // Only add combinations that don't exceed maxSize
+      if (currentCombo.length <= effectiveMaxSize) {
+        combinations.push([...currentCombo]);
       }
+      return;
     }
 
-    // Only include combinations up to maxSize
-    if (combination.length <= effectiveMaxSize) {
-      combinations.push(combination);
-    }
-  }
+    const item = uniqueItems[index];
+    const count = itemCounts.get(item)!;
 
+    // For each unique item, try adding 0 to count occurrences
+    for (let i = 0; i <= count; i++) {
+      // Skip if adding i items would exceed maxSize
+      if (currentCombo.length + i > effectiveMaxSize) {
+        break;
+      }
+
+      // Add i copies of this item and recurse
+      const itemsToAdd = Array(i).fill(item);
+      generateCombinations(index + 1, [...currentCombo, ...itemsToAdd]);
+    }
+  };
+
+  generateCombinations(0, []);
   return combinations;
 }
 
@@ -156,6 +177,21 @@ export function formatMoveCommand(move: Move): string {
       return move.card
         ? `reveal_and_topdeck ${move.card}`
         : 'reveal_and_topdeck';
+
+    case 'discard_to_hand_size':
+      return move.cards && move.cards.length > 0
+        ? `discard_to_hand_size ${move.cards.join(',')}`
+        : 'discard_to_hand_size';
+
+    case 'reveal_reaction':
+      return move.card
+        ? `reveal_reaction ${move.card}`
+        : 'reveal_reaction';
+
+    case 'gain_trashed_card':
+      return move.card
+        ? `gain_trashed_card ${move.card}`
+        : 'gain_trashed_card';
 
     default:
       return move.type;
@@ -380,10 +416,10 @@ export function generateRemodelStep2Options(
     ];
   }
 
-  // Sort by cost descending, then alphabetically
+  // Sort by cost ascending, then alphabetically
   availableCards.sort((a, b) => {
     if (a.cost !== b.cost) {
-      return b.cost - a.cost; // Higher cost first
+      return a.cost - b.cost; // Lower cost first
     }
     return a.name.localeCompare(b.name); // Alphabetical
   });
@@ -472,10 +508,10 @@ export function generateMineStep2Options(
     ];
   }
 
-  // Sort by cost descending, then alphabetically
+  // Sort by cost ascending, then alphabetically
   availableTreasures.sort((a, b) => {
     if (a.cost !== b.cost) {
-      return b.cost - a.cost; // Higher cost first
+      return a.cost - b.cost; // Lower cost first
     }
     return a.name.localeCompare(b.name); // Alphabetical
   });
@@ -526,10 +562,10 @@ export function generateWorkshopOptions(
     ];
   }
 
-  // Sort by cost descending, then alphabetically
+  // Sort by cost ascending, then alphabetically
   availableCards.sort((a, b) => {
     if (a.cost !== b.cost) {
-      return b.cost - a.cost; // Higher cost first
+      return a.cost - b.cost; // Lower cost first
     }
     return a.name.localeCompare(b.name); // Alphabetical
   });
@@ -747,6 +783,102 @@ export function generateBureaucratOptions(hand: readonly CardName[]): MoveOption
   return options;
 }
 
+/**
+ * Generate options for Moneylender card
+ * Player may trash a Copper for +$3
+ *
+ * @param hand - Player's current hand
+ * @returns Binary choice: trash Copper or skip
+ */
+export function generateMoneylenderOptions(hand: readonly CardName[]): MoveOption[] {
+  const hasCopper = hand.includes('Copper');
+
+  if (!hasCopper) {
+    // Edge case: no Copper (should not happen as game logic checks this)
+    return [
+      {
+        index: 1,
+        move: { type: 'trash_cards', cards: [] },
+        description: "Skip (no Copper to trash)",
+        cardNames: [],
+        details: { action: 'skip' }
+      }
+    ];
+  }
+
+  return [
+    {
+      index: 1,
+      move: { type: 'trash_cards', cards: ['Copper'] },
+      description: "Trash: Copper (+$3)",
+      cardNames: ['Copper'],
+      details: { action: 'trash', coinBonus: 3 }
+    },
+    {
+      index: 2,
+      move: { type: 'trash_cards', cards: [] },
+      description: "Skip (don't trash Copper)",
+      cardNames: [],
+      details: { action: 'skip' }
+    }
+  ];
+}
+
+/**
+ * Generate options for Militia attack (discard to hand size)
+ * Player must discard down to targetSize cards (usually 3)
+ *
+ * @param hand - Player's current hand
+ * @param targetSize - Target hand size (default 3)
+ * @returns Array of all valid discard combinations
+ */
+export function generateMilitiaOptions(hand: readonly CardName[], targetSize: number = 3): MoveOption[] {
+  if (hand.length <= targetSize) {
+    // Edge case: hand already at or below target size
+    return [
+      {
+        index: 1,
+        move: { type: 'discard_to_hand_size', cards: [] },
+        description: `No discard needed (hand size: ${hand.length})`,
+        cardNames: [],
+        details: { action: 'skip', handSize: hand.length, targetSize }
+      }
+    ];
+  }
+
+  const numToDiscard = hand.length - targetSize;
+
+  // Generate all combinations of exactly numToDiscard cards
+  const allCombinations = getCombinations(hand, hand.length);
+  const validCombinations = allCombinations.filter(combo => combo.length === numToDiscard);
+
+  // Create MoveOption for each combination
+  const options: MoveOption[] = validCombinations.map((cards) => {
+    const cardList = Array.from(cards);
+    return {
+      index: 0, // Will be set after sorting
+      move: { type: 'discard_to_hand_size', cards: cardList },
+      description: `Discard: ${formatCardList(cardList)} (keep ${targetSize} cards)`,
+      cardNames: cardList,
+      details: { discardCount: cardList.length, targetSize }
+    };
+  });
+
+  // Sort by card names alphabetically for consistency
+  options.sort((a, b) => {
+    const aNames = a.cardNames?.join(',') || '';
+    const bNames = b.cardNames?.join(',') || '';
+    return aNames.localeCompare(bNames);
+  });
+
+  // Re-index after sorting (1-based)
+  options.forEach((opt, idx) => {
+    opt.index = idx + 1;
+  });
+
+  return options;
+}
+
 // ============================================================
 // MAIN DISPATCHER
 // ============================================================
@@ -778,6 +910,9 @@ export function generateMoveOptions(
     case 'trash_cards':
       return generateChapelOptions(player.hand, pendingEffect.maxTrash || 4);
 
+    case 'trash_copper':
+      return generateMoneylenderOptions(player.hand);
+
     case 'trash_for_remodel':
       return generateRemodelStep1Options(player.hand);
 
@@ -793,6 +928,10 @@ export function generateMoveOptions(
         return generateFeastOptions(state.supply, 5);
       }
       return [];
+
+    case 'gain_treasure':
+      // Mine card step 2: gain a treasure to hand
+      return generateMineStep2Options(pendingEffect.maxGainCost || 0, state.supply);
 
     case 'select_treasure_to_trash':
       // Check if this is Mine or Remodel
@@ -811,9 +950,11 @@ export function generateMoveOptions(
       return [];
 
     case 'library_set_aside':
-      // Card to consider is in pendingEffect or needs to be passed differently
-      // For now, we'll handle this in the game engine integration
-      return [];
+      if (!pendingEffect.drawnCard) {
+        console.warn('library_set_aside missing drawnCard in pendingEffect');
+        return [];
+      }
+      return generateLibraryOptions(pendingEffect.drawnCard);
 
     case 'select_action_for_throne':
       return generateThroneRoomOptions(player.hand);
@@ -822,11 +963,22 @@ export function generateMoveOptions(
       return generateChancellorOptions(player.drawPile.length);
 
     case 'spy_decision':
-      // Need revealed card and target player from pendingEffect
-      return [];
+      if (!pendingEffect.revealedCard || pendingEffect.targetPlayer === undefined) {
+        console.warn('spy_decision missing required pendingEffect data (revealedCard, targetPlayer)');
+        return [];
+      }
+      return generateSpyOptions(pendingEffect.revealedCard, pendingEffect.targetPlayer);
 
     case 'reveal_and_topdeck':
-      return generateBureaucratOptions(player.hand);
+      // Use targetPlayer from pendingEffect (Bureaucrat affects opponent, not current player)
+      const targetPlayerIndex = pendingEffect.targetPlayer ?? state.currentPlayer;
+      const targetPlayer = state.players[targetPlayerIndex];
+      return generateBureaucratOptions(targetPlayer.hand);
+
+    case 'discard_to_hand_size':
+      // Militia attack or similar: discard down to target hand size
+      const militiaTarget = state.players[pendingEffect.targetPlayer ?? state.currentPlayer];
+      return generateMilitiaOptions(militiaTarget.hand, 3);
 
     default:
       console.warn(`generateMoveOptions: Unknown effect type: ${pendingEffect.effect}`);

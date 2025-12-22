@@ -266,7 +266,8 @@ describe('AI Gameplay Integration Tests - Decision Sequences', () => {
           const result = engine.executeMove(currentState, decision.move);
 
           expect(result.success).toBe(true);
-          expect(result.newState).toBeDefined();
+          expect(result.newState).toBeTruthy();
+          expect(typeof result.newState).toBe('object');
           currentState = result.newState!;
 
           // Check for turn boundary
@@ -593,8 +594,10 @@ describe('AI Gameplay Integration Tests - Decision Sequences', () => {
         const decision = ai.decideBestMove(testState, 0);
 
         // Verify valid response
-        expect(decision.move).toBeDefined();
-        expect(decision.reasoning).toBeDefined();
+        expect(decision.move).toBeTruthy();
+        expect(typeof decision.move).toBe('object');
+        expect(decision.reasoning).toBeTruthy();
+        expect(typeof decision.reasoning).toBe('string');
         expect(decision.reasoning.length).toBeGreaterThan(0);
 
         // Verify can execute

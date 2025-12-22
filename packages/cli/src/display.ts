@@ -280,13 +280,15 @@ export class Display {
    * @req: FR-CLI-1 - CLI uses shared layer
    * @req: FR-CLI-2 - No behavioral changes
    * @req: FR-CLI-3 - Consistent option numbering
+   * @fix: Bug #37 - Return MoveOption[] as single source of truth
    * @param state - Current game state with pendingEffect
    * @param validMoves - Valid moves for the pending effect
+   * @returns MoveOption[] - The options displayed to the user (for execution)
    */
-  displayPendingEffectPrompt(state: GameState, validMoves: Move[]): void {
+  displayPendingEffectPrompt(state: GameState, validMoves: Move[]): MoveOption[] {
     const pendingEffect = state.pendingEffect;
     if (!pendingEffect) {
-      return;
+      return [];
     }
 
     const card = getCard(pendingEffect.card);
@@ -304,7 +306,15 @@ export class Display {
         console.log(`  [${index + 1}] ${getMoveDescriptionCompact(move)}`);
       });
       console.log('');
-      return;
+
+      // FALLBACK: Generate options from validMoves for consistency
+      // This ensures we always return MoveOption[] even when generateMoveOptions returns empty
+      return validMoves.map((move, index) => ({
+        index: index + 1,
+        move: move,
+        description: getMoveDescriptionCompact(move),
+        details: {}
+      }));
     }
 
     // Display card-specific header
@@ -316,6 +326,9 @@ export class Display {
     });
 
     console.log(''); // Empty line before input prompt
+
+    // Return options for execution (SINGLE SOURCE OF TRUTH)
+    return options;
   }
 
   /**

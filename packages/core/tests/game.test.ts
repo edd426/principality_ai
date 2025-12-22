@@ -53,7 +53,8 @@ describe('GameEngine', () => {
 
     // STRENGTHENED: Move the assertion outside the if - result must succeed
     expect(result.success).toBe(true);
-    expect(result.newState).toBeDefined();
+    expect(result.newState).toBeTruthy();
+    expect(typeof result.newState).toBe('object');
     expect(result.error).toBeUndefined(); // No errors on success
 
     // Must have a new state for all assertions
@@ -85,7 +86,8 @@ describe('GameEngine', () => {
 
     // STRENGTHENED: Success must be guaranteed for test to proceed
     expect(result.success).toBe(true);
-    expect(result.newState).toBeDefined();
+    expect(result.newState).toBeTruthy();
+    expect(typeof result.newState).toBe('object');
     expect(result.error).toBeUndefined();
 
     const newState = result.newState!;
@@ -116,7 +118,8 @@ describe('GameEngine', () => {
 
     // STRENGTHENED: Verify purchase succeeded with specific assertions
     expect(result.success).toBe(true);
-    expect(result.newState).toBeDefined();
+    expect(result.newState).toBeTruthy();
+    expect(typeof result.newState).toBe('object');
 
     const newState = result.newState!;
     const player = newState.players[0];
@@ -167,7 +170,8 @@ describe('GameEngine', () => {
 
     const victory = engine.checkGameOver(emptyProvinceState);
     expect(victory.isGameOver).toBe(true);
-    expect(victory.scores).toBeDefined();
+    expect(Array.isArray(victory.scores)).toBe(true);
+    expect(victory.scores.length).toBeGreaterThan(0);
   });
 
   test('should validate invalid moves', () => {
@@ -238,7 +242,8 @@ describe('GameEngine', () => {
     // Play Cellar card first
     const cellarResult = engine.executeMove(modifiedState, { type: 'play_action', card: 'Cellar' });
     expect(cellarResult.success).toBe(true);
-    expect(cellarResult.newState).toBeDefined();
+    expect(cellarResult.newState).toBeTruthy();
+    expect(typeof cellarResult.newState).toBe('object');
 
     const afterCellar = cellarResult.newState!;
 
@@ -250,7 +255,8 @@ describe('GameEngine', () => {
 
     // STRENGTHENED: Both moves must succeed
     expect(discardResult.success).toBe(true);
-    expect(discardResult.newState).toBeDefined();
+    expect(discardResult.newState).toBeTruthy();
+    expect(typeof discardResult.newState).toBe('object');
 
     const finalState = discardResult.newState!;
     const player = finalState.players[0];
@@ -281,7 +287,8 @@ describe('GameEngine', () => {
 
     // STRENGTHENED: Verify successful execution
     expect(result.success).toBe(true);
-    expect(result.newState).toBeDefined();
+    expect(result.newState).toBeTruthy();
+    expect(typeof result.newState).toBe('object');
 
     const newState = result.newState!;
     const player = newState.players[0];
@@ -320,7 +327,8 @@ describe('GameEngine', () => {
 
     // STRENGTHENED: Verify execution and card draw limits
     expect(result.success).toBe(true);
-    expect(result.newState).toBeDefined();
+    expect(result.newState).toBeTruthy();
+    expect(typeof result.newState).toBe('object');
 
     const newState = result.newState!;
     const player = newState.players[0];
@@ -448,7 +456,8 @@ describe('GameEngine', () => {
 
     const victory = engine.checkGameOver(modifiedState);
     expect(victory.isGameOver).toBe(true);
-    expect(victory.scores).toBeDefined();
+    expect(Array.isArray(victory.scores)).toBe(true);
+    expect(victory.scores.length).toBeGreaterThan(0);
   });
 
   test('should verify seeded randomness is deterministic', () => {

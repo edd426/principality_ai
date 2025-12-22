@@ -54,9 +54,9 @@ describe('Feature 3: Card Data Model - Phase 1.6', () => {
         description: '+1 Card, +2 Actions'  // REQUIRED field
       };
 
-      expect(validCard.description).toBeDefined();
-      expect(validCard.description).not.toBeNull();
+      expect(typeof validCard.description).toBe('string');
       expect(validCard.description.length).toBeGreaterThan(0);
+      expect(validCard.description).toBe('+1 Card, +2 Actions');
     });
 
     /**
@@ -79,9 +79,10 @@ describe('Feature 3: Card Data Model - Phase 1.6', () => {
       basicCardNames.forEach(cardName => {
         const card = BASIC_CARDS[cardName];
 
-        expect(card).toBeDefined();
-        expect(card.description).toBeDefined();
-        expect(card.description).not.toBeNull();
+        expect(card.name).toBe(cardName);
+        expect(typeof card.type).toBe('string');
+        expect(typeof card.cost).toBe('number');
+        expect(typeof card.description).toBe('string');
         expect(card.description).not.toBe('');
         expect(card.description.trim()).not.toBe('');
         expect(card.description.length).toBeGreaterThan(3);
@@ -107,9 +108,10 @@ describe('Feature 3: Card Data Model - Phase 1.6', () => {
       kingdomCardNames.forEach(cardName => {
         const card = KINGDOM_CARDS[cardName];
 
-        expect(card).toBeDefined();
-        expect(card.description).toBeDefined();
-        expect(card.description).not.toBeNull();
+        expect(card.name).toBe(cardName);
+        expect(typeof card.type).toBe('string');
+        expect(typeof card.cost).toBe('number');
+        expect(typeof card.description).toBe('string');
         expect(card.description).not.toBe('');
         expect(card.description.trim()).not.toBe('');
         expect(card.description.length).toBeGreaterThan(3);
@@ -200,7 +202,7 @@ describe('Feature 3: Card Data Model - Phase 1.6', () => {
 
       actionCards.forEach(({ name, expectedContent }) => {
         const card = KINGDOM_CARDS[name];
-        expect(card.description).toBeDefined();
+        expect(typeof card.description).toBe('string');
         expect(card.description.length).toBeGreaterThan(5);
 
         // At least one effect indicator should be present
@@ -226,8 +228,10 @@ describe('Feature 3: Card Data Model - Phase 1.6', () => {
     test('V-3.4: Curse card indicates negative victory points', () => {
       const curseCard = BASIC_CARDS['Curse'];
 
-      expect(curseCard).toBeDefined();
-      expect(curseCard.description).toBeDefined();
+      expect(curseCard.name).toBe('Curse');
+      expect(curseCard.type).toBe('curse');
+      expect(typeof curseCard.description).toBe('string');
+      expect(curseCard.description.length).toBeGreaterThan(0);
 
       // Should indicate negative points
       const hasNegativeIndicator = /\-|minus|negative|-1/i.test(curseCard.description);
@@ -319,7 +323,7 @@ describe('Feature 3: Card Data Model - Phase 1.6', () => {
       ];
 
       victoryCards.forEach(({ name, card, expectedVP }) => {
-        expect(card.victoryPoints).toBeDefined();
+        expect(typeof card.victoryPoints).toBe('number');
         expect(card.victoryPoints).toBe(expectedVP);
       });
     });
@@ -338,8 +342,9 @@ describe('Feature 3: Card Data Model - Phase 1.6', () => {
       const allCards = { ...BASIC_CARDS, ...KINGDOM_CARDS };
 
       Object.entries(allCards).forEach(([name, card]) => {
-        expect(card.effect).toBeDefined();
+        expect(card.effect).not.toBeNull();
         expect(typeof card.effect).toBe('object');
+        expect(card.effect).toBeTruthy();
       });
     });
   });
@@ -404,7 +409,8 @@ describe('Feature 3: Card Data Model - Phase 1.6', () => {
 
         // Can be serialized
         const serialized = JSON.stringify(card.effect);
-        expect(serialized).toBeDefined();
+        expect(typeof serialized).toBe('string');
+        expect(serialized.length).toBeGreaterThan(0);
 
         // Can be deserialized
         const deserialized = JSON.parse(serialized);
@@ -432,7 +438,8 @@ describe('Feature 3: Card Data Model - Phase 1.6', () => {
         description: 'Test Description'  // Required
       };
 
-      expect(card.description).toBeDefined();
+      expect(card.description).toBe('Test Description');
+      expect(typeof card.description).toBe('string');
     });
 
     /**
@@ -451,9 +458,10 @@ describe('Feature 3: Card Data Model - Phase 1.6', () => {
       expect(cardList.length).toBeGreaterThan(0);
 
       cardList.forEach(card => {
-        expect(card.description).toBeDefined();
+        expect(typeof card.description).toBe('string');
         expect(card.description).not.toBe('');
         expect(card.description.trim()).not.toBe('');
+        expect(card.description.length).toBeGreaterThan(0);
       });
     });
 

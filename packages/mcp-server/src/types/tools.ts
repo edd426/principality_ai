@@ -53,11 +53,14 @@ export interface GameExecuteResponse {
     card: string;
     effect: string;
     step?: number;
-    options: Array<{
+    options?: Array<{
       index: number;
       description: string;
       command: string;
     }>;
+    // Fallback fields when option generation is not implemented
+    error?: string;
+    validMoves?: string[];
   };
   error?: {
     message: string;

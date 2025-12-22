@@ -1,5 +1,5 @@
 import * as readline from 'readline';
-import { GameEngine, GameState, Move, getCard, RulesBasedAI } from '@principality/core';
+import { GameEngine, GameState, Move, getCard, RulesBasedAI, MoveOption } from '@principality/core';
 import { Display } from './display';
 import { Parser, ParseResult } from './parser';
 import { formatVPDisplay, formatVPDisplayExpanded } from './vp-calculator';
@@ -15,6 +15,8 @@ export interface CLIOptions {
   stableNumbers?: boolean;
   autoPlayTreasures?: boolean;
   manualCleanup?: boolean;
+  edition?: '1E' | '2E' | 'mixed';
+  debugMode?: boolean;
 }
 
 /**
@@ -37,7 +39,11 @@ export class PrincipalityCLI {
     this.numPlayers = players;
 
     // Initialize engine with options
-    this.engine = new GameEngine(gameSeed, { victoryPileSize: options.victoryPileSize });
+    this.engine = new GameEngine(gameSeed, {
+      victoryPileSize: options.victoryPileSize,
+      debugMode: options.debugMode, 
+      edition: options.edition
+    });
     this.gameState = this.engine.initializeGame(players);
 
     // Initialize AI with same seed for deterministic behavior
@@ -61,6 +67,14 @@ export class PrincipalityCLI {
   async start(): Promise<void> {
     this.isRunning = true;
     this.display.displayWelcome(this.gameState.seed, this.options.victoryPileSize, this.gameState);
+
+    // Show debug mode warning if enabled
+    if (this.options.debugMode) {
+      console.log('\n⚠️  DEBUG MODE ENABLED ⚠️');
+      console.log('  Debug commands: /deck [player], /discard [player], /trash, /state');
+      console.log('  WARNING: Provides perfect information about hidden game state');
+      console.log('');
+    }
 
     // Start the game loop
     await this.gameLoop();
@@ -176,6 +190,7 @@ export class PrincipalityCLI {
    * Called when a card requires player decision (Cellar, Chapel, etc.)
    *
    * @req: FR-CLI-1 through FR-CLI-6 - Interactive prompts for action cards
+   * @fix: Bug #37 - Use MoveOption[] as single source of truth for display and execution
    */
   private async handlePendingEffect(state: GameState): Promise<void> {
     const pendingEffect = state.pendingEffect;
@@ -186,8 +201,15 @@ export class PrincipalityCLI {
     // Get valid moves for this pending effect
     const validMoves = this.engine.getValidMoves(state);
 
-    // Display the interactive prompt
-    this.display.displayPendingEffectPrompt(state, validMoves);
+    // Display the interactive prompt and get options (SINGLE SOURCE OF TRUTH)
+    const options = this.display.displayPendingEffectPrompt(state, validMoves);
+
+    // Runtime validation: Ensure display and execution are in sync
+    if (options.length !== validMoves.length) {
+      console.error('CRITICAL: Display/execution array mismatch!');
+      console.error(`  Options: ${options.length}, ValidMoves: ${validMoves.length}`);
+      throw new Error('SSOT violation detected - please report this bug');
+    }
 
     // Get user selection
     while (true) {
@@ -200,15 +222,16 @@ export class PrincipalityCLI {
       // Parse numeric selection
       const selection = parseInt(input.trim(), 10);
 
-      // Validate selection
-      if (isNaN(selection) || selection < 1 || selection > validMoves.length) {
-        console.log(`✗ Error: Invalid selection. Please enter 1-${validMoves.length}`);
+      // Validate selection against OPTIONS array (what user saw)
+      if (isNaN(selection) || selection < 1 || selection > options.length) {
+        console.log(`✗ Error: Invalid selection. Please enter 1-${options.length}`);
         continue;
       }
 
-      // Execute the selected move
-      const selectedMove = validMoves[selection - 1];
-      const result = this.engine.executeMove(state, selectedMove);
+      // Execute the selected move from OPTIONS (not validMoves)
+      // This ensures we execute exactly what the user selected from the display
+      const selectedOption = options[selection - 1];
+      const result = this.engine.executeMove(state, selectedOption.move);
 
       if (result.success && result.newState) {
         // Get the last log entry to show what happened
@@ -385,10 +408,88 @@ export class PrincipalityCLI {
         break;
       }
 
+      // Debug commands (only available when debug mode is enabled)
+      case 'deck': {
+        if (!this.engine.isDebugMode()) {
+          console.log('✗ Error: Debug mode not enabled. Start game with --debug flag.');
+          break;
+        }
+        const playerIndex = parameter ? parseInt(parameter) - 1 : this.gameState.currentPlayer;
+        if (isNaN(playerIndex) || playerIndex < 0 || playerIndex >= this.gameState.players.length) {
+          console.log(`✗ Error: Invalid player index. Use 1-${this.gameState.players.length}`);
+          break;
+        }
+        const deck = this.engine.debugGetDeck(this.gameState, playerIndex);
+        const cardCounts = this.formatCardCounts(deck);
+        console.log(`\nPlayer ${playerIndex + 1}'s Deck (${deck.length} cards):`);
+        console.log(cardCounts || '  (empty)');
+        break;
+      }
+
+      case 'discard': {
+        if (!this.engine.isDebugMode()) {
+          console.log('✗ Error: Debug mode not enabled. Start game with --debug flag.');
+          break;
+        }
+        const playerIndex = parameter ? parseInt(parameter) - 1 : this.gameState.currentPlayer;
+        if (isNaN(playerIndex) || playerIndex < 0 || playerIndex >= this.gameState.players.length) {
+          console.log(`✗ Error: Invalid player index. Use 1-${this.gameState.players.length}`);
+          break;
+        }
+        const discard = this.engine.debugGetDiscard(this.gameState, playerIndex);
+        const cardCounts = this.formatCardCounts(discard);
+        console.log(`\nPlayer ${playerIndex + 1}'s Discard Pile (${discard.length} cards):`);
+        console.log(cardCounts || '  (empty)');
+        break;
+      }
+
+      case 'trash': {
+        if (!this.engine.isDebugMode()) {
+          console.log('✗ Error: Debug mode not enabled. Start game with --debug flag.');
+          break;
+        }
+        const trash = this.engine.debugGetTrash(this.gameState);
+        const cardCounts = this.formatCardCounts(trash);
+        console.log(`\nTrash Pile (${trash.length} cards):`);
+        console.log(cardCounts || '  (empty)');
+        break;
+      }
+
+      case 'state': {
+        if (!this.engine.isDebugMode()) {
+          console.log('✗ Error: Debug mode not enabled. Start game with --debug flag.');
+          break;
+        }
+        const fullState = this.engine.debugGetFullState(this.gameState);
+        console.log('\nFull Game State:');
+        console.log(JSON.stringify(fullState, null, 2));
+        break;
+      }
+
       default: {
         console.log(`✗ Error: Unknown command: ${command}`);
       }
     }
+  }
+
+  /**
+   * Format card counts for display
+   */
+  private formatCardCounts(cards: ReadonlyArray<string>): string {
+    if (cards.length === 0) {
+      return '';
+    }
+
+    const counts = new Map<string, number>();
+    cards.forEach(card => {
+      counts.set(card, (counts.get(card) || 0) + 1);
+    });
+
+    const lines: string[] = [];
+    for (const [card, count] of Array.from(counts.entries()).sort()) {
+      lines.push(`  ${card} x${count}`);
+    }
+    return lines.join('\n');
   }
 
   /**

@@ -69,7 +69,8 @@ describe('BUG: getValidMoves() ignores pendingEffect', () => {
       });
 
       expect(playResult.success).toBe(true);
-      expect(playResult.newState!.pendingEffect).toBeDefined();
+      expect(playResult.newState!.pendingEffect).toBeTruthy();
+      expect(typeof playResult.newState!.pendingEffect).toBe('object');
       expect(playResult.newState!.pendingEffect?.effect).toBe('select_treasure_to_trash');
 
       // BUG TEST: Get valid moves during pending effect

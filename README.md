@@ -85,12 +85,17 @@ npm run play
 # Play with a specific seed for reproducible games
 npm run play -- --seed=12345
 
+# Choose Dominion edition (1st, 2nd, or mixed)
+npm run play -- --edition=2nd             # 2nd edition cards (default)
+npm run play -- --edition=1st             # 1st edition cards
+npm run play -- --edition=mixed           # All cards from both editions
+
 # Use Phase 1.5 features
 npm run play -- --stable-numbers          # Fixed card numbers for AI
 npm run play -- --manual-cleanup          # Disable auto-skip cleanup
 
 # Combine flags
-npm run play -- --seed=test --stable-numbers
+npm run play -- --seed=test --stable-numbers --edition=1st
 ```
 
 **CLI Commands:**
@@ -170,9 +175,21 @@ Principality AI is a streamlined deck-building game inspired by Dominion, design
 - **Turn Structure**: Action Phase → Buy Phase → Cleanup Phase
 - **Starting Deck**: 7 Copper + 3 Estate cards
 - **Victory Condition**: Game ends when Province pile is empty OR any 3 piles are empty
-- **8 Kingdom Cards** (MVP): Village, Smithy, Laboratory, Market, Woodcutter, Festival, Council Room, Cellar
+- **Kingdom Cards**: 25 total cards from Dominion base set (19 in both editions + 6 edition-specific)
 
 See [Game Design Document](./principality-ai-design.md) for complete rules and card specifications.
+
+### Edition Selection
+
+The game supports Dominion's 1st and 2nd editions:
+
+- **2nd Edition (Default)**: 19 core cards + 7 improved cards (Artisan, Bandit, Harbinger, Merchant, Poacher, Sentry, Vassal)
+- **1st Edition**: 19 core cards + 6 original cards (Adventurer, Chancellor, Feast, Spy, Thief, Woodcutter)
+- **Mixed Edition**: All 25 cards from both editions combined
+
+Edition can be configured in `game-config.json` or via the `--edition` CLI flag.
+
+For detailed edition differences, see [CARD_SET_EDITION_ANALYSIS.md](./docs/requirements/CARD_SET_EDITION_ANALYSIS.md).
 
 ## Development Phases
 
