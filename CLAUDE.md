@@ -34,6 +34,15 @@ npm run lint    # Check code style
 npm run play    # Start CLI game (--seed, --stable-numbers)
 ```
 
+## MCP Server Development
+
+**After modifying MCP server code**, you must restart Claude Code for changes to take effect:
+1. Run `npm run build` to compile changes
+2. Restart Claude Code session (the MCP server runs as a child process)
+3. MCP tools will now use the updated code
+
+Note: Unit tests run against compiled code directly and don't require restart.
+
 ---
 
 ## Core Architecture
