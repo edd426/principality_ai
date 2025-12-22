@@ -128,14 +128,23 @@ describe('Game-End Detection Bug (Critical)', () => {
 
       // Setup: Same state as above - Province = 0
       const state = registry.getState(gameId)!;
-      state.supply.set('Province', 0);
-      state.turnNumber = 25;
-      state.phase = 'buy';
-      state.currentPlayer = 0;
-      state.players[0].hand = ['Copper', 'Gold'];
-      state.players[0].coins = 5;
-      state.players[0].buys = 1;
-      registry.setState(gameId, state);
+      const newSupply = new Map(state.supply);
+      newSupply.set('Province', 0);
+      const newPlayers = state.players.map((p, i) => i === 0 ? {
+        ...p,
+        hand: ['Copper', 'Gold'],
+        coins: 5,
+        buys: 1
+      } : p);
+      const newState = {
+        ...state,
+        supply: newSupply as ReadonlyMap<string, number>,
+        turnNumber: 25,
+        phase: 'buy' as const,
+        currentPlayer: 0,
+        players: newPlayers
+      };
+      registry.setState(gameId, newState);
 
       // Clear previous log calls
       mockLogger.warn.mockClear();
@@ -176,10 +185,15 @@ describe('Game-End Detection Bug (Critical)', () => {
       // @why: Demonstrates the bug wasn't one-time but systematic
 
       const state = registry.getState(gameId)!;
-      state.supply.set('Province', 0);
-      state.turnNumber = 25;
-      state.phase = 'buy';
-      registry.setState(gameId, state);
+      const newSupply = new Map(state.supply);
+      newSupply.set('Province', 0);
+      const newState = {
+        ...state,
+        supply: newSupply as ReadonlyMap<string, number>,
+        turnNumber: 25,
+        phase: 'buy' as const
+      };
+      registry.setState(gameId, newState);
 
       // Try different move types - all should fail
       const moves = [
@@ -208,13 +222,18 @@ describe('Game-End Detection Bug (Critical)', () => {
 
       // Setup: 3 piles empty but Province > 0
       const state = registry.getState(gameId)!;
-      state.supply.set('Village', 0);
-      state.supply.set('Smithy', 0);
-      state.supply.set('Copper', 0);
-      state.supply.set('Province', 2);
-      state.turnNumber = 28;
-      state.phase = 'action';
-      registry.setState(gameId, state);
+      const newSupply = new Map(state.supply);
+      newSupply.set('Village', 0);
+      newSupply.set('Smithy', 0);
+      newSupply.set('Copper', 0);
+      newSupply.set('Province', 2);
+      const newState = {
+        ...state,
+        supply: newSupply as ReadonlyMap<string, number>,
+        turnNumber: 28,
+        phase: 'action' as const
+      };
+      registry.setState(gameId, newState);
 
       const observeResponse = await observeTool.execute({
         detail_level: 'standard',
@@ -241,20 +260,24 @@ describe('Game-End Detection Bug (Critical)', () => {
 
       // Simulate buying a Province
       let state = registry.getState(gameId)!;
-      state.supply.set('Province', 7);  // Start with 8, buy 1
-      registry.setState(gameId, state);
+      let newSupply = new Map(state.supply);
+      newSupply.set('Province', 7);  // Start with 8, buy 1
+      let newState = { ...state, supply: newSupply as ReadonlyMap<string, number> };
+      registry.setState(gameId, newState);
 
-      const initialCount = state.supply.get('Province');
+      const initialCount = newState.supply.get('Province');
 
       // Verify count is readable
       expect(initialCount).toBe(7);
 
       // Now set to 0 (all purchased)
       state = registry.getState(gameId)!;
-      state.supply.set('Province', 0);
-      registry.setState(gameId, state);
+      newSupply = new Map(state.supply);
+      newSupply.set('Province', 0);
+      newState = { ...state, supply: newSupply as ReadonlyMap<string, number> };
+      registry.setState(gameId, newState);
 
-      const finalCount = state.supply.get('Province');
+      const finalCount = newState.supply.get('Province');
 
       expect(finalCount).toBe(0);
       console.log(`✓ Province tracking works: 7 → 0`);
@@ -264,8 +287,10 @@ describe('Game-End Detection Bug (Critical)', () => {
       // @why: Verify response structure includes gameOver field
 
       const state = registry.getState(gameId)!;
-      state.supply.set('Province', 0);
-      registry.setState(gameId, state);
+      const newSupply = new Map(state.supply);
+      newSupply.set('Province', 0);
+      const newState = { ...state, supply: newSupply as ReadonlyMap<string, number> };
+      registry.setState(gameId, newState);
 
       const response = await observeTool.execute({
         detail_level: 'standard',
@@ -287,8 +312,10 @@ describe('Game-End Detection Bug (Critical)', () => {
       // @why: Verify logging infrastructure is working
 
       const state = registry.getState(gameId)!;
-      state.supply.set('Province', 0);
-      registry.setState(gameId, state);
+      const newSupply = new Map(state.supply);
+      newSupply.set('Province', 0);
+      const newState = { ...state, supply: newSupply as ReadonlyMap<string, number> };
+      registry.setState(gameId, newState);
 
       mockLogger.warn.mockClear();
 

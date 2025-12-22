@@ -39,7 +39,8 @@ describe('Feature 5: Multiplayer MCP Tools', () => {
       expect(state.players).toHaveLength(2);
       expect(state.currentPlayer).toBe(0);
       expect(state.phase).toBe('action');
-      expect(state.supply.size).toBe(8);
+      // Phase 4: 7 basic cards + 10 kingdom cards = 17 supply piles
+      expect(state.supply.size).toBe(17);
 
       // Verify player structure
       expect(state.players[0]).toBeDefined();
@@ -379,18 +380,23 @@ describe('Feature 5: Multiplayer MCP Tools', () => {
       // }
 
       expect(state.supply).toBeDefined();
-      expect(state.supply.size).toBe(8);
+      // Phase 4: 7 basic cards + 10 kingdom cards = 17 supply piles
+      expect(state.supply.size).toBe(17);
 
-      const expectedCards = [
+      // Basic cards always present (kingdom cards are random)
+      const basicCards = [
         'Copper', 'Silver', 'Gold',
-        'Estate', 'Duchy', 'Province',
-        'Smithy', 'Village'
+        'Estate', 'Duchy', 'Province', 'Curse'
       ];
 
-      expectedCards.forEach(card => {
+      basicCards.forEach(card => {
         expect(state.supply.has(card)).toBe(true);
         expect(state.supply.get(card)).toBeGreaterThanOrEqual(0);
       });
+
+      // Verify 10 kingdom cards are present (any 10 from pool)
+      const kingdomCardCount = state.supply.size - basicCards.length;
+      expect(kingdomCardCount).toBe(10);
     });
   });
 
