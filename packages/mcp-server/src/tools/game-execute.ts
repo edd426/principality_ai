@@ -210,23 +210,20 @@ export class GameExecuteTool {
       }
       this.logger?.info('Move executed', logData);
 
-      // Auto-return game state and valid moves
-      const finalState = result.newState || state;
-      const gameState = this.formatStateForAutoReturn(finalState);
-      const validMoves = this.formatValidMovesForAutoReturn(finalState, game.engine);
+      // ============================================================
+      // FIX #72: Build response AFTER all state transitions complete
+      // Previously, response was built before cleanup auto-skip,
+      // causing phase desynchronization between execute and observe.
+      // ============================================================
 
-      // Return response with auto-returned state
-      const response: GameExecuteResponse = {
-        success: true,
-        message: `Executed: ${move}`,
-        gameState: gameState,
-        validMoves: validMoves,
-        gameOver: gameState.gameOver
-      };
+      // Step 1: Get state after move execution
+      let finalState = result.newState || state;
+      let phaseChangedMessage: string | undefined;
+      let cleanupAutoSkipped = false;
 
-      // Check if phase changed
+      // Step 2: Check if phase changed from move execution
       if (result.newState && result.newState.phase !== state.phase) {
-        response.phaseChanged = `${state.phase} → ${result.newState.phase}`;
+        phaseChangedMessage = `${state.phase} → ${result.newState.phase}`;
         this.logger?.info('Phase changed', {
           from: state.phase,
           to: result.newState.phase,
@@ -234,41 +231,70 @@ export class GameExecuteTool {
         });
       }
 
-      // Auto-skip cleanup phase (no player choices in MVP)
-      let finalStateAfterAutoSkip = result.newState || state;
-      if (finalStateAfterAutoSkip.phase === 'cleanup') {
-        const cleanupResult = game.engine.executeMove(finalStateAfterAutoSkip, {
+      // Step 3: Auto-skip cleanup phase BEFORE building response (no player choices in MVP)
+      if (finalState.phase === 'cleanup') {
+        const cleanupResult = game.engine.executeMove(finalState, {
           type: 'end_phase'
         });
 
         if (cleanupResult.success && cleanupResult.newState) {
-          finalStateAfterAutoSkip = cleanupResult.newState;
+          finalState = cleanupResult.newState;
+          cleanupAutoSkipped = true;
 
           // Log cleanup auto-skip
           this.logger?.info('Cleanup auto-skipped', {
             turn: state.turnNumber,
             reason: 'no_player_choices',
-            newPhase: finalStateAfterAutoSkip.phase,
-            newTurn: finalStateAfterAutoSkip.turnNumber
+            newPhase: finalState.phase,
+            newTurn: finalState.turnNumber
           });
-
-          // Update response with final state (after cleanup auto-skip)
-          response.gameState = this.formatStateForAutoReturn(finalStateAfterAutoSkip);
-          response.validMoves = this.formatValidMovesForAutoReturn(finalStateAfterAutoSkip, game.engine);
-          response.message = `${move} → Cleanup auto-skipped → ${finalStateAfterAutoSkip.phase} phase`;
 
           // Log the cleanup-to-next-phase transition
           this.logger?.info('Phase changed', {
             from: 'cleanup',
-            to: finalStateAfterAutoSkip.phase,
-            turn: finalStateAfterAutoSkip.turnNumber,
+            to: finalState.phase,
+            turn: finalState.turnNumber,
             autoSkipped: true
           });
 
-          // Update server state with final state
-          this.registry.setState(game.id, finalStateAfterAutoSkip);
+          // Update server state with final state BEFORE building response
+          this.registry.setState(game.id, finalState);
+        } else {
+          // FIX: Handle cleanup failure (previously silent)
+          this.logger?.warn('Cleanup auto-skip failed', {
+            turn: state.turnNumber,
+            error: cleanupResult.error,
+            phase: finalState.phase
+          });
+          // Keep finalState as-is (cleanup phase) - don't corrupt state
         }
       }
+
+      // Step 4: NOW build response with FINAL state (after all transitions)
+      const gameState = this.formatStateForAutoReturn(finalState);
+      const validMoves = this.formatValidMovesForAutoReturn(finalState, game.engine);
+
+      // Build response message
+      let responseMessage = `Executed: ${move}`;
+      if (cleanupAutoSkipped) {
+        responseMessage = `${move} → Cleanup auto-skipped → ${finalState.phase} phase`;
+      }
+
+      const response: GameExecuteResponse = {
+        success: true,
+        message: responseMessage,
+        gameState: gameState,
+        validMoves: validMoves,
+        gameOver: gameState.gameOver
+      };
+
+      // Add phase change info if applicable
+      if (phaseChangedMessage) {
+        response.phaseChanged = phaseChangedMessage;
+      }
+
+      // Use finalState for all subsequent operations (replaces finalStateAfterAutoSkip)
+      const finalStateAfterAutoSkip = finalState;
 
       // Log comprehensive turn state and economic tracking AFTER auto-skip
       if (finalStateAfterAutoSkip.phase === 'action' && state.phase !== 'action') {

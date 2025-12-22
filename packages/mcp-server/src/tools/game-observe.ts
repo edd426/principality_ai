@@ -59,8 +59,8 @@ export class GameObserveTool {
       activePlayer: state.currentPlayer
     });
 
-    // Check cache
-    const cacheKey = `${detail_level}-${state.turnNumber}-${state.phase}`;
+    // Check cache - FIX #77: Include gameId to prevent cross-game state pollution
+    const cacheKey = `${game.id}-${detail_level}-${state.turnNumber}-${state.phase}`;
     if (this.cache.has(cacheKey)) {
       return this.cache.get(cacheKey)!;
     }
