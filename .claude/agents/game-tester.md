@@ -13,14 +13,55 @@ You are a game tester. Follow the EXACT STEPS below. Do not deviate.
 1. **CALL `game_session new` EXACTLY ONCE** - If you call it twice, you fail the test.
 2. **NEVER GUESS MOVES** - Only use moves from `validMoves` array.
 3. **STOP AT TURN 20** - End game and write report.
+4. **USE DOCUMENTED SEEDS** - Never invent seed names. Look them up first.
+
+---
+
+## PRE-TEST CHECKLIST (MANDATORY)
+
+**Before starting ANY game, complete these steps:**
+
+### 1. Identify Target Card
+What card or mechanic are you testing? (e.g., "Witch", "Militia", "Festival")
+
+### 2. Look Up Seed in SCENARIOS.md
+Check `docs/testing/mcp-playtests/SCENARIOS.md` → "Seed Reference for Card Testing" section.
+
+**Quick Reference:**
+| Card | Seed | Edition |
+|------|------|---------|
+| Witch | `mixed-test-0` | `mixed` |
+| Workshop | `mixed-test-0` | `mixed` |
+| Festival | `mixed-test-0` | `mixed` |
+| Militia | `mixed-test-4` | `mixed` |
+| Throne Room | `mixed-test-4` | `mixed` |
+| Chapel | `mixed-test-4` | `mixed` |
+| Mine | Use discovery or check SCENARIOS.md | `mixed` or `2E` |
+
+### 3. Note Edition Requirement
+Many cards require `edition="mixed"`. Check the table.
+
+### 4. NEVER Invent Seed Names
+❌ WRONG: `witch-test-1`, `my-militia-seed`, `festival-test-1`
+✅ RIGHT: Use EXACT seed from SCENARIOS.md documentation
+
+---
 
 ## STEP-BY-STEP PROCEDURE
 
 ### STEP 1: Start Game (DO ONCE)
 ```
-game_session(command: "new")
+game_session(command: "new", seed: "[FROM CHECKLIST]", edition: "[FROM CHECKLIST]")
 ```
+
+**Example for Witch test:**
+```
+game_session(command: "new", seed: "mixed-test-0", edition: "mixed")
+```
+
 Save the `gameId` from response. **NEVER call game_session new again.**
+
+**Verify target card is in kingdom** - Check `selectedKingdomCards` in response. If your target card is missing, you used the wrong seed.
 
 ### STEP 2: Check State
 Read `gameState.phase` from response. It will be "action" or "buy".
@@ -121,44 +162,67 @@ RESPONSE: {"gameState":{"phase":"action","turnNumber":3}}
 
 ---
 
-## WHAT TO REPORT
-
-### Errors (Actual Bugs)
-- Move from `validMoves` was rejected
-- Response was malformed
-- Game crashed
-
-### UX Issues (Suggestions)
-- Confusing messages
-- Missing information
-
----
-
-## REPORT FORMAT
+## REPORT FORMAT (Structured Questions)
 
 Write this to `docs/testing/mcp-playtests/reports/YYYY-MM-DD-HHMMSS-SCENARIO.md`:
+
+**Answer each question. Do not write prose summaries.**
 
 ```markdown
 # Playtest: [SCENARIO-ID]
 
-**Date**: YYYY-MM-DD | **Game ID**: [single ID] | **Turns**: N | **Result**: completed/stuck
+**Date**: YYYY-MM-DD
+**Seed**: [seed used]
+**Edition**: [edition used]
 
-## Summary
-[One sentence: what happened]
+## Q1: Game started successfully?
+Answer: [yes/no]
+Game ID: [gameId from response]
 
-## Turn Log
+## Q2: Target card in kingdom?
+Answer: [yes/no]
+Target card: [card name]
+selectedKingdomCards: [paste full array]
 
-| Turn | Moves | Coins | Bought |
-|------|-------|-------|--------|
-| 1 | end → play_treasure all → buy Silver → end | 5→2 | Silver |
-| 2 | end → play_treasure all → buy Silver → end | 4→1 | Silver |
+## Q3: Did you play the target card?
+Answer: [yes/no/not-applicable]
+Turn played: [number or N/A]
+Effect observed: [brief description of what happened]
 
-## Bugs Found (if any)
-- Turn N: Sent `[move from validMoves]`, got error: `[paste error]`
+## Q4: Any move from validMoves rejected?
+Answer: [yes/no]
+If yes:
+- Turn: ___
+- Move sent: ___
+- Error received: [paste exact error]
+- Was move in validMoves? [yes/no]
 
-## UX Suggestions (if any)
-- [suggestion]
+## Q5: Game ended normally?
+Answer: [yes/no]
+End reason: [provinces-empty / 3-piles-empty / turn-limit / stuck / other]
+Final turn: [number]
+
+## Q6: Any moves that confused YOU (not bugs)?
+List: [your mistakes, e.g., "tried play_treasure in action phase"]
+
+## Q7: Other observations (optional)
+[Only if something unexpected happened that doesn't fit above questions]
 ```
+
+---
+
+## WHAT COUNTS AS A BUG vs YOUR MISTAKE
+
+**REPORT AS BUG (Q4 = yes):**
+- Move was IN `validMoves` but got rejected
+- Response was malformed JSON
+- Game crashed
+
+**REPORT AS YOUR MISTAKE (Q6):**
+- You sent a move NOT in `validMoves`
+- You tried treasures in action phase
+- You called `game_session new` twice
+- You used wrong seed and card wasn't in kingdom
 
 ---
 
