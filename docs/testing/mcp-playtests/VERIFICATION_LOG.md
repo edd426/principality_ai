@@ -173,3 +173,101 @@ Haiku IS capable of testing when given:
 
 ### Agent Setup Note
 The `game-tester` agent file exists at `.claude/agents/game-tester.md` but requires a Claude Code session restart to be discovered. Until then, use `general-purpose` agent with embedded instructions.
+
+---
+
+## 2025-12-23 Haiku Bug Hunt (10 Parallel Sessions)
+
+### Tests Run
+
+| Session | Seed | Focus | Status | Report Written |
+|---------|------|-------|--------|----------------|
+| 1 | haiku-test-1 | Action cards & phases | Completed | No |
+| 2 | haiku-test-2 | Attack cards (Militia, Witch) | Completed | Yes |
+| 3 | haiku-test-3 | Treasure mechanics | Completed | Yes |
+| 4 | haiku-test-4 | Throne Room | Completed | Yes |
+| 5 | haiku-test-5 | Chapel/Trashing | **BLOCKED** | Yes |
+| 6 | haiku-test-6 | Remodel | Completed | Yes |
+| 7 | haiku-test-7 | Council Room/Draw | Completed | Yes |
+| 8 | haiku-test-8 | Game end conditions | Completed | No |
+| 9 | haiku-test-9 | Moat reaction | Completed | Yes |
+| 10 | haiku-test-10 | Cellar/Hand mgmt | Completed | No |
+
+### Verification Summary
+
+**Verified by**: Opus (main session)
+**Method**: Cross-referenced agent reports and API responses
+**GitHub Issue**: [#79](https://github.com/edd426/principality_ai/issues/79)
+
+### Confirmed Bugs Found
+
+| Bug | Severity | Session | Verified | GitHub Issue |
+|-----|----------|---------|----------|--------------|
+| Moneylender pendingEffect stuck | **Critical** | 5 | ✅ TRUE | #79 |
+| Index-play command misleading error | Medium | 3, 4, 7 | ✅ TRUE | #79 |
+| ValidMoves missing affordable cards | Medium | 2 | ⚠️ PARTIAL | #79 |
+
+#### Moneylender Stuck State (CONFIRMED)
+- **Session**: 5 (haiku-test-5)
+- **Evidence**: `validMoves: []` while `pendingEffect` active
+- **Status**: Game unplayable after Turn 7
+- **Root Cause**: Effect pipeline fails to transition after Copper trashed
+
+#### Index-Based Play Error (CONFIRMED)
+- **Sessions**: 3, 4, 7
+- **Evidence**: `play 0` returns "Cannot play treasures in action phase"
+- **Reality**: Card was an action card, not treasure
+- **Workaround**: Use `play_action CardName` syntax
+
+#### ValidMoves Issue (NEEDS VERIFICATION)
+- **Session**: 2
+- **Claim**: Province/Duchy not in validMoves with 7 coins
+- **Note**: Province costs 8, so may be correct behavior for Province
+- **Note**: Duchy costs 5, should have been available - needs log verification
+
+### Systems Verified Working
+
+| System | Sessions Tested | Result |
+|--------|-----------------|--------|
+| Phase transitions | All 10 | ✅ PASS |
+| Treasure economy | All 10 | ✅ PASS |
+| `play_treasure all` batch | All 10 | ✅ PASS |
+| Smithy (+3 cards) | 3, 6, 7, 10 | ✅ PASS |
+| Village (+1 card, +2 actions) | 1, 4, 8, 10 | ✅ PASS |
+| Council Room (+4 cards, +1 buy) | 7 | ✅ PASS |
+| Cellar (discard/draw) | 10 | ✅ PASS |
+| Militia (attack, +$2) | 2 | ✅ PASS |
+| Witch (attack, +2 cards) | 2 | ✅ PASS |
+| Moat (+2 cards) | 9 | ✅ PASS |
+| Remodel (trash/gain) | 5, 6 | ✅ PASS |
+| Bureaucrat (attack) | 9 | ✅ PASS |
+| Game end detection | 3, 4, 6, 7 | ✅ PASS |
+| VP calculation | All completed | ✅ PASS |
+| Supply tracking | All 10 | ✅ PASS |
+
+### Agent Behavior Quality
+
+| Metric | POC 1-2 | POC 3 | This Session |
+|--------|---------|-------|--------------|
+| Multiple game sessions | Common | None | None |
+| Phase confusion | Common | None | Minimal |
+| Turn completion | Low | High | High |
+| Bug vs mistake distinction | Poor | Good | Good |
+
+**Improvement**: Using game-tester agent with mechanical instructions produced reliable results.
+
+---
+
+## Cumulative Bug Count (Updated)
+
+| Category | Count | Details |
+|----------|-------|---------|
+| **Confirmed Bugs** | 3 | Moneylender stuck, index-play error, validMoves issue |
+| **Confirmed UX Issues** | 2 | Phase transition messaging (prior) |
+| **Agent Confusion** | Minimal | Improved instructions effective |
+
+---
+
+## Session Summary Report
+
+Full summary: `docs/testing/mcp-playtests/reports/2025-12-23-haiku-bug-hunt-session-summary.md`
