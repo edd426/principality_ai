@@ -76,6 +76,7 @@ export interface GameSessionRequest {
   command: 'new' | 'end' | 'list';
   seed?: string;
   model?: 'haiku' | 'sonnet';
+  edition?: '1E' | '2E' | 'mixed';
   gameId?: string;
 }
 

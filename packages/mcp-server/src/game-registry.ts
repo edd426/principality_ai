@@ -27,7 +27,11 @@ export class GameRegistryManager {
   /**
    * Create a new game instance
    */
-  createGame(seed?: string, model: 'haiku' | 'sonnet' = 'haiku'): ExtendedGameInstance {
+  createGame(
+    seed?: string,
+    model: 'haiku' | 'sonnet' = 'haiku',
+    edition: '1E' | '2E' | 'mixed' = '2E'
+  ): ExtendedGameInstance {
     // Check if max games reached, remove oldest by lastActivityTime
     if (this.games.size >= this.maxGames) {
       this.removeOldestGame();
@@ -38,7 +42,7 @@ export class GameRegistryManager {
 
     // Create new engine with seed
     const engine = new GameEngine(seed || gameId);
-    const state = engine.initializeGame(1);
+    const state = engine.initializeGame(1, { edition });
 
     const now = new Date().toISOString();
     const gameInstance: ExtendedGameInstance = {

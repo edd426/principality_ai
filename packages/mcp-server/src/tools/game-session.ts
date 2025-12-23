@@ -18,16 +18,17 @@ export class GameSessionTool {
   ) {}
 
   async execute(request: GameSessionRequest): Promise<GameSessionResponse> {
-    const { command, seed, model = this.defaultModel, gameId } = request;
+    const { command, seed, model = this.defaultModel, edition = '2E', gameId } = request;
 
     if (command === 'new') {
       // Create new game via registry
-      const game = this.registry.createGame(seed, model);
+      const game = this.registry.createGame(seed, model, edition);
 
       this.logger?.info('New game started', {
         gameId: game.id,
         seed,
         model,
+        edition,
         players: 1
       });
 

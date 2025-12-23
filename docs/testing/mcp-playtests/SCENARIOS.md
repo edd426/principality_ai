@@ -254,3 +254,84 @@ Test scenarios for automated game testing via Haiku subagents. Each scenario foc
 | Test tool usability | UX-001 through UX-003 |
 | Stress test | STRAT-002 (engine), EDGE-004 (large hand) |
 | Quick validation | STRAT-001 (simple), EDGE-005 (minimal) |
+
+---
+
+## Seed Reference for Card Testing
+
+When testing specific cards, use these seeds with `edition="mixed"` to guarantee the card appears in the kingdom.
+
+### Edition Parameter
+
+The MCP `game_session` tool now supports an `edition` parameter:
+
+```
+game_session(command="new", seed="mixed-test-0", edition="mixed")
+```
+
+**Values:**
+- `"1E"` - First Edition cards only
+- `"2E"` - Second Edition cards only (default)
+- `"mixed"` - All 25 kingdom cards available
+
+### 1E-Only Cards
+
+These 6 cards are First Edition only and **require `edition="mixed"`** to appear:
+
+| Card | Seed | Full Kingdom |
+|------|------|--------------|
+| **Adventurer** | `mixed-test-0` | Workshop, Feast, Chancellor, Remodel, Adventurer, Festival, Cellar, Witch, Spy, Smithy |
+| **Spy** | `mixed-test-0` | Workshop, Feast, Chancellor, Remodel, Adventurer, Festival, Cellar, Witch, Spy, Smithy |
+| **Feast** | `mixed-test-0` | Workshop, Feast, Chancellor, Remodel, Adventurer, Festival, Cellar, Witch, Spy, Smithy |
+| **Chancellor** | `mixed-test-0` | Workshop, Feast, Chancellor, Remodel, Adventurer, Festival, Cellar, Witch, Spy, Smithy |
+| **Woodcutter** | `mixed-test-4` | Smithy, Market, Militia, Woodcutter, Adventurer, Throne Room, Bureaucrat, Chapel, Gardens, Chancellor |
+| **Thief** | `mixed-test-15` | Adventurer, Workshop, Smithy, Thief, Moat, Moneylender, Village, Witch, Woodcutter, Chapel |
+
+### Seed Discovery
+
+To find a seed containing a specific card:
+
+```javascript
+import { GameEngine } from '@principality/core';
+
+for (let i = 0; i < 100; i++) {
+  const seed = `test-${i}`;
+  const engine = new GameEngine(seed);
+  const state = engine.initializeGame(1, { edition: 'mixed' });
+
+  if (state.selectedKingdomCards.includes('TargetCard')) {
+    console.log(`Found: seed="${seed}"`);
+    break;
+  }
+}
+```
+
+### Quick Reference: Test Any Card
+
+| Target Card | Seed | Edition |
+|-------------|------|---------|
+| Adventurer | `mixed-test-0` | `mixed` |
+| Bureaucrat | `mixed-test-4` | `mixed` or `2E` |
+| Cellar | `mixed-test-0` | `mixed` or `2E` |
+| Chancellor | `mixed-test-0` | `mixed` |
+| Chapel | `mixed-test-4` | `mixed` or `2E` |
+| Council Room | _(run discovery)_ | `mixed` or `2E` |
+| Feast | `mixed-test-0` | `mixed` |
+| Festival | `mixed-test-0` | `mixed` or `2E` |
+| Gardens | `mixed-test-4` | `mixed` or `2E` |
+| Laboratory | _(run discovery)_ | `mixed` or `2E` |
+| Library | _(run discovery)_ | `mixed` or `2E` |
+| Market | `mixed-test-4` | `mixed` or `2E` |
+| Militia | `mixed-test-4` | `mixed` or `2E` |
+| Mine | _(run discovery)_ | `mixed` or `2E` |
+| Moat | `mixed-test-15` | `mixed` or `2E` |
+| Moneylender | `mixed-test-15` | `mixed` or `2E` |
+| Remodel | `mixed-test-0` | `mixed` or `2E` |
+| Smithy | `mixed-test-0` | `mixed` or `2E` |
+| Spy | `mixed-test-0` | `mixed` |
+| Thief | `mixed-test-15` | `mixed` |
+| Throne Room | `mixed-test-4` | `mixed` or `2E` |
+| Village | `mixed-test-15` | `mixed` or `2E` |
+| Witch | `mixed-test-0` | `mixed` or `2E` |
+| Woodcutter | `mixed-test-4` | `mixed` |
+| Workshop | `mixed-test-0` | `mixed` or `2E` |

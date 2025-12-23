@@ -24,6 +24,11 @@ export const GAME_SESSION_SCHEMA = {
         enum: ['haiku', 'sonnet'],
         description: 'LLM model selection (default: haiku). Tracked for performance analysis.'
       },
+      edition: {
+        type: 'string',
+        enum: ['1E', '2E', 'mixed'],
+        description: 'Card edition for kingdom selection. "1E" = First Edition only, "2E" = Second Edition only (default), "mixed" = all cards from both editions.'
+      },
       gameId: {
         type: 'string',
         description: 'Optional game ID (for "end" command; uses default if omitted)'
