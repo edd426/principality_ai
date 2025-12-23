@@ -4,20 +4,18 @@
 
 ---
 
-## STOP: Development Workflow Checkpoint
+## Development Workflow Guidance
 
-**This project follows: Requirements → Tests → Implementation**
+**This project prefers: Requirements → Tests → Implementation**
 
-**Before editing ANY production code** (`packages/*/src/*.ts`), verify:
+Before editing production code (`packages/*/src/*.ts`), consider:
 
 | Check | Question |
 |-------|----------|
 | 1. Requirements defined? | Are the requirements clear? (Check `@req` tags in tests or GitHub issues) |
 | 2. Test exists? | Is there a failing test that defines what you're about to implement? |
 | 3. Tests run? | Have you run `npm test` to confirm the current state? |
-| 4. Bug fix? | If fixing a bug, did you write a test that reproduces it FIRST? |
-
-**If you answered "no" to any of these: STOP.**
+| 4. Bug fix? | If fixing a bug, consider writing a test that reproduces it first |
 
 ### Workflow by Task Type
 
@@ -27,15 +25,37 @@
 | **Bug fix** | 1. Write test reproducing bug → 2. Verify test fails → 3. Fix → 4. Verify test passes |
 | **Refactor** | 1. Ensure tests exist → 2. Run tests (green) → 3. Refactor → 4. Run tests (still green) |
 
-### Agent Responsibilities
+### Agent Usage Guidelines
 
-- **test-architect**: Owns requirements and tests. Use for defining what code should do.
-- **dev-agent**: Owns implementation. Use for writing production code to make tests pass.
+**test-architect**: Owns requirements and tests. Use for defining what code should do.
+**dev-agent**: Owns implementation. Use for writing production code to make tests pass.
 
-This does NOT apply to:
+#### When to use agents vs. working directly
+
+| Scenario | Recommendation |
+|----------|----------------|
+| New feature with multiple components | Use test-architect first, then dev-agent |
+| Complex bug requiring investigation | Use test-architect to write reproducing test |
+| Simple one-line fix with existing tests | Work directly - run tests to verify |
+| Adding tests to existing code | Use test-architect for proper @req tags |
+| Quick exploratory changes | Work directly, but run tests before committing |
+| Refactoring across multiple files | Use dev-agent after verifying test coverage |
+
+#### Examples
+
+**Use agents:**
+- "Add user authentication" → test-architect defines requirements, dev-agent implements
+- "Game crashes when playing Throne Room with no actions" → test-architect writes reproducing test first
+
+**Work directly:**
+- "Fix typo in error message" → just fix it, run tests
+- "Update card cost from 4 to 5" → simple change, existing tests cover it
+- "Run the tests and tell me what's failing" → investigation, no agents needed
+
+This workflow does NOT apply to:
 - Documentation changes
-- Test file changes (that's test-architect's job)
 - Configuration changes
+- Pure investigation/research tasks
 
 ---
 
@@ -118,7 +138,7 @@ supply['Copper']      // ✗
 
 ## Development Standards
 
-**TDD is mandatory.** Tests first, implementation follows.
+**TDD is strongly encouraged.** Tests first, implementation follows.
 → See [docs/TDD_WORKFLOW.md](./docs/TDD_WORKFLOW.md)
 
 **Current phase**: 4 (Complete Dominion Base Set) - 25 cards, 638/655 tests passing.
