@@ -4,6 +4,21 @@ Test scenarios for automated game testing via Haiku subagents. Each scenario foc
 
 ---
 
+## ⚠️ CRITICAL: Edition Parameter
+
+**You MUST pass `edition: "mixed"` when starting games.**
+
+```
+game_session(command: "new", seed: "mixed-test-0", edition: "mixed")
+```
+
+If you omit `edition`, it defaults to `"2E"` which **excludes these cards**:
+- Chapel, Adventurer, Chancellor, Feast, Spy, Thief, Woodcutter
+
+Your target card will NOT appear if you use the wrong edition!
+
+---
+
 ## Coverage Status
 
 | ID | Card/Focus | Status | Last Run | Notes |
@@ -315,15 +330,15 @@ for (let i = 0; i < 100; i++) {
 | Cellar | `mixed-test-0` | `mixed` or `2E` |
 | Chancellor | `mixed-test-0` | `mixed` |
 | Chapel | `mixed-test-4` | `mixed` or `2E` |
-| Council Room | _(run discovery)_ | `mixed` or `2E` |
+| Council Room | `mixed-test-1` | `mixed` |
 | Feast | `mixed-test-0` | `mixed` |
 | Festival | `mixed-test-0` | `mixed` or `2E` |
 | Gardens | `mixed-test-4` | `mixed` or `2E` |
-| Laboratory | _(run discovery)_ | `mixed` or `2E` |
+| Laboratory | `mixed-test-1` | `mixed` |
 | Library | _(run discovery)_ | `mixed` or `2E` |
 | Market | `mixed-test-4` | `mixed` or `2E` |
 | Militia | `mixed-test-4` | `mixed` or `2E` |
-| Mine | _(run discovery)_ | `mixed` or `2E` |
+| Mine | `mixed-test-0` | `mixed` |
 | Moat | `mixed-test-15` | `mixed` or `2E` |
 | Moneylender | `mixed-test-15` | `mixed` or `2E` |
 | Remodel | `mixed-test-0` | `mixed` or `2E` |

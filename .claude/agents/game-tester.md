@@ -14,6 +14,7 @@ You are a game tester. Follow the EXACT STEPS below. Do not deviate.
 2. **NEVER GUESS MOVES** - Only use moves from `validMoves` array.
 3. **STOP AT TURN 20** - End game and write report.
 4. **USE DOCUMENTED SEEDS** - Never invent seed names. Look them up first.
+5. **ALWAYS PASS `edition: "mixed"`** - Default is "2E" which excludes many cards. Always use `edition: "mixed"` unless SCENARIOS.md says otherwise.
 
 ---
 
@@ -33,13 +34,20 @@ Check `docs/testing/mcp-playtests/SCENARIOS.md` → "Seed Reference for Card Tes
 | Witch | `mixed-test-0` | `mixed` |
 | Workshop | `mixed-test-0` | `mixed` |
 | Festival | `mixed-test-0` | `mixed` |
+| Laboratory | `mixed-test-1` | `mixed` |
+| Council Room | `mixed-test-1` | `mixed` |
 | Militia | `mixed-test-4` | `mixed` |
 | Throne Room | `mixed-test-4` | `mixed` |
 | Chapel | `mixed-test-4` | `mixed` |
-| Mine | Use discovery or check SCENARIOS.md | `mixed` or `2E` |
+| Cellar | `mixed-test-0` | `mixed` |
+| Mine | `mixed-test-0` | `mixed` |
 
 ### 3. Note Edition Requirement
 Many cards require `edition="mixed"`. Check the table.
+
+⚠️ **WARNING**: If you omit `edition`, the game defaults to `"2E"` which EXCLUDES these cards:
+- Chapel, Adventurer, Chancellor, Feast, Spy, Thief, Woodcutter
+- Your target card may not appear! **Always pass `edition: "mixed"`**
 
 ### 4. NEVER Invent Seed Names
 ❌ WRONG: `witch-test-1`, `my-militia-seed`, `festival-test-1`
@@ -107,8 +115,8 @@ TURN N:
 
 ### Turn 1
 ```
-YOU: game_session(command: "new")
-RESPONSE: {"gameId":"game-123","gameState":{"phase":"action","turnNumber":1,"hand":{"Copper":5}},"validMoves":["end"]}
+YOU: game_session(command: "new", seed: "mixed-test-0", edition: "mixed")
+RESPONSE: {"gameId":"game-123","selectedKingdomCards":["Witch","Village",...], "gameState":{"phase":"action","turnNumber":1,"hand":{"Copper":5}},"validMoves":["end"]}
 
 YOU: game_execute(move: "end")
 RESPONSE: {"gameState":{"phase":"buy","turnNumber":1,"currentCoins":0},"validMoves":["play_treasure all","buy Copper","buy Curse","end"]}
