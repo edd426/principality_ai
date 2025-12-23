@@ -1,14 +1,15 @@
 #!/usr/bin/env python3
 """
-TDD Reminder Hook
+TDD Reminder Hook (PreToolUse on production files)
 
-Triggers before Edit/Write on production code files to remind about TDD workflow.
-This hook does NOT block edits - it outputs a reminder that Claude will see.
+Gentle reminder when editing production code to consider TDD workflow.
+Non-blocking - advisory only.
 """
 
 import json
 import sys
 import re
+
 
 def is_production_code(file_path: str) -> bool:
     """Check if file is production code (not test, not config, not docs)."""
@@ -23,7 +24,7 @@ def is_production_code(file_path: str) -> bool:
     if '.test.' in file_path or '.spec.' in file_path or '/tests/' in file_path:
         return False
 
-    # Exclude type definition files that are just interfaces
+    # Exclude type definition files
     if file_path.endswith('.d.ts'):
         return False
 
@@ -38,36 +39,22 @@ def main():
     try:
         input_data = json.load(sys.stdin)
     except json.JSONDecodeError:
-        sys.exit(0)  # Don't block on parse errors
+        sys.exit(0)
 
     tool_input = input_data.get("tool_input", {})
     file_path = tool_input.get("file_path", "")
 
     if is_production_code(file_path):
-        # Output reminder to stderr (Claude sees this)
-        print("""
-================================================================================
-WORKFLOW REMINDER: You are editing production code.
+        # Concise reminder
+        print(json.dumps({
+            "systemMessage": (
+                "💡 **Production Code Edit**\n"
+                f"File: `{file_path.split('/')[-1]}`\n\n"
+                "Consider: Does a failing test define this change?\n"
+                "For complex changes, use `test-architect` → `dev-agent` workflow."
+            )
+        }))
 
-This project follows: Requirements -> Tests -> Implementation
-
-Before proceeding, verify:
-  1. Are requirements defined? (Check @req tags in tests or GitHub issues)
-  2. Is there a failing test that defines this change?
-  3. Have you run 'npm test' to confirm the current state?
-
-If this is a bug fix: Write a test that reproduces the bug FIRST.
-If this is a new feature: Define requirements, then write failing tests FIRST.
-
-Consider using:
-  - test-architect agent: For writing requirements and tests
-  - dev-agent: For implementing code to make tests pass
-
-File: {}
-================================================================================
-""".format(file_path), file=sys.stderr)
-
-    # Always allow the edit (exit 0) - this is advisory, not blocking
     sys.exit(0)
 
 
