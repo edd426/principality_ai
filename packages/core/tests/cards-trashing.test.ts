@@ -527,5 +527,55 @@ describe('UT: Trashing System Cards', () => {
       expect(trashResult.newState!.players[0].hand.filter(c => c === 'Copper').length).toBe(2);
       expect(trashResult.newState!.players[0].coins).toBe(3);
     });
+
+    /**
+     * UT-MONEYLENDER-4: getValidMoves returns trash options after playing Moneylender
+     * @req: After playing Moneylender with Copper, validMoves must include trash_copper options
+     * @bug: GitHub Issue #79 - pendingEffect stuck state due to missing trash_copper case
+     * @assert: validMoves is NOT empty when Moneylender pendingEffect is active
+     */
+    test('UT-MONEYLENDER-4: getValidMoves should return trash options after playing Moneylender', () => {
+      // @req: getValidMoves must handle trash_copper pending effect
+      const state = engine.initializeGame(1);
+
+      const testState: GameState = {
+        ...state,
+        phase: 'action',
+        players: [{
+          ...state.players[0],
+          hand: ['Moneylender', 'Copper', 'Silver'],
+          actions: 1,
+          coins: 0
+        }]
+      };
+
+      // Play Moneylender - should set pending effect
+      const playResult = engine.executeMove(testState, {
+        type: 'play_action',
+        card: 'Moneylender'
+      });
+
+      expect(playResult.success).toBe(true);
+      expect(playResult.newState!.pendingEffect).toBeDefined();
+      expect(playResult.newState!.pendingEffect!.card).toBe('Moneylender');
+      expect(playResult.newState!.pendingEffect!.effect).toBe('trash_copper');
+
+      // Get valid moves - should NOT be empty (this is the bug fix)
+      const validMoves = engine.getValidMoves(playResult.newState!);
+
+      expect(validMoves.length).toBeGreaterThan(0);
+
+      // Should include option to trash Copper
+      const trashCopperMove = validMoves.find(
+        m => m.type === 'trash_cards' && m.cards?.includes('Copper')
+      );
+      expect(trashCopperMove).toBeDefined();
+
+      // Should include option to skip (trash nothing)
+      const skipMove = validMoves.find(
+        m => m.type === 'trash_cards' && m.cards?.length === 0
+      );
+      expect(skipMove).toBeDefined();
+    });
   });
 });
