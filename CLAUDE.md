@@ -1,6 +1,41 @@
 # CLAUDE.md
 
-**Status**: ACTIVE | **Phase**: 4 | **Last-Updated**: 2025-12-21
+**Status**: ACTIVE | **Phase**: 4 | **Last-Updated**: 2025-12-23
+
+---
+
+## STOP: Development Workflow Checkpoint
+
+**This project follows: Requirements → Tests → Implementation**
+
+**Before editing ANY production code** (`packages/*/src/*.ts`), verify:
+
+| Check | Question |
+|-------|----------|
+| 1. Requirements defined? | Are the requirements clear? (Check `@req` tags in tests or GitHub issues) |
+| 2. Test exists? | Is there a failing test that defines what you're about to implement? |
+| 3. Tests run? | Have you run `npm test` to confirm the current state? |
+| 4. Bug fix? | If fixing a bug, did you write a test that reproduces it FIRST? |
+
+**If you answered "no" to any of these: STOP.**
+
+### Workflow by Task Type
+
+| Task | Workflow |
+|------|----------|
+| **New feature** | 1. Define requirements → 2. Write failing tests with `@req` tags → 3. Implement |
+| **Bug fix** | 1. Write test reproducing bug → 2. Verify test fails → 3. Fix → 4. Verify test passes |
+| **Refactor** | 1. Ensure tests exist → 2. Run tests (green) → 3. Refactor → 4. Run tests (still green) |
+
+### Agent Responsibilities
+
+- **test-architect**: Owns requirements and tests. Use for defining what code should do.
+- **dev-agent**: Owns implementation. Use for writing production code to make tests pass.
+
+This does NOT apply to:
+- Documentation changes
+- Test file changes (that's test-architect's job)
+- Configuration changes
 
 ---
 
