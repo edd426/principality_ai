@@ -390,7 +390,13 @@ export class GameEngine {
 
       case 'select_action_for_throne':
         if (!move.card) {
-          throw new Error('Must specify action card for Throne Room');
+          // @fix(#80): Throne Room with no actions now properly skips/resolves
+          // When no actions are available, clear the pending effect
+          return {
+            ...state,
+            pendingEffect: undefined,
+            gameLog: [...state.gameLog, `Player ${state.currentPlayer + 1} has no action cards for Throne Room`]
+          };
         }
         return this.handleThroneRoomSelection(state, move.card);
 
@@ -949,7 +955,10 @@ export class GameEngine {
     }
 
     if (pending.effect === 'gain_treasure' && pending.card === 'Mine') {
-      // Mine: must gain a Treasure
+      // Mine: must gain a Treasure TO HAND (not discard)
+      // @fix(#80): Mine gained treasure was going to discard instead of hand
+      // The destination parameter defaults to 'discard', but Mine specifically
+      // gains the treasure to hand per official Dominion rules
       if (!isTreasureCard(card)) {
         throw new Error('Must gain a Treasure for Mine');
       }
@@ -957,7 +966,8 @@ export class GameEngine {
       if (cardCost > pending.maxGainCost!) {
         throw new Error(`Card costs more than allowed (max $${pending.maxGainCost})`);
       }
-      const gainedState = gainCard(state, card, destination);
+      // Always gain to hand for Mine, regardless of destination parameter
+      const gainedState = gainCard(state, card, 'hand');
       return {
         ...gainedState,
         pendingEffect: undefined
