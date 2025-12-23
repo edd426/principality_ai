@@ -2444,6 +2444,19 @@ export class GameEngine {
         break;
       }
 
+      case 'trash_copper': {
+        // Moneylender: optionally trash a Copper from hand for +3 coins
+        const hasCopperInHand = player.hand.includes('Copper');
+
+        if (hasCopperInHand) {
+          // Option to trash Copper
+          moves.push({ type: 'trash_cards', cards: ['Copper'] });
+        }
+        // Option to skip/decline (always available)
+        moves.push({ type: 'trash_cards', cards: [] });
+        break;
+      }
+
       case 'trash_cards': {
         // Chapel: trash up to 4 cards (any combination)
         // Generate all possible combinations of cards to trash
