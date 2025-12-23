@@ -271,3 +271,123 @@ The `game-tester` agent file exists at `.claude/agents/game-tester.md` but requi
 ## Session Summary Report
 
 Full summary: `docs/testing/mcp-playtests/reports/2025-12-23-haiku-bug-hunt-session-summary.md`
+
+---
+
+## 2025-12-23 Mechanics Deep Dive (10 Parallel Sessions)
+
+### Tests Run
+
+| Session | Card/Mechanic | Status | Report Written | Bugs Found |
+|---------|---------------|--------|----------------|------------|
+| 1 | Throne Room | Completed | Yes | Stuck state bug |
+| 2 | Chapel | Completed | Yes | None (Moneylender confirmed) |
+| 3 | Mine | Completed | Yes | **CRITICAL: Wrong placement** |
+| 4 | Laboratory | Completed | Yes | game_observe stale data |
+| 5 | Library | Completed | Yes | Conflicting draw report |
+| 6 | Adventurer | Blocked | Yes | Not in kingdom |
+| 7 | Workshop | Completed | Yes | None |
+| 8 | Feast | Blocked | Yes | Agent error (card IS implemented) |
+| 9 | Spy | Blocked | Yes | Not in kingdom |
+| 10 | Chancellor | Blocked | Yes | Agent error (card IS implemented) |
+
+### Verification Summary
+
+**Verified by**: Opus (main session)
+**Method**: Cross-referenced agent reports, examined cards.ts source
+**GitHub Issue**: [#80](https://github.com/edd426/principality_ai/issues/80)
+
+### Confirmed Bugs Found
+
+| Bug | Severity | Session | Verified | GitHub Issue |
+|-----|----------|---------|----------|--------------|
+| Mine treasure placement | **Critical** | 3 | ✅ TRUE | #80 |
+| Throne Room stuck state | High | 1 | ✅ TRUE | #80 |
+| game_observe stale data | High | 4 | ✅ TRUE | #80 |
+| Moneylender validMoves empty | **Critical** | 2, 9 | ✅ TRUE | #79 (prior) |
+
+#### Mine Card Placement Bug (CRITICAL)
+- **Session**: 3 (mine-test-1)
+- **Evidence**: Gained treasure goes to discard pile instead of hand
+- **Expected**: "Gain a Treasure to your hand"
+- **Actual**: Treasure appears in discard, not hand
+- **Impact**: Mine's core mechanic broken - player can't use upgraded treasure immediately
+
+#### Throne Room Stuck State
+- **Session**: 1
+- **Evidence**: When Throne Room is the only action card, no valid moves after first play
+- **Status**: Needs investigation - may be edge case handling
+
+#### game_observe Stale Data
+- **Session**: 4 (Laboratory test)
+- **Evidence**: game_execute returns correct state, game_observe returns cached/stale state
+- **Impact**: Observability bug - doesn't affect actual mechanics
+
+### Agent Errors Identified
+
+| Error | Sessions | Reality |
+|-------|----------|---------|
+| "Card not implemented" | 8, 10 | **FALSE** - Feast, Chancellor ARE implemented in cards.ts |
+| "Card not in kingdom" | 6, 9 | TRUE - Seeds don't guarantee specific cards appear |
+
+### Key Discovery: Seed vs Kingdom Selection
+
+**Agents misunderstood how seeds work**:
+- Seeds make randomization **reproducible**, not controllable
+- A seed ensures the same random sequence every run
+- But which 10 cards are selected from 25 is still random
+- Same seed = same kingdom, but you can't predict which 10 cards
+
+**1E vs 2E Edition Filtering**:
+- Some cards are First Edition only: Woodcutter, Feast, Spy, Thief, Adventurer, Chancellor
+- If game runs in 2E mode, these cards won't appear in kingdom pool
+
+### Cards Verified Working
+
+| Card | Session | Mechanics Tested | Result |
+|------|---------|------------------|--------|
+| Laboratory | 4 | +2 cards, +1 action, chaining | ✅ PASS |
+| Workshop | 7 | Gain card ≤$4 to discard | ✅ PASS |
+| Chapel | 2 | Multi-card trash (up to 4) | ✅ PASS |
+| Mine | 3 | Trash treasure, gain better | ⚠️ BUG (placement) |
+| Throne Room | 1 | Double-play action | ⚠️ BUG (stuck state) |
+| Moneylender | 2, 9 | Trash Copper for +$3 | ❌ BUG (#79) |
+
+### Cards Blocked (Not in Kingdom)
+
+| Card | Sessions | Notes |
+|------|----------|-------|
+| Adventurer | 6 | 1E-only card, not in random kingdom |
+| Spy | 9 | 1E-only card, not in random kingdom |
+| Feast | 8 | 1E-only card (agent wrongly said "not implemented") |
+| Chancellor | 10 | 1E-only card (agent wrongly said "not implemented") |
+
+### Recommendations
+
+1. **Add kingdomCards API parameter** - Allow specifying exact cards for testing
+2. **Fix Mine placement** - Critical bug blocks card's core mechanic
+3. **Investigate Throne Room** - Edge case when it's the only action card
+4. **Fix game_observe caching** - Stale data confuses players/agents
+
+---
+
+## Cumulative Bug Count (Updated 2025-12-23 PM)
+
+| Category | Count | Details |
+|----------|-------|---------|
+| **Confirmed Bugs** | 6 | Moneylender stuck, index-play error, validMoves issue, Mine placement, Throne Room stuck, game_observe stale |
+| **Confirmed UX Issues** | 2 | Phase transition messaging (prior) |
+| **Agent Errors** | 2 | Misreported cards as "not implemented" |
+
+---
+
+## Implementation Status: All 25 Kingdom Cards
+
+**All cards ARE implemented** in `packages/core/src/cards.ts`:
+
+| Edition | Cards |
+|---------|-------|
+| Both | Cellar, Chapel, Moat, Village, Workshop, Bureaucrat, Gardens, Militia, Moneylender, Remodel, Smithy, Throne Room, Council Room, Festival, Laboratory, Library, Market, Mine, Witch |
+| 1E Only | Woodcutter, Feast, Spy, Thief, Adventurer, Chancellor |
+
+The "not implemented" reports from agents were incorrect - cards simply weren't randomly selected for the kingdom.
