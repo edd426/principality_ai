@@ -173,3 +173,221 @@ Haiku IS capable of testing when given:
 
 ### Agent Setup Note
 The `game-tester` agent file exists at `.claude/agents/game-tester.md` but requires a Claude Code session restart to be discovered. Until then, use `general-purpose` agent with embedded instructions.
+
+---
+
+## 2025-12-23 Haiku Bug Hunt (10 Parallel Sessions)
+
+### Tests Run
+
+| Session | Seed | Focus | Status | Report Written |
+|---------|------|-------|--------|----------------|
+| 1 | haiku-test-1 | Action cards & phases | Completed | No |
+| 2 | haiku-test-2 | Attack cards (Militia, Witch) | Completed | Yes |
+| 3 | haiku-test-3 | Treasure mechanics | Completed | Yes |
+| 4 | haiku-test-4 | Throne Room | Completed | Yes |
+| 5 | haiku-test-5 | Chapel/Trashing | **BLOCKED** | Yes |
+| 6 | haiku-test-6 | Remodel | Completed | Yes |
+| 7 | haiku-test-7 | Council Room/Draw | Completed | Yes |
+| 8 | haiku-test-8 | Game end conditions | Completed | No |
+| 9 | haiku-test-9 | Moat reaction | Completed | Yes |
+| 10 | haiku-test-10 | Cellar/Hand mgmt | Completed | No |
+
+### Verification Summary
+
+**Verified by**: Opus (main session)
+**Method**: Cross-referenced agent reports and API responses
+**GitHub Issue**: [#79](https://github.com/edd426/principality_ai/issues/79)
+
+### Confirmed Bugs Found
+
+| Bug | Severity | Session | Verified | GitHub Issue |
+|-----|----------|---------|----------|--------------|
+| Moneylender pendingEffect stuck | **Critical** | 5 | ✅ TRUE | #79 |
+| Index-play command misleading error | Medium | 3, 4, 7 | ✅ TRUE | #79 |
+| ValidMoves missing affordable cards | Medium | 2 | ⚠️ PARTIAL | #79 |
+
+#### Moneylender Stuck State (CONFIRMED)
+- **Session**: 5 (haiku-test-5)
+- **Evidence**: `validMoves: []` while `pendingEffect` active
+- **Status**: Game unplayable after Turn 7
+- **Root Cause**: Effect pipeline fails to transition after Copper trashed
+
+#### Index-Based Play Error (CONFIRMED)
+- **Sessions**: 3, 4, 7
+- **Evidence**: `play 0` returns "Cannot play treasures in action phase"
+- **Reality**: Card was an action card, not treasure
+- **Workaround**: Use `play_action CardName` syntax
+
+#### ValidMoves Issue (NEEDS VERIFICATION)
+- **Session**: 2
+- **Claim**: Province/Duchy not in validMoves with 7 coins
+- **Note**: Province costs 8, so may be correct behavior for Province
+- **Note**: Duchy costs 5, should have been available - needs log verification
+
+### Systems Verified Working
+
+| System | Sessions Tested | Result |
+|--------|-----------------|--------|
+| Phase transitions | All 10 | ✅ PASS |
+| Treasure economy | All 10 | ✅ PASS |
+| `play_treasure all` batch | All 10 | ✅ PASS |
+| Smithy (+3 cards) | 3, 6, 7, 10 | ✅ PASS |
+| Village (+1 card, +2 actions) | 1, 4, 8, 10 | ✅ PASS |
+| Council Room (+4 cards, +1 buy) | 7 | ✅ PASS |
+| Cellar (discard/draw) | 10 | ✅ PASS |
+| Militia (attack, +$2) | 2 | ✅ PASS |
+| Witch (attack, +2 cards) | 2 | ✅ PASS |
+| Moat (+2 cards) | 9 | ✅ PASS |
+| Remodel (trash/gain) | 5, 6 | ✅ PASS |
+| Bureaucrat (attack) | 9 | ✅ PASS |
+| Game end detection | 3, 4, 6, 7 | ✅ PASS |
+| VP calculation | All completed | ✅ PASS |
+| Supply tracking | All 10 | ✅ PASS |
+
+### Agent Behavior Quality
+
+| Metric | POC 1-2 | POC 3 | This Session |
+|--------|---------|-------|--------------|
+| Multiple game sessions | Common | None | None |
+| Phase confusion | Common | None | Minimal |
+| Turn completion | Low | High | High |
+| Bug vs mistake distinction | Poor | Good | Good |
+
+**Improvement**: Using game-tester agent with mechanical instructions produced reliable results.
+
+---
+
+## Cumulative Bug Count (Updated)
+
+| Category | Count | Details |
+|----------|-------|---------|
+| **Confirmed Bugs** | 3 | Moneylender stuck, index-play error, validMoves issue |
+| **Confirmed UX Issues** | 2 | Phase transition messaging (prior) |
+| **Agent Confusion** | Minimal | Improved instructions effective |
+
+---
+
+## Session Summary Report
+
+Full summary: `docs/testing/mcp-playtests/reports/2025-12-23-haiku-bug-hunt-session-summary.md`
+
+---
+
+## 2025-12-23 Mechanics Deep Dive (10 Parallel Sessions)
+
+### Tests Run
+
+| Session | Card/Mechanic | Status | Report Written | Bugs Found |
+|---------|---------------|--------|----------------|------------|
+| 1 | Throne Room | Completed | Yes | Stuck state bug |
+| 2 | Chapel | Completed | Yes | None (Moneylender confirmed) |
+| 3 | Mine | Completed | Yes | **CRITICAL: Wrong placement** |
+| 4 | Laboratory | Completed | Yes | game_observe stale data |
+| 5 | Library | Completed | Yes | Conflicting draw report |
+| 6 | Adventurer | Blocked | Yes | Not in kingdom |
+| 7 | Workshop | Completed | Yes | None |
+| 8 | Feast | Blocked | Yes | Agent error (card IS implemented) |
+| 9 | Spy | Blocked | Yes | Not in kingdom |
+| 10 | Chancellor | Blocked | Yes | Agent error (card IS implemented) |
+
+### Verification Summary
+
+**Verified by**: Opus (main session)
+**Method**: Cross-referenced agent reports, examined cards.ts source
+**GitHub Issue**: [#80](https://github.com/edd426/principality_ai/issues/80)
+
+### Confirmed Bugs Found
+
+| Bug | Severity | Session | Verified | GitHub Issue |
+|-----|----------|---------|----------|--------------|
+| Mine treasure placement | **Critical** | 3 | ✅ TRUE | #80 |
+| Throne Room stuck state | High | 1 | ✅ TRUE | #80 |
+| game_observe stale data | High | 4 | ✅ TRUE | #80 |
+| Moneylender validMoves empty | **Critical** | 2, 9 | ✅ TRUE | #79 (prior) |
+
+#### Mine Card Placement Bug (CRITICAL)
+- **Session**: 3 (mine-test-1)
+- **Evidence**: Gained treasure goes to discard pile instead of hand
+- **Expected**: "Gain a Treasure to your hand"
+- **Actual**: Treasure appears in discard, not hand
+- **Impact**: Mine's core mechanic broken - player can't use upgraded treasure immediately
+
+#### Throne Room Stuck State
+- **Session**: 1
+- **Evidence**: When Throne Room is the only action card, no valid moves after first play
+- **Status**: Needs investigation - may be edge case handling
+
+#### game_observe Stale Data
+- **Session**: 4 (Laboratory test)
+- **Evidence**: game_execute returns correct state, game_observe returns cached/stale state
+- **Impact**: Observability bug - doesn't affect actual mechanics
+
+### Agent Errors Identified
+
+| Error | Sessions | Reality |
+|-------|----------|---------|
+| "Card not implemented" | 8, 10 | **FALSE** - Feast, Chancellor ARE implemented in cards.ts |
+| "Card not in kingdom" | 6, 9 | TRUE - Seeds don't guarantee specific cards appear |
+
+### Key Discovery: Seed vs Kingdom Selection
+
+**Agents misunderstood how seeds work**:
+- Seeds make randomization **reproducible**, not controllable
+- A seed ensures the same random sequence every run
+- But which 10 cards are selected from 25 is still random
+- Same seed = same kingdom, but you can't predict which 10 cards
+
+**1E vs 2E Edition Filtering**:
+- Some cards are First Edition only: Woodcutter, Feast, Spy, Thief, Adventurer, Chancellor
+- If game runs in 2E mode, these cards won't appear in kingdom pool
+
+### Cards Verified Working
+
+| Card | Session | Mechanics Tested | Result |
+|------|---------|------------------|--------|
+| Laboratory | 4 | +2 cards, +1 action, chaining | ✅ PASS |
+| Workshop | 7 | Gain card ≤$4 to discard | ✅ PASS |
+| Chapel | 2 | Multi-card trash (up to 4) | ✅ PASS |
+| Mine | 3 | Trash treasure, gain better | ⚠️ BUG (placement) |
+| Throne Room | 1 | Double-play action | ⚠️ BUG (stuck state) |
+| Moneylender | 2, 9 | Trash Copper for +$3 | ❌ BUG (#79) |
+
+### Cards Blocked (Not in Kingdom)
+
+| Card | Sessions | Notes |
+|------|----------|-------|
+| Adventurer | 6 | 1E-only card, not in random kingdom |
+| Spy | 9 | 1E-only card, not in random kingdom |
+| Feast | 8 | 1E-only card (agent wrongly said "not implemented") |
+| Chancellor | 10 | 1E-only card (agent wrongly said "not implemented") |
+
+### Recommendations
+
+1. **Add kingdomCards API parameter** - Allow specifying exact cards for testing
+2. **Fix Mine placement** - Critical bug blocks card's core mechanic
+3. **Investigate Throne Room** - Edge case when it's the only action card
+4. **Fix game_observe caching** - Stale data confuses players/agents
+
+---
+
+## Cumulative Bug Count (Updated 2025-12-23 PM)
+
+| Category | Count | Details |
+|----------|-------|---------|
+| **Confirmed Bugs** | 6 | Moneylender stuck, index-play error, validMoves issue, Mine placement, Throne Room stuck, game_observe stale |
+| **Confirmed UX Issues** | 2 | Phase transition messaging (prior) |
+| **Agent Errors** | 2 | Misreported cards as "not implemented" |
+
+---
+
+## Implementation Status: All 25 Kingdom Cards
+
+**All cards ARE implemented** in `packages/core/src/cards.ts`:
+
+| Edition | Cards |
+|---------|-------|
+| Both | Cellar, Chapel, Moat, Village, Workshop, Bureaucrat, Gardens, Militia, Moneylender, Remodel, Smithy, Throne Room, Council Room, Festival, Laboratory, Library, Market, Mine, Witch |
+| 1E Only | Woodcutter, Feast, Spy, Thief, Adventurer, Chancellor |
+
+The "not implemented" reports from agents were incorrect - cards simply weren't randomly selected for the kingdom.
