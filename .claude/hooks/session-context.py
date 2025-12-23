@@ -89,6 +89,7 @@ def main():
         lines.append("")
         lines.append("💡 **Workflow:** Requirements → Tests (@req tags) → Implementation")
         lines.append("   Use `test-architect` for tests, `dev-agent` for implementation")
+        lines.append("   Use `game-tester` agent or `/playtest` skill for MCP game testing")
 
         message = "\n".join(lines)
 
