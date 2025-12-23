@@ -10,14 +10,14 @@ Test scenarios for automated game testing via Haiku subagents. Each scenario foc
 |----|------------|--------|----------|-------|
 | CARD-001 | Chapel | ✅ Pass | 2025-12-23 | All trash mechanics working (0-4 cards) |
 | CARD-002 | Throne Room | ✅ Pass | 2025-12-23 | Adapted test - action mechanics verified |
-| CARD-003 | Mine | 🔄 Retest | 2025-12-23 | Agent errors (used wrong command), not bugs |
+| CARD-003 | Mine | ✅ Pass | 2025-12-23 | Copper→Silver upgrade verified; agent ignored seed checklist |
 | CARD-004 | Cellar | ✅ Pass | 2025-12-23 | Adapted - used Chapel for card selection |
-| CARD-005 | Workshop | ⚠️ Incomplete | 2025-12-23 | Tested Moneylender instead, Workshop not in kingdom |
-| CARD-006 | Witch | ⚠️ Incomplete | 2025-12-23 | Witch not in kingdom; agent errors (not bugs) |
-| CARD-007 | Militia | ⚠️ Incomplete | 2025-12-23 | Card not in kingdom for seed |
+| CARD-005 | Workshop | ✅ Pass | 2025-12-23 | Gain mechanic, $4 cost restriction, gain-to-discard verified |
+| CARD-006 | Witch | ✅ Pass | 2025-12-23 | +2 cards works; attack suppressed in solo mode (correct) |
+| CARD-007 | Militia | ✅ Pass | 2025-12-23 | +$2 works; attack suppressed in solo mode (correct) |
 | CARD-008 | Council Room | ✅ Pass | 2025-12-23 | +4 cards, +1 buy verified |
 | CARD-009 | Laboratory | ✅ Pass | 2025-12-23 | Chaining tested (3-4 Labs in sequence) |
-| CARD-010 | Festival | ⚠️ Incomplete | 2025-12-23 | Card not in kingdom for seed |
+| CARD-010 | Festival | ✅ Pass | 2025-12-23 | +2 actions, +2 coins, +1 buy all verified
 | STRAT-001 | Big Money | ✅ Pass | 2025-12-21 | 2 runs, no issues |
 | STRAT-002 | Action Engine | ⬜ Untested | - | - |
 | STRAT-003 | Rush Strategy | ⬜ Untested | - | - |

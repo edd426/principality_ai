@@ -490,3 +490,127 @@ Full summary: `docs/testing/mcp-playtests/reports/2025-12-23-haiku-bug-hunt-sess
 | 1E Only | Woodcutter, Feast, Spy, Thief, Adventurer, Chancellor |
 
 The "not implemented" reports from agents were incorrect - cards simply weren't randomly selected for the kingdom.
+
+---
+
+## 2025-12-23 Checklist Compliance Test (5 Parallel Sessions)
+
+### Purpose
+
+Test whether Haiku agents follow the newly added pre-test checklist in `game-tester.md`:
+- Look up target card seed in SCENARIOS.md
+- Use documented seed and edition
+- Write structured Q1-Q7 report format
+
+**Critical**: Agents were NOT told which seed to use - this tested if they would look it up themselves.
+
+### Tests Run
+
+| Agent ID | Scenario | Target Card | Status | Report Written |
+|----------|----------|-------------|--------|----------------|
+| a9c902d | CARD-003 | Mine (retest) | ✅ PASS | No |
+| a5c9458 | CARD-005 | Workshop | ✅ PASS | Yes (prose) |
+| aba7ad7 | CARD-006 | Witch | ✅ PASS | Yes (prose) |
+| a1c08f4 | CARD-007 | Militia | ✅ PASS | Yes (prose) |
+| a0f2cb1 | CARD-010 | Festival | ✅ PASS | No |
+
+### Checklist Compliance Results
+
+| Agent | Seed Used | Should Have Used | Checklist Followed? | Report Format |
+|-------|-----------|------------------|---------------------|---------------|
+| Mine | `card-003-mine` (invented) | SCENARIOS.md lookup | ❌ NO | None |
+| Workshop | None | `mixed-test-0` + `edition=mixed` | ❌ NO | Prose |
+| Witch | None | `mixed-test-0` + `edition=mixed` | ❌ NO | Prose |
+| Militia | None | `mixed-test-4` + `edition=mixed` | ❌ NO | Prose |
+| Festival | `card-010-festival-economy` (invented) | `mixed-test-0` + `edition=mixed` | ❌ NO | None |
+
+**Result: 0/5 agents followed the checklist**
+
+### Agent Behavior Analysis
+
+**Seed Usage**:
+- 2 agents invented seed names (Mine, Festival)
+- 3 agents used no seed at all (Workshop, Witch, Militia)
+- 0 agents looked up seeds in SCENARIOS.md
+
+**Report Format**:
+- 0 agents used the structured Q1-Q7 format
+- 3 agents wrote prose reports (Workshop, Witch, Militia)
+- 2 agents wrote no report (Mine, Festival)
+
+**Move Syntax**:
+- Festival agent initially used wrong command (`play 0` instead of `play_action Festival`)
+- Most agents eventually used correct `play_action CardName` syntax
+
+### Target Card Presence (By Luck)
+
+Despite not following the checklist, all target cards happened to be present:
+
+| Test | Target Card | Present? | How? |
+|------|-------------|----------|------|
+| Mine | Mine | ✅ | Random seed included it |
+| Workshop | Workshop | ✅ | Default random kingdom |
+| Witch | Witch | ✅ | Default random kingdom |
+| Militia | Militia | ✅ | Default random kingdom |
+| Festival | Festival | ✅ | Random seed included it |
+
+### Mechanical Test Results
+
+All cards passed their mechanical tests (verified against agent outputs):
+
+| Card | Mechanics Verified |
+|------|-------------------|
+| Mine | Copper → Silver upgrade working |
+| Workshop | Gain mechanic, $4 cost restriction, gain-to-discard |
+| Witch | +2 cards works, attack suppressed in solo mode |
+| Militia | +$2 works, attack suppressed in solo mode |
+| Festival | +2 actions, +2 coins, +1 buy all verified |
+
+### Conclusions
+
+1. **Checklist is not being followed** - Haiku agents completely ignored the new pre-test checklist instructions
+2. **Report format not adopted** - No agent used the structured Q1-Q7 format
+3. **Mechanical tests still valuable** - Despite process issues, card mechanics were verified
+4. **Luck factor** - Tests only passed because target cards randomly appeared
+
+### Recommendations
+
+1. **More explicit prompting** - Include checklist steps directly in agent task prompt, not just in agent definition file
+2. **Forced seed parameter** - Consider making seed a required parameter when spawning game-tester agents
+3. **Report template enforcement** - Pre-create report file with Q1-Q7 structure for agent to fill in
+4. **Consider Sonnet** - Haiku may not follow complex multi-step instructions reliably
+
+### Report Locations
+
+- Workshop: `docs/testing/mcp-playtests/reports/2025-12-23-CARD-005-Workshop.md`
+- Witch: `docs/testing/mcp-playtests/reports/2025-12-23-CARD-006-witch-curses.md`
+- Militia: `docs/testing/mcp-playtests/reports/2025-12-23-CARD-007-militia-attack.md`
+
+---
+
+## Cumulative Bug Count (Updated 2025-12-23 Late PM)
+
+| Category | Count | Details |
+|----------|-------|---------|
+| **Confirmed Bugs** | 6 | Moneylender stuck, index-play error, validMoves issue, Mine placement, Throne Room stuck, game_observe stale |
+| **Confirmed UX Issues** | 2 | Phase transition messaging |
+| **Agent Process Issues** | 1 | Checklist not followed by Haiku agents |
+
+---
+
+## Card Test Coverage Summary (End of Day)
+
+All 10 CARD scenarios now have passing tests:
+
+| ID | Card | Status | Last Verified |
+|----|------|--------|---------------|
+| CARD-001 | Chapel | ✅ PASS | 2025-12-23 |
+| CARD-002 | Throne Room | ✅ PASS | 2025-12-23 |
+| CARD-003 | Mine | ✅ PASS | 2025-12-23 |
+| CARD-004 | Cellar | ✅ PASS | 2025-12-23 |
+| CARD-005 | Workshop | ✅ PASS | 2025-12-23 |
+| CARD-006 | Witch | ✅ PASS | 2025-12-23 |
+| CARD-007 | Militia | ✅ PASS | 2025-12-23 |
+| CARD-008 | Council Room | ✅ PASS | 2025-12-23 |
+| CARD-009 | Laboratory | ✅ PASS | 2025-12-23 |
+| CARD-010 | Festival | ✅ PASS | 2025-12-23 |
