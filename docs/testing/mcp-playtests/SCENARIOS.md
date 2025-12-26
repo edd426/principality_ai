@@ -32,23 +32,30 @@ Your target card will NOT appear if you use the wrong edition!
 | CARD-007 | Militia | ✅ Pass | 2025-12-23 | +$2 works; attack suppressed in solo mode (correct) |
 | CARD-008 | Council Room | ✅ Pass | 2025-12-23 | +4 cards, +1 buy verified |
 | CARD-009 | Laboratory | ✅ Pass | 2025-12-23 | Chaining tested (3-4 Labs in sequence) |
-| CARD-010 | Festival | ✅ Pass | 2025-12-23 | +2 actions, +2 coins, +1 buy all verified
-| STRAT-001 | Big Money | ✅ Pass | 2025-12-21 | 2 runs, no issues |
+| CARD-010 | Festival | ✅ Pass | 2025-12-23 | +2 actions, +2 coins, +1 buy all verified |
+| CARD-011 | Smithy | ✅ Pass | 2025-12-25 | 9 plays, +3 cards consistent |
+| CARD-012 | Village | ✅ Pass | 2025-12-25 | 8+ plays, +1 card +2 actions, chaining works |
+| CARD-013 | Moat | ✅ Pass | 2025-12-25 | 4 plays, +2 cards verified |
+| CARD-014 | Woodcutter | ✅ Pass | 2025-12-25 | 4 plays, +1 buy +2 coins verified |
+| CARD-015 | Market | 🔄 Retest | 2025-12-25 | Agent confused (false positive bug report) |
+| STRAT-001 | Big Money | ✅ Pass | 2025-12-25 | Multiple runs, no issues |
 | STRAT-002 | Action Engine | ⬜ Untested | - | - |
 | STRAT-003 | Rush Strategy | ⬜ Untested | - | - |
 | STRAT-004 | Trasher Strategy | ⬜ Untested | - | - |
-| EDGE-001 | Zero Coins | ⬜ Untested | - | - |
+| EDGE-001 | Zero Coins | ✅ Pass | 2025-12-25 | Only Copper/Curse available at 0 coins |
 | EDGE-002 | Empty Supply | ⬜ Untested | - | - |
-| EDGE-003 | Province Exhaustion | ⬜ Untested | - | - |
+| EDGE-003 | Province Exhaustion | ✅ Pass | 2025-12-25 | Province buying works, game end detection correct |
 | EDGE-004 | Large Hand | ⬜ Untested | - | - |
 | EDGE-005 | No Valid Actions | ✅ Pass | 2025-12-21 | 1 run, no issues |
-| EDGE-006 | Multiple Buys | ⬜ Untested | - | - |
-| EDGE-007 | Deck Shuffle | ⬜ Untested | - | - |
-| UX-001 | Move Syntax | ⬜ Untested | - | - |
+| EDGE-006 | Multiple Buys | ✅ Pass | 2025-12-25 | Festival +1 buy enabled 2 purchases |
+| EDGE-007 | Deck Shuffle | ✅ Pass | 2025-12-25 | Shuffle works transparently |
+| UX-001 | Move Syntax | ✅ Pass | 2025-12-25 | Clear syntax, good error messages |
 | UX-002 | Phase Transitions | ⚠️ Findings | 2025-12-21 | Minor UX issues noted |
 | UX-003 | Error Messages | ⬜ Untested | - | - |
 
 **Legend:** ✅ Pass | ⚠️ Findings | ❌ Fail | 🔄 Retest | ⬜ Untested
+
+**Coverage Summary**: 22/29 scenarios tested (76%), 21 passed, 1 needs retest
 
 ---
 
@@ -338,7 +345,7 @@ for (let i = 0; i < 100; i++) {
 | Library | _(run discovery)_ | `mixed` or `2E` |
 | Market | `mixed-test-4` | `mixed` or `2E` |
 | Militia | `mixed-test-4` | `mixed` or `2E` |
-| Mine | `mixed-test-0` | `mixed` |
+| Mine | `mixed-test-1` | `mixed` |
 | Moat | `mixed-test-15` | `mixed` or `2E` |
 | Moneylender | `mixed-test-15` | `mixed` or `2E` |
 | Remodel | `mixed-test-0` | `mixed` or `2E` |
@@ -350,3 +357,108 @@ for (let i = 0; i < 100; i++) {
 | Witch | `mixed-test-0` | `mixed` or `2E` |
 | Woodcutter | `mixed-test-4` | `mixed` |
 | Workshop | `mixed-test-0` | `mixed` or `2E` |
+
+---
+
+## Playtesting Gaps
+
+### Cards Not Yet Tested (10 of 25)
+
+The following kingdom cards have no dedicated playtest scenarios:
+
+| Card | Seed | Complexity | Priority |
+|------|------|------------|----------|
+| Adventurer | `mixed-test-0` | Medium | Low (1E-only, rarely used) |
+| Bureaucrat | `mixed-test-4` | Medium | Medium |
+| Chancellor | `mixed-test-0` | Low | Low (1E-only) |
+| Feast | `mixed-test-0` | Medium | Low (1E-only, self-trashing) |
+| Gardens | `mixed-test-4` | Low | Medium (VP counting) |
+| Library | _(run discovery)_ | High | Medium |
+| Moneylender | `mixed-test-15` | Medium | High (trash + gain) |
+| Remodel | `mixed-test-0` | High | High (trash + gain) |
+| Spy | `mixed-test-0` | High | Low (1E-only, complex) |
+| Thief | `mixed-test-15` | High | Low (1E-only, attack) |
+
+### Scenarios Not Yet Tested (7 of 29)
+
+| ID | Focus | Complexity | Priority |
+|----|-------|------------|----------|
+| CARD-015 | Market | Low | High (needs retest - agent confused) |
+| STRAT-002 | Action Engine | High | Low (complex strategy) |
+| STRAT-003 | Rush Strategy | High | Medium (pile depletion) |
+| STRAT-004 | Trasher Strategy | Medium | Medium |
+| EDGE-002 | Empty Supply | Medium | High (game end condition) |
+| EDGE-004 | Large Hand | Medium | Low |
+| UX-003 | Error Messages | Low | Low |
+
+### Recommended Next Steps
+
+1. **High Priority**: EDGE-002 (Empty Supply), CARD-015 (Market retest), Moneylender, Remodel
+2. **Medium Priority**: Gardens, Bureaucrat, STRAT-003, STRAT-004
+3. **Low Priority**: 1E-only cards (Adventurer, Chancellor, Feast, Spy, Thief)
+
+---
+
+## Haiku Agent Recommendations
+
+### Tests Haiku Handles Well
+
+Haiku agents excel at **mechanical, deterministic tests** with clear instructions:
+
+| Category | Good For Haiku | Why |
+|----------|---------------|-----|
+| Simple card effects | Smithy, Village, Moat, Laboratory | Single effect, easy to verify |
+| Treasure/economy | Silver, Gold buying | Predictable coin math |
+| Basic edge cases | EDGE-001, EDGE-005, EDGE-007 | Clear pass/fail criteria |
+| Move syntax | UX-001 | Following documented patterns |
+| +Buy mechanics | Woodcutter, Festival, Market | Simple counter tracking |
+
+**Haiku Success Rate**: 9/10 tests passed (90%) when given explicit seeds and editions.
+
+### Tests Requiring Smarter Models
+
+These tests involve complex decision-making or multi-step reasoning:
+
+| Category | Avoid for Haiku | Why |
+|----------|----------------|-----|
+| Strategy tests | STRAT-002, STRAT-003 | Require long-term planning |
+| Complex cards | Throne Room, Remodel, Library | Multi-step decisions |
+| Attack cards | Spy, Thief | Complex opponent interactions |
+| Self-trashing | Feast | Timing decisions |
+| Pending effects | Mine, Workshop | Multi-phase resolution |
+
+### Haiku Best Practices
+
+1. **Always provide explicit seeds and editions** - Don't rely on haiku to look them up
+2. **Give mechanical instructions** - "Play card X, verify Y happens"
+3. **Set turn limits** - "Play for 15 turns or until game ends"
+4. **Keep focus narrow** - One card or mechanic per test
+5. **Use `play_treasure all`** - Reduces decision complexity
+
+### Example: Good Haiku Prompt
+
+```
+Test CARD-011: Smithy
+
+SETUP:
+- Seed: mixed-test-0
+- Edition: mixed
+
+STRATEGY:
+1. Buy Silver until you have 4+ coins
+2. Buy Smithy (cost 4)
+3. When Smithy in hand: play it, verify +3 cards
+4. Continue buying treasures/provinces
+
+Play for 15 turns. Report if Smithy ever gives ≠3 cards.
+```
+
+### Example: Bad Haiku Prompt
+
+```
+Test the Throne Room card and see if it works correctly with
+different action cards. Try various combinations and report
+any issues you find.
+```
+
+(Too open-ended, no specific verification criteria)
