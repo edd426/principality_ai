@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 import { PrincipalityCLI } from './cli';
+import { initializeGameAndSave, executeMoveAndSave } from './turn-based-cli';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -36,6 +37,11 @@ async function main(): Promise<void> {
   let editionOverride: '1E' | '2E' | 'mixed' | undefined;
   let debugMode = false;
 
+  // Turn-based mode flags
+  let initMode = false;
+  let stateFilePath: string | undefined;
+  let moveToExecute: string | undefined;
+
   // Look for flags
   for (let i = 0; i < args.length; i++) {
     if (args[i].startsWith('--seed=')) {
@@ -68,14 +74,57 @@ async function main(): Promise<void> {
       }
     } else if (args[i] === '--debug') {
       debugMode = true;
+    } else if (args[i] === '--init') {
+      initMode = true;
+    } else if (args[i] === '--state-file' && i + 1 < args.length) {
+      stateFilePath = args[i + 1];
+      i++;
+    } else if (args[i].startsWith('--state-file=')) {
+      stateFilePath = args[i].split('=')[1];
+    } else if (args[i] === '--move' && i + 1 < args.length) {
+      moveToExecute = args[i + 1];
+      i++;
+    } else if (args[i].startsWith('--move=')) {
+      moveToExecute = args[i].split('=')[1];
     }
   }
 
   // Use edition override if specified, otherwise use config value
   const finalEdition = editionOverride ?? edition;
 
-  // Create and start the CLI with options
-  const cli = new PrincipalityCLI(seed, players, { victoryPileSize, stableNumbers, manualCleanup, debugMode, edition: finalEdition });
+  // Build CLI options
+  const cliOptions = { victoryPileSize, stableNumbers, manualCleanup, debugMode, edition: finalEdition };
+
+  // Turn-based mode: Initialize and save state
+  if (stateFilePath && initMode) {
+    if (!seed) {
+      console.error('Error: --seed is required with --init');
+      process.exit(1);
+    }
+    try {
+      const { output } = await initializeGameAndSave(seed, stateFilePath, cliOptions);
+      console.log(output);
+      process.exit(0);
+    } catch (error) {
+      console.error('Error initializing game:', error instanceof Error ? error.message : error);
+      process.exit(1);
+    }
+  }
+
+  // Turn-based mode: Execute move and save state
+  if (stateFilePath && moveToExecute) {
+    try {
+      const { output, success } = await executeMoveAndSave(stateFilePath, moveToExecute);
+      console.log(output);
+      process.exit(success ? 0 : 1);
+    } catch (error) {
+      console.error('Error executing move:', error instanceof Error ? error.message : error);
+      process.exit(1);
+    }
+  }
+
+  // Interactive mode (default)
+  const cli = new PrincipalityCLI(seed, players, cliOptions);
   await cli.start();
 }
 
