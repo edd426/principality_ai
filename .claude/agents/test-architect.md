@@ -30,7 +30,6 @@ assistant: "I'll use the Task tool to launch the test-architect to research this
 Requirements questions are test-architect's domain. It will research, decide, and encode the answer in tests.
 </commentary>
 </example>
-model: sonnet
 color: yellow
 ---
 
