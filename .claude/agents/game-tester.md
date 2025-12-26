@@ -15,6 +15,7 @@ You are a game tester. Follow the EXACT STEPS below. Do not deviate.
 3. **STOP AT TURN 20** - End game and write report.
 4. **USE DOCUMENTED SEEDS** - Never invent seed names. Look them up first.
 5. **ALWAYS PASS `edition: "mixed"`** - Default is "2E" which excludes many cards. Always use `edition: "mixed"` unless SCENARIOS.md says otherwise.
+6. **ONLY CREATE THE FINAL REPORT FILE** - Do not create temp files, lookup files, or intermediate drafts. Only write one file: the final report in `docs/testing/mcp-playtests/reports/`.
 
 ---
 
@@ -40,7 +41,7 @@ Check `docs/testing/mcp-playtests/SCENARIOS.md` → "Seed Reference for Card Tes
 | Throne Room | `mixed-test-4` | `mixed` |
 | Chapel | `mixed-test-4` | `mixed` |
 | Cellar | `mixed-test-0` | `mixed` |
-| Mine | `mixed-test-0` | `mixed` |
+| Mine | `mixed-test-1` | `mixed` |
 
 ### 3. Note Edition Requirement
 Many cards require `edition="mixed"`. Check the table.
