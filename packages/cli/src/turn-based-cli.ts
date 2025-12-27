@@ -10,11 +10,12 @@
  * @req: TB-CLI-4.1 - Invalid move shows context + valid moves
  */
 
-import { GameEngine, GameState, Move, getMoveDescriptionCompact } from '@principality/core';
+import { GameEngine, GameState, Move, getMoveDescriptionCompact, isGameOver, getGameOverReason, calculateVictoryPoints } from '@principality/core';
 import { CLIOptions } from './cli';
 import { saveStateToFile, loadStateFromFile } from './state-persistence';
-import { Parser } from './parser';
+import { Parser, ParseResult } from './parser';
 import { formatVPDisplay } from './vp-calculator';
+import { getStableNumber } from './stable-numbers';
 
 /**
  * Initialize a new game and save state to file
@@ -73,6 +74,18 @@ export async function executeMoveAndSave(
     // Load state from file
     const { state, options } = await loadStateFromFile(stateFilePath);
 
+    // @req: TB-CLI-5.1 - Detect game end condition at start
+    // @req: TB-CLI-5.4 - Prevent further moves after game ends
+    if (isGameOver(state)) {
+      // Game is already over - return game over output
+      const output = formatGameOverOutput(state);
+      return {
+        output,
+        state,
+        success: true // Not an error, game is just over
+      };
+    }
+
     // Initialize engine with same seed
     const engine = new GameEngine(state.seed, {
       victoryPileSize: options.victoryPileSize,
@@ -83,12 +96,50 @@ export async function executeMoveAndSave(
     // Get valid moves for current state
     const validMoves = engine.getValidMoves(state);
 
-    // Parse move command
-    const parsedMove = parseMoveCommand(move, validMoves, options);
+    // @req: TB-CLI-6.1 - Use shared Parser class for move parsing
+    const parser = new Parser();
+    const parseResult = parser.parseInput(move, validMoves, {
+      stableNumbers: options.stableNumbers
+    });
+
+    // @req: TB-CLI-6.2 - Support "treasures" command (t, play all, all)
+    if (parseResult.type === 'command' && parseResult.command === 'treasures') {
+      return await handleTreasuresCommand(engine, state, validMoves, options, stateFilePath);
+    }
+
+    // Handle other commands (help, etc.) - just return state with valid moves
+    if (parseResult.type === 'command') {
+      const output = formatOutputForTurnBasedMode(state, validMoves, options);
+      return { output, state, success: true };
+    }
+
+    // Handle chain input - execute first move only for now
+    let parsedMove: Move | undefined;
+    if (parseResult.type === 'chain' && parseResult.chain && parseResult.chain.length > 0) {
+      const firstNum = parseResult.chain[0];
+      if (options.stableNumbers) {
+        // Find move by stable number
+        parsedMove = validMoves.find(m => getStableNumberForMove(m) === firstNum);
+      } else if (firstNum >= 1 && firstNum <= validMoves.length) {
+        parsedMove = validMoves[firstNum - 1];
+      }
+    } else if (parseResult.type === 'move') {
+      parsedMove = parseResult.move;
+    } else if (parseResult.type === 'invalid') {
+      // Parser didn't recognize - try text move commands (buy, play, end phase, etc.)
+      parsedMove = parseMoveCommand(move, validMoves, options) || undefined;
+    }
 
     if (!parsedMove) {
-      // Invalid move - return error with context
-      const errorOutput = formatInvalidMoveError(move, state, validMoves, options);
+      // No valid move found - use Parser's detailed error if available
+      const errorMessage = parseResult.error || 'Invalid move command';
+      const errorOutput = formatInvalidMoveError(
+        move,
+        errorMessage,
+        state,
+        validMoves,
+        options
+      );
       return {
         output: errorOutput,
         state,
@@ -118,6 +169,19 @@ export async function executeMoveAndSave(
     const newState = result.newState;
     await saveStateToFile(newState, options, stateFilePath);
 
+    // @req: TB-CLI-5.1 - Detect game end condition after move
+    // @req: TB-CLI-5.2 - Display GAME OVER message with reason
+    if (isGameOver(newState)) {
+      // Game just ended - return game over output with last move
+      const lastLog = newState.gameLog[newState.gameLog.length - 1] || '';
+      const output = formatGameOverOutput(newState, lastLog);
+      return {
+        output,
+        state: newState,
+        success: true
+      };
+    }
+
     // Get valid moves for new state
     const newValidMoves = engine.getValidMoves(newState);
 
@@ -134,6 +198,94 @@ export async function executeMoveAndSave(
     // File I/O errors or state validation errors
     throw error;
   }
+}
+
+/**
+ * Get stable number for a move
+ * @req: TB-CLI-6.3 - Stable numbers work when enabled
+ */
+function getStableNumberForMove(move: Move): number | null {
+  let moveKey: string;
+
+  switch (move.type) {
+    case 'play_action':
+      moveKey = move.card || '';
+      break;
+    case 'play_treasure':
+      moveKey = move.card || '';
+      break;
+    case 'buy':
+      moveKey = `Buy ${move.card}`;
+      break;
+    case 'end_phase':
+      moveKey = 'End Phase';
+      break;
+    default:
+      return null;
+  }
+
+  return getStableNumber(moveKey);
+}
+
+/**
+ * Handle the treasures command - auto-play all treasures
+ * @req: TB-CLI-6.2 - Support "treasures" command (t, play all, all)
+ */
+async function handleTreasuresCommand(
+  engine: GameEngine,
+  state: GameState,
+  validMoves: Move[],
+  options: CLIOptions,
+  stateFilePath: string
+): Promise<{ output: string; state: GameState; success: boolean }> {
+  // Find all play_treasure moves
+  const treasureMoves = validMoves.filter(m => m.type === 'play_treasure');
+
+  if (treasureMoves.length === 0) {
+    // No treasures to play - check if we're in the wrong phase
+    if (state.phase === 'action') {
+      const errorOutput = formatInvalidMoveError(
+        'treasures',
+        'Cannot play treasures in action phase',
+        state,
+        validMoves,
+        options
+      );
+      return { output: errorOutput, state, success: false };
+    }
+    // In buy phase but no treasures in hand
+    const output = `Played 0 treasures for $${state.players[state.currentPlayer].coins}\n` +
+      formatOutputForTurnBasedMode(state, validMoves, options);
+    return { output, state, success: true };
+  }
+
+  // Execute each treasure move in sequence
+  let currentState = state;
+  let treasuresPlayed = 0;
+
+  for (const treasureMove of treasureMoves) {
+    const result = engine.executeMove(currentState, treasureMove);
+    if (result.success && result.newState) {
+      currentState = result.newState;
+      treasuresPlayed++;
+    }
+  }
+
+  // Calculate coins gained
+  const coinsAfter = currentState.players[currentState.currentPlayer].coins;
+
+  // Save the updated state
+  await saveStateToFile(currentState, options, stateFilePath);
+
+  // Get new valid moves
+  const newValidMoves = engine.getValidMoves(currentState);
+
+  // Format output
+  const treasureText = treasuresPlayed === 1 ? 'treasure' : 'treasures';
+  const output = `Played ${treasuresPlayed} ${treasureText} for $${coinsAfter}\n` +
+    formatOutputForTurnBasedMode(currentState, newValidMoves, options);
+
+  return { output, state: currentState, success: true };
 }
 
 /**
@@ -204,17 +356,61 @@ export function formatOutputForTurnBasedMode(
   lines.push('');
 
   // Available Moves section (ALWAYS included per TB-CLI-3.2)
+  // @req: TB-CLI-6.3 - Stable numbers work when enabled
   lines.push('Available Moves:');
-  validMoves.forEach((move, index) => {
+
+  // @req: TB-CLI-6.2 - Show [T] Play ALL Treasures option when treasures available
+  // Calculate treasure value for display
+  const treasureMoves = validMoves.filter(m => m.type === 'play_treasure');
+  let treasureValue = 0;
+  if (treasureMoves.length > 0) {
+    // Calculate total treasure value from cards in hand
+    treasureMoves.forEach(m => {
+      if (m.card === 'Copper') treasureValue += 1;
+      else if (m.card === 'Silver') treasureValue += 2;
+      else if (m.card === 'Gold') treasureValue += 3;
+    });
+  }
+
+  let moveIndex = 1;
+  let treasureOptionShown = false;
+
+  validMoves.forEach((move) => {
     const moveDescription = getMoveDescriptionCompact(move);
-    if (options.stableNumbers) {
-      // Use stable numbers if enabled
-      // For now, just use sequential numbers (stable numbers are complex)
-      lines.push(`  [${index + 1}] ${moveDescription}`);
+
+    // Show individual treasure moves, then [T] option after last one
+    if (move.type === 'play_treasure') {
+      if (options.stableNumbers) {
+        const stableNum = getStableNumberForMove(move);
+        lines.push(stableNum !== null ? `  [${stableNum}] ${moveDescription}` : `  ${moveDescription}`);
+      } else {
+        lines.push(`  [${moveIndex}] ${moveDescription}`);
+        moveIndex++;
+      }
+
+      // Check if this is the last treasure move
+      const isLastTreasure = validMoves.filter(m => m.type === 'play_treasure').indexOf(move) ===
+                             validMoves.filter(m => m.type === 'play_treasure').length - 1;
+      if (isLastTreasure && !treasureOptionShown && treasureMoves.length > 1) {
+        lines.push(`  [T] Play ALL Treasures (+$${treasureValue})`);
+        treasureOptionShown = true;
+      }
     } else {
-      lines.push(`  [${index + 1}] ${moveDescription}`);
+      // Non-treasure moves (buy, end_phase, action, etc.)
+      if (options.stableNumbers) {
+        const stableNum = getStableNumberForMove(move);
+        lines.push(stableNum !== null ? `  [${stableNum}] ${moveDescription}` : `  ${moveDescription}`);
+      } else {
+        lines.push(`  [${moveIndex}] ${moveDescription}`);
+        moveIndex++;
+      }
     }
   });
+
+  // Also show [T] if there's only one treasure (still useful to use 't' command)
+  if (treasureMoves.length === 1 && !treasureOptionShown) {
+    lines.push(`  [T] Play ALL Treasures (+$${treasureValue})`);
+  }
   lines.push('');
 
   return lines.join('\n');
@@ -296,9 +492,11 @@ function parseMoveCommand(
  * Format error output for invalid move syntax
  *
  * @req: TB-CLI-4.1 - Invalid move shows context + valid moves
+ * @req: TB-CLI-6.4 - Error messages include context from Parser
  */
 function formatInvalidMoveError(
   move: string,
+  parserError: string,
   state: GameState,
   validMoves: Move[],
   options: CLIOptions
@@ -306,7 +504,8 @@ function formatInvalidMoveError(
   const lines: string[] = [];
 
   lines.push('');
-  lines.push(`Error: Invalid move command: "${move}"`);
+  // Use parser's detailed error message
+  lines.push(`Error: ${parserError}`);
   lines.push('');
 
   // Show current state and valid moves
@@ -362,6 +561,65 @@ function formatMoveSuccessOutput(
   // Show updated state
   const stateOutput = formatOutputForTurnBasedMode(state, validMoves, options);
   lines.push(stateOutput);
+
+  return lines.join('\n');
+}
+
+/**
+ * Format game over output
+ *
+ * @req: TB-CLI-5.2 - Display GAME OVER message with reason
+ * @req: TB-CLI-5.3 - Show final scores for each player
+ * @req: TB-CLI-5.4 - No Available Moves section after game ends
+ * @param state - Game state (game must be over)
+ * @param moveLog - Optional move log entry from last move
+ * @returns Formatted game over output
+ */
+function formatGameOverOutput(state: GameState, moveLog?: string): string {
+  const lines: string[] = [];
+
+  // Show last move result if provided
+  if (moveLog) {
+    lines.push('');
+    lines.push(`✓ ${moveLog}`);
+  }
+
+  lines.push('');
+  lines.push('='.repeat(60));
+  lines.push('GAME OVER');
+  lines.push('='.repeat(60));
+  lines.push('');
+
+  // Show game end reason
+  const reason = getGameOverReason(state);
+  lines.push(`Reason: ${reason}`);
+  lines.push(`Game ended on Turn ${state.turnNumber}`);
+  lines.push('');
+
+  // Show final scores for all players
+  lines.push('Final Scores:');
+  state.players.forEach((player, index) => {
+    const vp = calculateVictoryPoints(player);
+    lines.push(`  Player ${index + 1}: ${vp} VP`);
+  });
+  lines.push('');
+
+  // Determine winner (highest VP wins)
+  const scores = state.players.map(p => calculateVictoryPoints(p));
+  const maxScore = Math.max(...scores);
+  const winners = scores.reduce((acc, score, index) => {
+    if (score === maxScore) acc.push(index + 1);
+    return acc;
+  }, [] as number[]);
+
+  if (winners.length === 1) {
+    lines.push(`Player ${winners[0]} wins with ${maxScore} Victory Points!`);
+  } else {
+    lines.push(`Tie game! Players ${winners.join(', ')} share victory with ${maxScore} VP each!`);
+  }
+  lines.push('');
+
+  // NO Available Moves section (per TB-CLI-5.4)
 
   return lines.join('\n');
 }

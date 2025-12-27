@@ -156,6 +156,17 @@ supply['Copper']      // ✗
 **MCP playtesting**: Use `game-tester` agent to run automated game tests.
 → See [docs/testing/mcp-playtests/](./docs/testing/mcp-playtests/)
 
+**CLI playtesting**: Use `cli-tester` agent to test CLI turn-based mode.
+→ See [docs/testing/cli-playtests/](./docs/testing/cli-playtests/)
+
+### Playtest Report Validation
+
+When reviewing cli-tester or game-tester agent reports:
+1. **Always validate claims against session logs** - playtest agents can get confused
+2. Session logs are at the path in the report's "Session Log" field
+3. Cross-reference specific claims (turn numbers, errors, card purchases)
+4. Note discrepancies between report and log evidence
+
 ---
 
 ## Quick Links
