@@ -20,9 +20,24 @@ Any other .md at root violates project policy.
 | Content Type | Location |
 |--------------|----------|
 | Permanent docs | `docs/` (reference, guides, requirements) |
-| Session notes | `.claude/sessions/YYYY-MM-DD/` |
+| Session notes | `docs/sessions/YYYY-MM-DD/` |
 | Agent communication | @ tags in code/tests |
 | Requirements | `docs/requirements/phase-X/` |
+
+## Session Report Naming
+
+Session reports use a folder-per-date structure:
+```
+docs/sessions/
+├── 2025-11-07/
+│   └── sorting-fix-and-quick-game-removal.md
+├── 2025-11-08/
+│   └── getvalidmoves-bug-test-summary.md
+└── 2025-12-20/
+    └── project-review-critique.md
+```
+
+**Convention**: `docs/sessions/YYYY-MM-DD/<descriptive-name>.md`
 
 ## Before Creating New Files
 
