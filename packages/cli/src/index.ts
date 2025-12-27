@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 
 import { PrincipalityCLI } from './cli';
+import { initializeGameAndSave, executeMoveAndSave } from './turn-based-cli';
+import { logInvocation } from './session-logger';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -36,6 +38,12 @@ async function main(): Promise<void> {
   let editionOverride: '1E' | '2E' | 'mixed' | undefined;
   let debugMode = false;
 
+  // Turn-based mode flags
+  let initMode = false;
+  let stateFilePath: string | undefined;
+  let moveToExecute: string | undefined;
+  let noSessionLog = false;
+
   // Look for flags
   for (let i = 0; i < args.length; i++) {
     if (args[i].startsWith('--seed=')) {
@@ -68,14 +76,125 @@ async function main(): Promise<void> {
       }
     } else if (args[i] === '--debug') {
       debugMode = true;
+    } else if (args[i] === '--init') {
+      initMode = true;
+    } else if (args[i] === '--state-file' && i + 1 < args.length) {
+      stateFilePath = args[i + 1];
+      i++;
+    } else if (args[i].startsWith('--state-file=')) {
+      stateFilePath = args[i].split('=')[1];
+    } else if (args[i] === '--move' && i + 1 < args.length) {
+      moveToExecute = args[i + 1];
+      i++;
+    } else if (args[i].startsWith('--move=')) {
+      moveToExecute = args[i].split('=')[1];
+    } else if (args[i] === '--no-session-log') {
+      noSessionLog = true;
     }
   }
 
   // Use edition override if specified, otherwise use config value
   const finalEdition = editionOverride ?? edition;
 
-  // Create and start the CLI with options
-  const cli = new PrincipalityCLI(seed, players, { victoryPileSize, stableNumbers, manualCleanup, debugMode, edition: finalEdition });
+  // Build CLI options
+  const cliOptions = { victoryPileSize, stableNumbers, manualCleanup, debugMode, edition: finalEdition };
+
+  // Turn-based mode: Initialize and save state
+  if (stateFilePath && initMode) {
+    if (!seed) {
+      console.error('Error: --seed is required with --init');
+      process.exit(1);
+    }
+    const command = process.argv.join(' ');
+    try {
+      const { output } = await initializeGameAndSave(seed, stateFilePath, cliOptions);
+      console.log(output);
+
+      // Log the invocation (unless disabled)
+      if (!noSessionLog) {
+        await logInvocation(stateFilePath, {
+          type: 'init',
+          command,
+          seed,
+          options: cliOptions,
+          output,
+          exitCode: 0,
+          success: true
+        });
+      }
+
+      process.exit(0);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.error('Error initializing game:', errorMessage);
+
+      // Log the error (unless disabled)
+      if (!noSessionLog) {
+        try {
+          await logInvocation(stateFilePath, {
+            type: 'init',
+            command,
+            seed,
+            options: cliOptions,
+            output: '',
+            exitCode: 1,
+            error: errorMessage
+          });
+        } catch {
+          // Ignore logging errors
+        }
+      }
+
+      process.exit(1);
+    }
+  }
+
+  // Turn-based mode: Execute move and save state
+  if (stateFilePath && moveToExecute) {
+    const command = process.argv.join(' ');
+    try {
+      const { output, success } = await executeMoveAndSave(stateFilePath, moveToExecute);
+      console.log(output);
+
+      // Log the invocation (unless disabled)
+      if (!noSessionLog) {
+        await logInvocation(stateFilePath, {
+          type: 'move',
+          command,
+          move: moveToExecute,
+          output,
+          exitCode: success ? 0 : 1,
+          success
+        });
+      }
+
+      process.exit(success ? 0 : 1);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.error('Error executing move:', errorMessage);
+
+      // Log the error (unless disabled)
+      if (!noSessionLog) {
+        try {
+          await logInvocation(stateFilePath, {
+            type: 'move',
+            command,
+            move: moveToExecute,
+            output: '',
+            exitCode: 1,
+            error: errorMessage
+          });
+        } catch {
+          // Ignore logging errors
+        }
+      }
+
+      process.exit(1);
+    }
+  }
+
+  // Interactive mode (default)
+  const cli = new PrincipalityCLI(seed, players, cliOptions);
   await cli.start();
 }
 

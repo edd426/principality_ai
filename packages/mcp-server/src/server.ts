@@ -100,6 +100,7 @@ export class MCPGameServer {
         command: z.enum(['new', 'end', 'list']).describe('Session command'),
         seed: z.string().optional().describe('Optional seed for deterministic shuffle'),
         model: z.enum(['haiku', 'sonnet']).optional().describe('LLM model selection'),
+        edition: z.enum(['1E', '2E', 'mixed']).optional().describe('Card edition for kingdom selection. "1E" = First Edition only, "2E" = Second Edition only (default), "mixed" = all cards from both editions.'),
         gameId: z.string().optional().describe('Optional game ID (for end command)')
       },
       async (args) => {
