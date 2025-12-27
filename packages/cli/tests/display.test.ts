@@ -258,6 +258,40 @@ describe('Display', () => {
       expect(consoleCapture.contains('Copper ($0, 46), Silver ($3, 40)')).toBe(true);
       expect(consoleCapture.contains('Estate ($2, 8), Duchy ($5, 8)')).toBe(true);
     });
+
+    // @req: GH-100 - CLI should display Curse pile separately from Kingdom cards
+    // @why: Curse is a special card type (negative VP) and deserves separate visual treatment
+    // @edge: Should show Curse section only when Curse pile exists in supply
+    test('should show Curse section separately from Kingdom', () => {
+      const state = GameStateBuilder.create()
+        .withSupply({
+          'Copper': 46, 'Silver': 40, 'Gold': 30,
+          'Estate': 8, 'Duchy': 8, 'Province': 8,
+          'Curse': 10,
+          'Village': 10, 'Smithy': 10
+        })
+        .build();
+
+      display.displaySupply(state);
+
+      const output = consoleCapture.getAllOutput();
+
+      // Should have a dedicated Curse section
+      expect(output).toMatch(/Curse:/);
+      expect(output).toMatch(/Curse \(\$0, 10\)/);
+
+      // Curse should NOT appear in the Kingdom section
+      // First, verify Kingdom section exists and has cards
+      expect(output).toMatch(/Kingdom:.*Village/);
+      expect(output).toMatch(/Kingdom:.*Smithy/);
+
+      // Extract Kingdom line and verify Curse is not in it
+      const kingdomMatch = output.match(/Kingdom:.*$/m);
+      expect(kingdomMatch).not.toBeNull();
+      if (kingdomMatch) {
+        expect(kingdomMatch[0]).not.toContain('Curse');
+      }
+    });
   });
 
   describe('displayMoveResult', () => {

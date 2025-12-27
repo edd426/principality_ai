@@ -262,6 +262,205 @@ describe('getValidMoves() with pending effects', () => {
     });
   });
 
+  // ============================================================
+  // @req: GH-98 - Chapel must allow trashing up to 4 cards
+  // @why: Playtest revealed Chapel only offers 1-2 card trash options when player has
+  //       duplicate cards. The bug is in getValidMoves using uniqueCards.length to gate
+  //       3-card and 4-card combination generation, which fails when hand has duplicates.
+  // @root-cause: game.ts lines 2500-2527 check uniqueCards.length >= 3/4 but should
+  //              check if player has enough cards in hand regardless of uniqueness
+  // ============================================================
+  describe('trash_cards (Chapel) - Issue #98 (4-card trash bug)', () => {
+    // @req: GH-98 - Chapel should allow trashing 4 identical cards
+    // @edge: When hand has 4 Coppers, player should be able to trash all 4
+    // @why: This is the exact bug scenario from the playtest: 4 Coppers, only 1-2 trash options shown
+    test('should allow trashing 4 identical cards (4 Coppers)', () => {
+      const state = engine.initializeGame(2);
+
+      const playerState = {
+        ...state.players[0],
+        hand: ['Copper', 'Copper', 'Copper', 'Copper'], // 4 identical cards
+        actions: 1
+      };
+
+      const testState: GameState = {
+        ...state,
+        players: [playerState, state.players[1]],
+        pendingEffect: {
+          card: 'Chapel',
+          effect: 'trash_cards',
+          maxTrash: 4
+        }
+      };
+
+      const validMoves = engine.getValidMoves(testState);
+
+      // @req R-PENDING-002: Must include option to trash 4 Coppers
+      // The bug causes this to fail: only trash 0, 1, 2 options are generated
+      const fourCopperTrash = validMoves.find(m =>
+        m.type === 'trash_cards' &&
+        m.cards &&
+        m.cards.length === 4 &&
+        m.cards.every((c: string) => c === 'Copper')
+      );
+      expect(fourCopperTrash).toBeDefined();
+
+      // Should have exactly 5 options: trash 0, 1, 2, 3, or 4 Coppers
+      expect(validMoves).toHaveLength(5);
+    });
+
+    // @req: GH-98 - Chapel should allow trashing 3 identical cards
+    // @edge: This is the boundary where the bug starts - 3-card combos fail with duplicates
+    test('should allow trashing 3 identical cards (3 Coppers)', () => {
+      const state = engine.initializeGame(2);
+
+      const playerState = {
+        ...state.players[0],
+        hand: ['Copper', 'Copper', 'Copper'], // 3 identical cards
+        actions: 1
+      };
+
+      const testState: GameState = {
+        ...state,
+        players: [playerState, state.players[1]],
+        pendingEffect: {
+          card: 'Chapel',
+          effect: 'trash_cards',
+          maxTrash: 4
+        }
+      };
+
+      const validMoves = engine.getValidMoves(testState);
+
+      // Must include option to trash all 3 Coppers
+      const threeCopperTrash = validMoves.find(m =>
+        m.type === 'trash_cards' &&
+        m.cards &&
+        m.cards.length === 3
+      );
+      expect(threeCopperTrash).toBeDefined();
+
+      // Should have 4 options: trash 0, 1, 2, or 3 Coppers
+      expect(validMoves).toHaveLength(4);
+    });
+
+    // @req: GH-98 - Chapel should allow trashing 4 cards with mixed duplicates
+    // @edge: 2 Coppers + 2 Estates should allow trashing all 4
+    test('should allow trashing 4 cards with mixed duplicates (2 Coppers + 2 Estates)', () => {
+      const state = engine.initializeGame(2);
+
+      const playerState = {
+        ...state.players[0],
+        hand: ['Copper', 'Copper', 'Estate', 'Estate'], // 4 cards, 2 unique types
+        actions: 1
+      };
+
+      const testState: GameState = {
+        ...state,
+        players: [playerState, state.players[1]],
+        pendingEffect: {
+          card: 'Chapel',
+          effect: 'trash_cards',
+          maxTrash: 4
+        }
+      };
+
+      const validMoves = engine.getValidMoves(testState);
+
+      // Must include option to trash all 4 cards (2 Coppers + 2 Estates)
+      const fourCardTrash = validMoves.find(m =>
+        m.type === 'trash_cards' &&
+        m.cards &&
+        m.cards.length === 4
+      );
+      expect(fourCardTrash).toBeDefined();
+
+      // The 4-card option should contain 2 Coppers and 2 Estates
+      if (fourCardTrash && fourCardTrash.cards) {
+        const copperCount = fourCardTrash.cards.filter((c: string) => c === 'Copper').length;
+        const estateCount = fourCardTrash.cards.filter((c: string) => c === 'Estate').length;
+        expect(copperCount).toBe(2);
+        expect(estateCount).toBe(2);
+      }
+    });
+
+    // @req: GH-98 - Chapel should allow trashing 3 cards when hand has 5 cards with duplicates
+    // @edge: Real game scenario: starting hand with Chapel, 4 Coppers
+    test('should allow trashing 3 cards from hand with duplicates', () => {
+      const state = engine.initializeGame(2);
+
+      const playerState = {
+        ...state.players[0],
+        hand: ['Copper', 'Copper', 'Copper', 'Copper', 'Estate'], // 5 cards, 2 unique types
+        actions: 1
+      };
+
+      const testState: GameState = {
+        ...state,
+        players: [playerState, state.players[1]],
+        pendingEffect: {
+          card: 'Chapel',
+          effect: 'trash_cards',
+          maxTrash: 4
+        }
+      };
+
+      const validMoves = engine.getValidMoves(testState);
+
+      // Must include option to trash 3 Coppers
+      const threeCopperTrash = validMoves.find(m =>
+        m.type === 'trash_cards' &&
+        m.cards &&
+        m.cards.length === 3 &&
+        m.cards.every((c: string) => c === 'Copper')
+      );
+      expect(threeCopperTrash).toBeDefined();
+
+      // Must include option to trash 4 cards (various combinations)
+      const fourCardTrash = validMoves.find(m =>
+        m.type === 'trash_cards' &&
+        m.cards &&
+        m.cards.length === 4
+      );
+      expect(fourCardTrash).toBeDefined();
+    });
+
+    // @req: GH-98 - Verify exact count of valid moves for 4 identical cards
+    // @why: Documents the expected behavior precisely for regression testing
+    test('should generate exactly 5 options for hand with 4 identical cards', () => {
+      const state = engine.initializeGame(2);
+
+      const playerState = {
+        ...state.players[0],
+        hand: ['Copper', 'Copper', 'Copper', 'Copper'],
+        actions: 1
+      };
+
+      const testState: GameState = {
+        ...state,
+        players: [playerState, state.players[1]],
+        pendingEffect: {
+          card: 'Chapel',
+          effect: 'trash_cards',
+          maxTrash: 4
+        }
+      };
+
+      const validMoves = engine.getValidMoves(testState);
+
+      // Count moves by trash count
+      const trashCounts = validMoves.map(m => (m.cards as string[] || []).length);
+
+      expect(trashCounts).toContain(0); // Trash nothing
+      expect(trashCounts).toContain(1); // Trash 1 Copper
+      expect(trashCounts).toContain(2); // Trash 2 Coppers
+      expect(trashCounts).toContain(3); // Trash 3 Coppers
+      expect(trashCounts).toContain(4); // Trash 4 Coppers
+
+      expect(validMoves).toHaveLength(5);
+    });
+  });
+
   describe('discard_for_cellar (Cellar) - MISSING HANDLER', () => {
     // @req R-PENDING-001: Cellar returns valid discard combinations
     // @edge: Empty hand | Discard all cards | Discard nothing

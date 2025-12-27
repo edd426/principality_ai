@@ -355,6 +355,74 @@ describe('generateChapelOptions', () => {
   });
 });
 
+// ============================================================
+// @req: GH-98 - Chapel must allow trashing up to 4 cards
+// @note: The presentation layer (generateChapelOptions) works correctly.
+//        The actual bug is in getValidMoves() in game.ts which uses uniqueCards.length
+//        to gate 3-card and 4-card combination generation.
+//        See getValidMoves-pending-effects.test.ts for the failing tests.
+// @see: getValidMoves-pending-effects.test.ts: "trash_cards (Chapel) - Issue #98"
+// ============================================================
+describe('generateChapelOptions - Presentation Layer Validation (GH-98)', () => {
+  // @req: GH-98 - Presentation layer correctly generates 4-card trash options
+  // @note: These tests PASS because generateChapelOptions uses getCombinations correctly.
+  //        The bug is in getValidMoves() not calling generateChapelOptions or using
+  //        a different, broken algorithm.
+  it('should generate 4-card trash option when hand has 4+ trashable cards', () => {
+    // Hand: 5 cards, all trashable
+    const hand: CardName[] = ['Copper', 'Copper', 'Estate', 'Estate', 'Curse'];
+    const options = generateChapelOptions(hand, 4);
+
+    // Must have at least one option to trash exactly 4 cards
+    const fourCardOptions = options.filter(opt => opt.move.cards?.length === 4);
+    expect(fourCardOptions.length).toBeGreaterThan(0);
+
+    // Verify the 4-card option is a valid combination
+    const firstFourCardOption = fourCardOptions[0];
+    expect(firstFourCardOption.move.cards).toHaveLength(4);
+    expect(firstFourCardOption.details.trashCount).toBe(4);
+  });
+
+  // @req: GH-98 - Presentation layer correctly handles 4 identical cards
+  // @note: This passes, proving the bug is NOT in getCombinations/generateChapelOptions
+  it('should handle 4 identical cards correctly', () => {
+    // This is the exact bug scenario: player has 4 Coppers
+    const hand: CardName[] = ['Copper', 'Copper', 'Copper', 'Copper'];
+    const options = generateChapelOptions(hand, 4);
+
+    // Should have exactly 5 options: trash 0, 1, 2, 3, or 4 Coppers
+    expect(options).toHaveLength(5);
+
+    // Verify we have all trash counts from 0 to 4
+    const trashCounts = options.map(opt => opt.move.cards?.length || 0);
+    expect(trashCounts).toContain(0); // Trash nothing
+    expect(trashCounts).toContain(1); // Trash 1 Copper
+    expect(trashCounts).toContain(2); // Trash 2 Coppers
+    expect(trashCounts).toContain(3); // Trash 3 Coppers
+    expect(trashCounts).toContain(4); // Trash 4 Coppers
+  });
+
+  // @req: GH-98 - getCombinations handles duplicates correctly
+  // @note: This passes - the helper function works. The bug is in game.ts getValidMoves.
+  it('getCombinations should generate combinations of size 3 and 4 with duplicates', () => {
+    // 4 Coppers should produce combinations of sizes 0, 1, 2, 3, 4
+    const result = getCombinations(['Copper', 'Copper', 'Copper', 'Copper'], 4);
+
+    // Count combinations by size
+    const sizeZero = result.filter(c => c.length === 0);
+    const sizeOne = result.filter(c => c.length === 1);
+    const sizeTwo = result.filter(c => c.length === 2);
+    const sizeThree = result.filter(c => c.length === 3);
+    const sizeFour = result.filter(c => c.length === 4);
+
+    expect(sizeZero).toHaveLength(1);   // []
+    expect(sizeOne).toHaveLength(1);    // [Copper]
+    expect(sizeTwo).toHaveLength(1);    // [Copper, Copper]
+    expect(sizeThree).toHaveLength(1);  // [Copper, Copper, Copper]
+    expect(sizeFour).toHaveLength(1);   // [Copper, Copper, Copper, Copper]
+  });
+});
+
 describe('generateRemodelStep1Options', () => {
   // @req: FR-SHARED-2 - Multi-step card generators
   // @assert: Remodel Step 1 generates trash options for each card

@@ -257,6 +257,24 @@ export class FeatureIntegrationTestUtils {
 }
 
 /**
+ * Utilities for Quick Game mode testing (reduced pile sizes)
+ */
+export class QuickGameTestUtils {
+  /**
+   * Create a quick game state with reduced piles
+   */
+  static createQuickGameState() {
+    return GameStateBuilder.create()
+      .withSupply({
+        'Copper': 46, 'Silver': 40, 'Gold': 30,
+        'Estate': 8, 'Duchy': 8, 'Province': 8,
+        'Village': 10, 'Smithy': 10
+      })
+      .build();
+  }
+}
+
+/**
  * Performance benchmarks for Phase 1.5 features
  */
 export class Phase15PerformanceUtils {
