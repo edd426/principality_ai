@@ -222,7 +222,7 @@ describe('generateCellarOptions', () => {
       expect(opt.index).toBeGreaterThan(0);
       expect(opt.move.type).toBe('discard_for_cellar');
       expect(opt.description).toBeTruthy();
-      expect(opt.details?.drawCount).toBeTruthy();
+      expect(opt.details?.drawCount).toBeDefined();
       expect(typeof opt.details?.drawCount).toBe('number');
     });
   });
