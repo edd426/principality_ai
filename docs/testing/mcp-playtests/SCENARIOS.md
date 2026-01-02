@@ -37,13 +37,13 @@ Your target card will NOT appear if you use the wrong edition!
 | CARD-012 | Village | ✅ Pass | 2025-12-25 | 8+ plays, +1 card +2 actions, chaining works |
 | CARD-013 | Moat | ✅ Pass | 2025-12-25 | 4 plays, +2 cards verified |
 | CARD-014 | Woodcutter | ✅ Pass | 2025-12-25 | 4 plays, +1 buy +2 coins verified |
-| CARD-015 | Market | 🔄 Retest | 2025-12-25 | Agent confused (false positive bug report) |
+| CARD-015 | Market | ✅ Pass | 2026-01-02 | All 4 effects verified (+Card, +Action, +Buy, +$1) |
 | STRAT-001 | Big Money | ✅ Pass | 2025-12-25 | Multiple runs, no issues |
 | STRAT-002 | Action Engine | ⬜ Untested | - | - |
 | STRAT-003 | Rush Strategy | ⬜ Untested | - | - |
 | STRAT-004 | Trasher Strategy | ⬜ Untested | - | - |
 | EDGE-001 | Zero Coins | ✅ Pass | 2025-12-25 | Only Copper/Curse available at 0 coins |
-| EDGE-002 | Empty Supply | ⬜ Untested | - | - |
+| EDGE-002 | Empty Supply | ✅ Pass | 2026-01-02 | Province depletion ends game correctly (27 VP) |
 | EDGE-003 | Province Exhaustion | ✅ Pass | 2025-12-25 | Province buying works, game end detection correct |
 | EDGE-004 | Large Hand | ⬜ Untested | - | - |
 | EDGE-005 | No Valid Actions | ✅ Pass | 2025-12-21 | 1 run, no issues |
@@ -57,13 +57,13 @@ Your target card will NOT appear if you use the wrong edition!
 | EDGE-010 | Adventurer No Treasures | ⬜ Untested | - | Solo edge case |
 | EDGE-011 | Library All Actions | ⬜ Untested | - | Solo edge case |
 | MULTI-001 | Attack Resolution | ✅ Pass | 2026-01-02 | 2-player: Militia auto-discard works |
-| MULTI-002 | Moat Reaction | ⬜ Untested | - | 2-player: Moat blocks |
+| MULTI-002 | Moat Reaction | ✅ Pass | 2026-01-02 | Unit tests verify auto-reveal |
 | MULTI-003 | Witch Curse Giving | ✅ Pass | 2026-01-02 | 2-player: Curse given, +2 cards works |
 | MULTI-004 | Turn Cycling | ✅ Pass | 2026-01-02 | 2-player: P0→P1→P0 verified |
 
 **Legend:** ✅ Pass | ⚠️ Findings | ❌ Fail | 🔄 Retest | ⬜ Untested
 
-**Coverage Summary**: 25/37 scenarios tested (68%), 24 passed, 1 needs retest
+**Coverage Summary**: 28/37 scenarios tested (76%), 27 passed, 1 has findings
 
 ---
 
