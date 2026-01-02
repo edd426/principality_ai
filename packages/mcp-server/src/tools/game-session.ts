@@ -18,18 +18,26 @@ export class GameSessionTool {
   ) {}
 
   async execute(request: GameSessionRequest): Promise<GameSessionResponse> {
-    const { command, seed, model = this.defaultModel, edition = '2E', gameId } = request;
+    const { command, seed, model = this.defaultModel, edition = '2E', gameId, numPlayers = 1, kingdomCards } = request;
 
     if (command === 'new') {
-      // Create new game via registry
-      const game = this.registry.createGame(seed, model, edition);
+      // Validate numPlayers (1-4)
+      if (numPlayers < 1 || numPlayers > 4) {
+        return {
+          success: false,
+          error: `Invalid numPlayers: ${numPlayers}. Must be between 1 and 4.`
+        };
+      }
+
+      // Create new game via registry with numPlayers
+      const game = this.registry.createGame(seed, model, edition, numPlayers, kingdomCards);
 
       this.logger?.info('New game started', {
         gameId: game.id,
         seed,
         model,
         edition,
-        players: 1
+        players: numPlayers
       });
 
       return {

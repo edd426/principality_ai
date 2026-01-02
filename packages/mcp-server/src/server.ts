@@ -101,7 +101,9 @@ export class MCPGameServer {
         seed: z.string().optional().describe('Optional seed for deterministic shuffle'),
         model: z.enum(['haiku', 'sonnet']).optional().describe('LLM model selection'),
         edition: z.enum(['1E', '2E', 'mixed']).optional().describe('Card edition for kingdom selection. "1E" = First Edition only, "2E" = Second Edition only (default), "mixed" = all cards from both editions.'),
-        gameId: z.string().optional().describe('Optional game ID (for end command)')
+        gameId: z.string().optional().describe('Optional game ID (for end command)'),
+        numPlayers: z.number().min(1).max(4).optional().describe('Number of players (1-4, default: 1). With numPlayers=2, opponent auto-plays Big Money.'),
+        kingdomCards: z.array(z.string()).optional().describe('Optional specific kingdom cards to use')
       },
       async (args) => {
         const result = await this.sessionTool.execute(args);

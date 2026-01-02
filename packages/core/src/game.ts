@@ -1,5 +1,5 @@
 import { GameState, PlayerState, Move, GameResult, Victory, CardName, GameOptions, PendingEffect } from './types';
-import { getCard, isActionCard, isTreasureCard, isVictoryCard, isReactionCard, KINGDOM_CARDS, getKingdomCardsByEdition } from './cards';
+import { getCard, isActionCard, isTreasureCard, isVictoryCard, isReactionCard, KINGDOM_CARDS, BASIC_CARDS, getKingdomCardsByEdition } from './cards';
 import { SeededRandom, createStartingDeck, createDefaultSupply, calculateScore, getAllPlayerCards } from './utils';
 
 // @decision: Helper functions for Phase 4 card mechanics
@@ -176,21 +176,13 @@ export class GameEngine {
 
     // Validate all cards exist and are kingdom cards
     for (const card of cards) {
-      // Check if card exists
-      try {
-        const cardData = getCard(card);
-        // Check if it's a basic card
-        if (cardData.type === 'treasure' || cardData.type === 'victory' || cardData.type === 'curse') {
-          throw new Error(`${card} is a basic card, not a kingdom card. Only action cards can be in kingdomCards.`);
-        }
-        // Check if it's actually a kingdom card
-        if (!KINGDOM_CARDS[card]) {
-          throw new Error(`Invalid card: ${card} is not a valid kingdom card`);
-        }
-      } catch (e) {
-        if (e instanceof Error && e.message.includes('basic card')) {
-          throw e;
-        }
+      // Check if it's a basic card first (Copper, Silver, Gold, Estate, Duchy, Province, Curse)
+      if (BASIC_CARDS[card]) {
+        throw new Error(`${card} is a basic card, not a kingdom card. Only kingdom cards can be in kingdomCards.`);
+      }
+      // Check if it's actually a kingdom card
+      // This allows victory-type kingdom cards like Gardens
+      if (!KINGDOM_CARDS[card]) {
         throw new Error(`Invalid card: ${card} is not a valid kingdom card`);
       }
     }
