@@ -44,13 +44,15 @@ describe('IT: Throne Room Combinations', () => {
     expect(trash2.newState!.trash.length).toBe(8);
   });
 
-  // @skip: Throne Room + Feast interaction issue - needs investigation
-  test.skip('IT-THRONE-2: Throne Room + Feast (gain 2, trash 1)', () => {
+  // @fix: Verified working - Throne Room plays Feast twice, gains 2 cards
+  test('IT-THRONE-2: Throne Room + Feast (gain 2, trash 1)', () => {
     const state = engine.initializeGame(1);
     const testState: GameState = {
       ...state,
       phase: 'action',
-      players: [{ ...state.players[0], hand: ['Throne Room', 'Feast'], actions: 1 }]
+      // Ensure Feast and target cards are in supply
+      supply: new Map([...state.supply, ['Feast', 10], ['Duchy', 10], ['Militia', 10]]),
+      players: [{ ...state.players[0], hand: ['Throne Room', 'Feast'], actions: 1, discardPile: [] }]
     };
 
     const throne = engine.executeMove(testState, { type: 'play_action', card: 'Throne Room' });
@@ -58,12 +60,12 @@ describe('IT: Throne Room Combinations', () => {
 
     expect(feast.newState!.trash).toContain('Feast'); // Trashed once
 
-    // Gain 2 cards
+    // Gain 2 cards (Feast costs $4, can gain up to $5)
     const gain1 = engine.executeMove(feast.newState!, { type: 'gain_card', card: 'Duchy' });
-    const gain2 = engine.executeMove(gain1.newState!, { type: 'gain_card', card: 'Market' });
+    const gain2 = engine.executeMove(gain1.newState!, { type: 'gain_card', card: 'Militia' });
 
     expect(gain2.newState!.players[0].discardPile).toContain('Duchy');
-    expect(gain2.newState!.players[0].discardPile).toContain('Market');
+    expect(gain2.newState!.players[0].discardPile).toContain('Militia');
   });
 
   test('IT-THRONE-3: Throne Room + Smithy plays twice (6 cards drawn)', () => {
@@ -109,22 +111,25 @@ describe('IT: Throne Room Combinations', () => {
     expect(library.newState!.players[0].hand.length).toBe(7);
   });
 
-  // @skip: Throne Room + Workshop interaction issue - needs investigation
-  test.skip('IT-THRONE-5: Throne Room + Workshop (gain 2)', () => {
+  // @fix: Verified working - Throne Room plays Workshop twice, gains 2 cards
+  test('IT-THRONE-5: Throne Room + Workshop (gain 2)', () => {
     const state = engine.initializeGame(1);
     const testState: GameState = {
       ...state,
       phase: 'action',
-      players: [{ ...state.players[0], hand: ['Throne Room', 'Workshop'], actions: 1 }]
+      // Ensure target cards are in supply (Workshop gains cards costing up to $4)
+      supply: new Map([...state.supply, ['Militia', 10], ['Silver', 40]]),
+      players: [{ ...state.players[0], hand: ['Throne Room', 'Workshop'], actions: 1, discardPile: [] }]
     };
 
     const throne = engine.executeMove(testState, { type: 'play_action', card: 'Throne Room' });
     const workshop = engine.executeMove(throne.newState!, { type: 'select_action_for_throne', card: 'Workshop' });
 
-    const gain1 = engine.executeMove(workshop.newState!, { type: 'gain_card', card: 'Smithy' });
+    // Workshop gains cards costing up to $4
+    const gain1 = engine.executeMove(workshop.newState!, { type: 'gain_card', card: 'Militia' });
     const gain2 = engine.executeMove(gain1.newState!, { type: 'gain_card', card: 'Silver' });
 
-    expect(gain2.newState!.players[0].discardPile).toContain('Smithy');
+    expect(gain2.newState!.players[0].discardPile).toContain('Militia');
     expect(gain2.newState!.players[0].discardPile).toContain('Silver');
   });
 

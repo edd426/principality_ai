@@ -14,8 +14,8 @@ describe('E2E: Throne Room Strategy', () => {
     engine = new GameEngine('e2e-throne-test');
   });
 
-  // @skip: Off-by-one error - draws 12 cards instead of 13 (needs investigation)
-  test.skip('E2E-THRONE-1: Throne Room + Smithy engine', () => {
+  // @fix: Corrected assertion - 12 cards is correct (4 start - 4 played + 12 drawn = 12)
+  test('E2E-THRONE-1: Throne Room + Smithy engine', () => {
     const state = engine.initializeGame(1);
 
     const testState: GameState = {
@@ -33,13 +33,15 @@ describe('E2E: Throne Room Strategy', () => {
     const throne1 = engine.executeMove(testState, { type: 'play_action', card: 'Throne Room' });
     const smithy1 = engine.executeMove(throne1.newState!, { type: 'select_action_for_throne', card: 'Smithy' });
 
-    expect(smithy1.newState!.players[0].hand.length).toBeGreaterThanOrEqual(7); // Drew 6 + remaining cards
+    // After first combo: 4 - 2 (TR+Smithy played) + 6 (Smithy x2) = 8 cards
+    expect(smithy1.newState!.players[0].hand.length).toBe(8);
 
     // Second Throne Room + Smithy
     const throne2 = engine.executeMove(smithy1.newState!, { type: 'play_action', card: 'Throne Room' });
     const smithy2 = engine.executeMove(throne2.newState!, { type: 'select_action_for_throne', card: 'Smithy' });
 
-    expect(smithy2.newState!.players[0].hand.length).toBeGreaterThanOrEqual(13); // Drew 12 total
+    // After second combo: 8 - 2 (TR+Smithy played) + 6 (Smithy x2) = 12 cards
+    expect(smithy2.newState!.players[0].hand.length).toBe(12);
   });
 
   test('E2E-THRONE-2: Throne Room + Village chain', () => {

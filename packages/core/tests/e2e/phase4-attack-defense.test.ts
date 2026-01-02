@@ -70,25 +70,30 @@ describe('E2E: Attack/Defense Gameplay', () => {
     expect(witch2.newState!.supply.get('Curse')).toBe(8);
   });
 
-  // @skip: Thief gain_trashed_card move not working correctly
-  test.skip('E2E-ATTACK-3: Thief steal strategy', () => {
+  // @fix: Verified working - Thief trashes opponent treasure, attacker can gain it
+  test('E2E-ATTACK-3: Thief steal strategy', () => {
     const state = engine.initializeGame(2);
 
     const testState: GameState = {
       ...state,
       phase: 'action',
       currentPlayer: 0,
+      trash: [],
       players: [
-        { ...state.players[0], hand: ['Thief'], actions: 1 },
+        { ...state.players[0], hand: ['Thief'], actions: 1, discardPile: [] },
         { ...state.players[1], drawPile: ['Gold', 'Silver', 'Copper', 'Estate'] }
       ]
     };
 
     const thief = engine.executeMove(testState, { type: 'play_action', card: 'Thief' });
     const trash = engine.executeMove(thief.newState!, { type: 'select_treasure_to_trash', playerIndex: 1, card: 'Gold' });
+
+    // After trashing, Gold is in trash
+    expect(trash.newState!.trash).toContain('Gold');
+
     const gain = engine.executeMove(trash.newState!, { type: 'gain_trashed_card', card: 'Gold' });
 
-    expect(gain.newState!.trash).toContain('Gold');
+    // After gaining, Gold moves from trash to player's discard
     expect(gain.newState!.players[0].discardPile).toContain('Gold');
     // Opponent weakened, attacker strengthened
   });
