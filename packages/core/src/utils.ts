@@ -86,8 +86,13 @@ export const PHASE4_SPECIAL_CARDS: ReadonlyArray<CardName> = [
 ];
 
 export function createDefaultSupply(options?: { victoryPileSize?: number; kingdomCards?: ReadonlyArray<CardName>; allCards?: boolean; fullPhase1?: boolean; mvpOnly?: boolean; numPlayers?: number }): ReadonlyMap<CardName, number> {
-  const victoryPileSize = options?.victoryPileSize ?? 4;
   const numPlayers = options?.numPlayers ?? 2;
+
+  // Calculate victory pile size based on player count (standard Dominion rules)
+  // If explicitly provided, use that value (for testing with reduced supplies)
+  // Otherwise: 1 player (solo): 4, 2 players: 8, 3-4 players: 12
+  const defaultVictoryPileSize = numPlayers === 1 ? 4 : numPlayers === 2 ? 8 : 12;
+  const victoryPileSize = options?.victoryPileSize ?? defaultVictoryPileSize;
 
   // Calculate Curse supply based on player count (Phase 4.2 requirement)
   // 1 player: 10 Curses (solo mode), 2 players: 10, 3 players: 20, 4 players: 30

@@ -222,17 +222,19 @@ export function getGameOverReason(state: GameState): string {
 
 /**
  * Group supply piles by type for organized display
- * Returns treasures, victory cards, and kingdom cards separately
+ * Returns treasures, victory cards, curse cards, and kingdom cards separately
  */
 export function groupSupplyByType(state: GameState): {
   treasures: SupplyPile[];
   victory: SupplyPile[];
+  curse: SupplyPile[];
   kingdom: SupplyPile[];
 } {
   const supply = formatSupply(state);
 
   const treasures: SupplyPile[] = [];
   const victory: SupplyPile[] = [];
+  const curse: SupplyPile[] = [];
   const kingdom: SupplyPile[] = [];
 
   supply.forEach(pile => {
@@ -240,6 +242,8 @@ export function groupSupplyByType(state: GameState): {
       treasures.push(pile);
     } else if (['Estate', 'Duchy', 'Province'].includes(pile.name)) {
       victory.push(pile);
+    } else if (pile.name === 'Curse') {
+      curse.push(pile);
     } else {
       kingdom.push(pile);
     }
@@ -261,6 +265,7 @@ export function groupSupplyByType(state: GameState): {
   return {
     treasures: sortPiles(treasures),
     victory: sortPiles(victory),
+    curse: sortPiles(curse),
     kingdom: sortPiles(kingdom)
   };
 }

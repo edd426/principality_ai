@@ -689,6 +689,44 @@ describe('Presentation Layer: Formatters', () => {
       expect(grouped.victory).toHaveLength(0);
       expect(grouped.kingdom).toHaveLength(0);
     });
+
+    // @req: GH-100 - Curse should be in its own category, not kingdom
+    // @why: Curse is a special card type that deserves separate display treatment
+    // @edge: Curse pile should not appear in kingdom cards section
+    test('should have curse category separate from kingdom', () => {
+      const state = createTestState({
+        supply: new Map([
+          ['Copper', 60],
+          ['Silver', 40],
+          ['Gold', 30],
+          ['Estate', 12],
+          ['Duchy', 12],
+          ['Province', 12],
+          ['Curse', 10],
+          ['Village', 10],
+          ['Smithy', 10]
+        ])
+      });
+      const grouped = groupSupplyByType(state) as { treasures: SupplyPile[]; victory: SupplyPile[]; kingdom: SupplyPile[]; curse: SupplyPile[] };
+
+      // Curse should be in its own category
+      expect(grouped).toHaveProperty('curse');
+      expect(grouped.curse).toHaveLength(1);
+      expect(grouped.curse[0].name).toBe('Curse');
+
+      // Curse should NOT be in kingdom category
+      const kingdomNames = grouped.kingdom.map(p => p.name);
+      expect(kingdomNames).not.toContain('Curse');
+    });
+
+    // @req: GH-100 - Curse category should be empty when no Curse in supply
+    test('should have empty curse category when no Curse in supply', () => {
+      const state = createTestState(); // Default state has no Curse
+      const grouped = groupSupplyByType(state) as { treasures: SupplyPile[]; victory: SupplyPile[]; kingdom: SupplyPile[]; curse: SupplyPile[] };
+
+      expect(grouped).toHaveProperty('curse');
+      expect(grouped.curse).toHaveLength(0);
+    });
   });
 });
 

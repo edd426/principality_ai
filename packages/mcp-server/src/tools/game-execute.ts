@@ -9,6 +9,7 @@ import {
   Move,
   isActionCard,
   isTreasureCard,
+  isVictoryCard,
   parseMove,
   isMoveValid,
   groupHand,
@@ -22,11 +23,13 @@ import {
   getAllPlayerCards,
   CardName,
   generateMoveOptions,
-  formatMoveCommand
+  formatMoveCommand,
+  GameEngine
 } from '@principality/core';
 import { GameExecuteRequest, GameExecuteResponse } from '../types/tools';
 import { GameRegistryManager } from '../game-registry';
 import { Logger } from '../logger';
+import { playBigMoneyTurn, OpponentTurnSummary } from '../ai/big-money';
 
 export class GameExecuteTool {
   private moveHistory: Array<{
@@ -231,6 +234,39 @@ export class GameExecuteTool {
         });
       }
 
+      // Step 2.5: Auto-resolve opponent pending effects (for 2+ player games)
+      // When Player 0 plays an attack card (e.g., Militia), it may create a pending
+      // effect targeting the opponent. Auto-resolve these so Player 0's turn continues.
+      let opponentEffectSummaries: string[] = [];
+      const numPlayersForPending = finalState.players.length;
+
+      if (numPlayersForPending > 1) {
+        // Loop until no more opponent pending effects
+        let safetyCounter = 0;
+        const maxIterations = 10; // Prevent infinite loops
+
+        while (safetyCounter < maxIterations) {
+          const resolveResult = this.autoResolveOpponentPendingEffect(finalState, game.engine);
+
+          if (!resolveResult.resolved) {
+            break; // No more opponent effects to resolve
+          }
+
+          finalState = resolveResult.state;
+          if (resolveResult.summary) {
+            opponentEffectSummaries.push(resolveResult.summary);
+          }
+
+          // Update registry with intermediate state
+          this.registry.setState(game.id, finalState);
+          safetyCounter++;
+        }
+
+        if (safetyCounter >= maxIterations) {
+          this.logger?.warn('Max iterations reached for opponent pending effect resolution');
+        }
+      }
+
       // Step 3: Auto-skip cleanup phase BEFORE building response (no player choices in MVP)
       if (finalState.phase === 'cleanup') {
         const cleanupResult = game.engine.executeMove(finalState, {
@@ -270,14 +306,61 @@ export class GameExecuteTool {
         }
       }
 
+      // Step 3.5: Auto-play opponent turns in multiplayer games
+      // After Player 0's cleanup, if there are other players, auto-play their turns
+      let opponentSummary: OpponentTurnSummary | undefined;
+      const numPlayers = finalState.players.length;
+
+      if (numPlayers > 1 && cleanupAutoSkipped && !isGameOver(finalState)) {
+        // Current player is now an opponent (not Player 0)
+        // Auto-play all opponent turns until it's Player 0's turn again
+        while (finalState.currentPlayer !== 0 && !isGameOver(finalState)) {
+          this.logger?.info('Auto-playing opponent turn', {
+            player: finalState.currentPlayer,
+            turn: finalState.turnNumber,
+            phase: finalState.phase
+          });
+
+          const { state: stateAfterOpponent, summary } = playBigMoneyTurn(
+            finalState,
+            game.engine
+          );
+          finalState = stateAfterOpponent;
+
+          // Capture the last opponent's summary (for 2-player, this is the only opponent)
+          opponentSummary = summary;
+
+          this.logger?.info('Opponent turn completed', {
+            player: summary,
+            cardsBought: summary.cardsBought,
+            treasuresPlayed: summary.treasuresPlayed,
+            newCurrentPlayer: finalState.currentPlayer,
+            newTurn: finalState.turnNumber
+          });
+        }
+
+        // Update server state after all opponent turns
+        this.registry.setState(game.id, finalState);
+      }
+
       // Step 4: NOW build response with FINAL state (after all transitions)
       const gameState = this.formatStateForAutoReturn(finalState);
       const validMoves = this.formatValidMovesForAutoReturn(finalState, game.engine);
 
       // Build response message
       let responseMessage = `Executed: ${move}`;
+      // Add opponent attack effect summaries (e.g., Militia discard)
+      if (opponentEffectSummaries.length > 0) {
+        responseMessage += ` → ${opponentEffectSummaries.join(' → ')}`;
+      }
       if (cleanupAutoSkipped) {
         responseMessage = `${move} → Cleanup auto-skipped → ${finalState.phase} phase`;
+      }
+      if (opponentSummary) {
+        const boughtCards = opponentSummary.cardsBought.length > 0
+          ? opponentSummary.cardsBought.join(', ')
+          : 'nothing';
+        responseMessage += ` → Opponent bought: ${boughtCards}`;
       }
 
       const response: GameExecuteResponse = {
@@ -287,6 +370,11 @@ export class GameExecuteTool {
         validMoves: validMoves,
         gameOver: gameState.gameOver
       };
+
+      // Add opponent turn summary if available
+      if (opponentSummary) {
+        response.opponentTurnSummary = opponentSummary;
+      }
 
       // Add phase change info if applicable
       if (phaseChangedMessage) {
@@ -719,5 +807,144 @@ export class GameExecuteTool {
   private formatValidMovesForAutoReturn(state: GameState, engine: any): string[] {
     const validMoves = engine.getValidMoves(state);
     return validMoves.map((move: any) => formatMoveCommand(move));
+  }
+
+  /**
+   * Auto-resolve pending effects that target opponents (not Player 0)
+   *
+   * In 2+ player MCP games, when Player 0 plays an attack card that creates
+   * a pending effect for an opponent, we auto-resolve it using simple heuristics:
+   * - Militia (discard_to_hand_size): Discard lowest value cards
+   * - Bureaucrat (reveal_and_topdeck): Topdeck cheapest Victory card
+   * - Spy (spy_decision): Always keep the revealed card (simple heuristic)
+   *
+   * @returns Updated state with pending effect resolved
+   */
+  private autoResolveOpponentPendingEffect(
+    state: GameState,
+    engine: GameEngine
+  ): { state: GameState; resolved: boolean; summary?: string } {
+    const pending = state.pendingEffect;
+
+    if (!pending) {
+      return { state, resolved: false };
+    }
+
+    // Only auto-resolve if targetPlayer is defined and is NOT Player 0
+    if (pending.targetPlayer === undefined || pending.targetPlayer === 0) {
+      return { state, resolved: false };
+    }
+
+    const targetPlayerIndex = pending.targetPlayer;
+    const targetPlayer = state.players[targetPlayerIndex];
+
+    this.logger?.info('Auto-resolving opponent pending effect', {
+      card: pending.card,
+      effect: pending.effect,
+      targetPlayer: targetPlayerIndex
+    });
+
+    let move: Move | null = null;
+    let summary: string | undefined;
+
+    switch (pending.effect) {
+      case 'discard_to_hand_size': {
+        // Militia attack: discard down to 3 cards
+        // Heuristic: discard lowest value cards first (by cost)
+        const hand = [...targetPlayer.hand];
+        const targetSize = 3;
+        const cardsToDiscard = hand.length - targetSize;
+
+        if (cardsToDiscard <= 0) {
+          // No discard needed
+          move = { type: 'discard_to_hand_size', cards: [] };
+          summary = `Player ${targetPlayerIndex + 1} already has ${hand.length} cards (no discard needed)`;
+        } else {
+          // Sort by card cost (ascending) to discard cheapest cards
+          const sortedHand = hand
+            .map(card => ({ card, cost: getCardCost(card) ?? 0 }))
+            .sort((a, b) => a.cost - b.cost);
+
+          const cardsToDiscardList = sortedHand
+            .slice(0, cardsToDiscard)
+            .map(item => item.card);
+
+          move = { type: 'discard_to_hand_size', cards: cardsToDiscardList };
+          summary = `Player ${targetPlayerIndex + 1} discarded ${cardsToDiscardList.join(', ')} (Militia)`;
+        }
+        break;
+      }
+
+      case 'reveal_and_topdeck': {
+        // Bureaucrat attack: topdeck a Victory card
+        const victoryCards = targetPlayer.hand.filter(c => isVictoryCard(c));
+
+        if (victoryCards.length === 0) {
+          // No Victory cards - reveal hand (skip)
+          // For now, the engine handles this case automatically
+          move = { type: 'reveal_and_topdeck', card: undefined as unknown as CardName };
+          summary = `Player ${targetPlayerIndex + 1} revealed hand (no Victory cards)`;
+        } else {
+          // Topdeck cheapest Victory card
+          const sortedVictory = victoryCards
+            .map(card => ({ card, cost: getCardCost(card) ?? 0 }))
+            .sort((a, b) => a.cost - b.cost);
+
+          const cardToTopdeck = sortedVictory[0].card;
+          move = { type: 'reveal_and_topdeck', card: cardToTopdeck };
+          summary = `Player ${targetPlayerIndex + 1} topdecked ${cardToTopdeck} (Bureaucrat)`;
+        }
+        break;
+      }
+
+      case 'spy_decision': {
+        // Spy: decide whether to discard opponent's revealed card
+        // Heuristic: keep the card (don't discard) - simple default
+        move = {
+          type: 'spy_decision',
+          choice: false,  // false = keep card on top
+          card: pending.revealedCard,
+          playerIndex: targetPlayerIndex
+        };
+        summary = `Player ${targetPlayerIndex + 1} kept ${pending.revealedCard} on top (Spy)`;
+        break;
+      }
+
+      default:
+        // Unknown effect type - don't auto-resolve
+        this.logger?.warn('Unknown opponent pending effect type', {
+          effect: pending.effect,
+          card: pending.card
+        });
+        return { state, resolved: false };
+    }
+
+    if (!move) {
+      return { state, resolved: false };
+    }
+
+    // Execute the auto-resolved move
+    try {
+      const result = engine.executeMove(state, move);
+      if (result.success && result.newState) {
+        this.logger?.info('Opponent pending effect resolved', {
+          effect: pending.effect,
+          summary
+        });
+        return { state: result.newState, resolved: true, summary };
+      } else {
+        this.logger?.warn('Failed to auto-resolve opponent pending effect', {
+          effect: pending.effect,
+          error: result.error
+        });
+        return { state, resolved: false };
+      }
+    } catch (error) {
+      this.logger?.error('Error auto-resolving opponent pending effect', {
+        effect: pending.effect,
+        error: error instanceof Error ? error.message : String(error)
+      });
+      return { state, resolved: false };
+    }
   }
 }

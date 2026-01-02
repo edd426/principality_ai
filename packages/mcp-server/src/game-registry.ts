@@ -4,7 +4,7 @@
  * Manages multiple concurrent game instances with TTL-based cleanup
  */
 
-import { GameEngine, GameState } from '@principality/core';
+import { GameEngine, GameState, getKingdomCardsByEdition, CardName } from '@principality/core';
 import { ExtendedGameInstance } from './types/tools';
 import { Logger } from './logger';
 
@@ -30,7 +30,9 @@ export class GameRegistryManager {
   createGame(
     seed?: string,
     model: 'haiku' | 'sonnet' = 'haiku',
-    edition: '1E' | '2E' | 'mixed' = '2E'
+    edition: '1E' | '2E' | 'mixed' = '2E',
+    numPlayers: number = 1,
+    kingdomCards?: string[]
   ): ExtendedGameInstance {
     // Check if max games reached, remove oldest by lastActivityTime
     if (this.games.size >= this.maxGames) {
@@ -42,7 +44,30 @@ export class GameRegistryManager {
 
     // Create new engine with seed
     const engine = new GameEngine(seed || gameId);
-    const state = engine.initializeGame(1, { edition });
+
+    // Handle partial kingdom cards by padding to 10
+    let fullKingdomCards: CardName[] | undefined;
+    if (kingdomCards && kingdomCards.length > 0) {
+      const specifiedCards = kingdomCards as CardName[];
+      if (specifiedCards.length < 10) {
+        // Get all available kingdom cards for this edition
+        const allCards = getKingdomCardsByEdition(edition);
+        // Filter out cards already specified
+        const availableCards = allCards.filter(card => !specifiedCards.includes(card));
+        // Shuffle available cards deterministically using the seed
+        const shuffled = this.shuffleWithSeed(availableCards, seed || gameId);
+        // Pad to 10 cards
+        const padding = shuffled.slice(0, 10 - specifiedCards.length);
+        fullKingdomCards = [...specifiedCards, ...padding];
+      } else {
+        fullKingdomCards = specifiedCards;
+      }
+    }
+
+    const state = engine.initializeGame(numPlayers, {
+      edition,
+      kingdomCards: fullKingdomCards
+    });
 
     const now = new Date().toISOString();
     const gameInstance: ExtendedGameInstance = {
@@ -245,5 +270,33 @@ export class GameRegistryManager {
     });
 
     return mostRecentId;
+  }
+
+  /**
+   * Shuffle an array deterministically using a seed string
+   * Uses a simple seeded random algorithm for reproducibility
+   */
+  private shuffleWithSeed<T>(array: T[], seed: string): T[] {
+    // Simple seeded random number generator
+    let hash = 0;
+    for (let i = 0; i < seed.length; i++) {
+      const char = seed.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash; // Convert to 32-bit integer
+    }
+
+    const seededRandom = () => {
+      hash = (hash * 1103515245 + 12345) & 0x7fffffff;
+      return hash / 0x7fffffff;
+    };
+
+    // Fisher-Yates shuffle with seeded random
+    const result = [...array];
+    for (let i = result.length - 1; i > 0; i--) {
+      const j = Math.floor(seededRandom() * (i + 1));
+      [result[i], result[j]] = [result[j], result[i]];
+    }
+
+    return result;
   }
 }

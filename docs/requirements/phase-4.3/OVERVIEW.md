@@ -113,48 +113,63 @@ node packages/cli/dist/index.js --state-file /tmp/game.json --move "1"
 
 ---
 
-## Planned Work
+## Additional Completed Work
 
-### Feature 3: CLI Integration Tests (Jest)
+### Feature 3: CLI Integration Tests (Jest) ✅
 
 Automated test suite for CLI that runs in CI/CD.
 
-**Purpose**:
-- Regression prevention
-- Deterministic (no agents needed per run)
-- Fast feedback on PRs
+**Status**: COMPLETE
 
-**Approach**:
-- Pipe move sequences to CLI
-- Verify game completes without errors
-- Check for expected output patterns
+**Location**: `packages/cli/tests/integration/`
 
-**Implementation Location**: `packages/cli/tests/integration/`
+**Test Files**:
+| File | Purpose |
+|------|---------|
+| `full-game-workflow.test.ts` | End-to-end turn workflows |
+| `multi-card-chain.test.ts` | Multi-move submission |
+| `phase-1.6.test.ts` | Card help system |
+| `phase-4.1-cli-prompts-integration.test.ts` | Interactive prompts |
+| `phase-4.2-cli-shared-layer.test.ts` | Shared presentation layer |
+| `help-command-e2e.test.ts` | Help command |
+| `cards-command-e2e.test.ts` | Cards command |
+| `module-imports.test.ts` | Module loading |
 
-### Feature 4: CLI UX Evaluation Agent
+**Coverage**: 9 test suites, 169 tests (158 passing, 11 skipped)
+
+**Design**:
+- Mocks readline for non-interactive execution
+- Uses real game engine (no mocks)
+- Tests complete pipeline: input → parse → execute → display
+- No API token required - pure local tests
+
+### Feature 4: CLI UX Evaluation Agent ✅
 
 AI agent that evaluates CLI usability by playing through turn-based mode.
 
-**Purpose**:
-- Identify confusing prompts
-- Rate screen clarity
-- Suggest UX improvements
-- Detect "stuck" states
+**Status**: COMPLETE
 
-**Agent Design**:
+**Agent**: `cli-tester` (`.claude/agents/cli-tester.md`)
+
+**Capabilities**:
+- Finds bugs AND evaluates UX clarity
+- Uses turn-based mode for non-interactive testing
+- Structured Q1-Q10 questionnaire covering:
+  - Game initialization
+  - Move clarity
+  - Treasure/coin mechanics
+  - Turn/phase transitions
+  - Error messages
+  - Overall CLI clarity rating (1-5)
+- Writes reports to `docs/testing/cli-playtests/reports/`
+
+**Design**:
 ```yaml
-name: cli-ux-tester
+name: cli-tester
 model: sonnet  # Needs reasoning ability
-tools: Bash, Write
+tools: Bash, Write, Read
+skills: cli-dominion-mechanics
 ```
-
-**Evaluation Criteria**:
-- Clarity: "Is it obvious what phase I'm in?"
-- Options: "Are available moves clearly listed?"
-- Feedback: "Did my last move's result make sense?"
-- Recovery: "Was the error message helpful?"
-
-**Implementation Location**: `.claude/agents/cli-ux-tester.md`
 
 ---
 
@@ -177,8 +192,8 @@ Phase 4.3 is complete when:
 
 - [ ] MCP playtest coverage reaches 90%+ (26/29 scenarios)
 - [x] CLI turn-based mode implemented and tested ✅
-- [ ] CLI integration test suite in place
-- [ ] cli-ux-tester agent created and validated
+- [x] CLI integration test suite in place ✅
+- [x] cli-tester agent created and validated ✅
 - [ ] No P0/P1 bugs found in 5 consecutive playtest runs
 
 ---

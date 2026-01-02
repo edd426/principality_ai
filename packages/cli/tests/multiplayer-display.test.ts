@@ -149,21 +149,21 @@ describe('Feature 4: CLI Display for Multiplayer', () => {
   // ============================================================================
 
   describe('UT 4.6: Supply Pile Display', () => {
-    test('should display all 8 supply piles with counts', () => {
-      // @req: FR 4.3 - All 8 supply piles shown
+    test('should display all supply piles with counts', () => {
+      // @req: FR 4.3 - All supply piles shown (17 = 10 kingdom + 6 basic + 1 Curse)
       // @input: Current supply state
       // @output: Display lists all cards with counts
       // @level: Unit
 
       const state = engine.initializeGame(2);
 
-      const expectedCards = [
+      // Basic cards always present
+      const basicCards = [
         'Copper', 'Silver', 'Gold',
-        'Estate', 'Duchy', 'Province',
-        'Smithy', 'Village'
+        'Estate', 'Duchy', 'Province', 'Curse'
       ];
 
-      expectedCards.forEach(card => {
+      basicCards.forEach(card => {
         const count = state.supply.get(card);
         expect(count).toBeGreaterThan(0);
 
@@ -171,6 +171,9 @@ describe('Feature 4: CLI Display for Multiplayer', () => {
         expect(display).toContain(card);
         expect(display).toContain(String(count));
       });
+
+      // Supply should have 17 piles (10 kingdom + 6 basic + 1 Curse)
+      expect(state.supply.size).toBe(17);
     });
   });
 
@@ -536,9 +539,9 @@ describe('Feature 4: CLI Display for Multiplayer', () => {
         expect(p0Header).toContain(`PLAYER 0`);
         expect(p0Header).toContain(`Turn #${state.turnNumber}`);
 
-        // Display supply status
+        // Display supply status (17 = 10 kingdom + 6 basic + 1 Curse)
         const emptyPiles = Array.from(state.supply.values()).filter(c => c === 0).length;
-        expect(state.supply.size).toBe(8);
+        expect(state.supply.size).toBe(17);
 
         // Display opponent info
         const opponentVP = state.players[1].hand.filter(

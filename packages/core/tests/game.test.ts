@@ -171,7 +171,7 @@ describe('GameEngine', () => {
     const victory = engine.checkGameOver(emptyProvinceState);
     expect(victory.isGameOver).toBe(true);
     expect(Array.isArray(victory.scores)).toBe(true);
-    expect(victory.scores.length).toBeGreaterThan(0);
+    expect(victory.scores!.length).toBeGreaterThan(0);
   });
 
   test('should validate invalid moves', () => {
@@ -457,7 +457,7 @@ describe('GameEngine', () => {
     const victory = engine.checkGameOver(modifiedState);
     expect(victory.isGameOver).toBe(true);
     expect(Array.isArray(victory.scores)).toBe(true);
-    expect(victory.scores.length).toBeGreaterThan(0);
+    expect(victory.scores!.length).toBeGreaterThan(0);
   });
 
   test('should verify seeded randomness is deterministic', () => {

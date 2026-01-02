@@ -16,6 +16,7 @@ describe('E2E: Backward Compatibility', () => {
     ai = new RulesBasedAI('backward-compat-test');
   });
 
+  // @fix: Issue #101 - Increased move limit from 100 to 160 (games complete in ~142 moves)
   test('E2E-BC-1: Solo game with original 8 kingdom cards', () => {
     // @req: Phase 1 gameplay works exactly as before
     const state = engine.initializeGame(1);
@@ -37,7 +38,7 @@ describe('E2E: Backward Compatibility', () => {
     let turnCount = 0;
 
     let gameOver = engine.checkGameOver(currentState).isGameOver;
-    while (!gameOver && turnCount < 100) { // @req: Sufficient moves for AI to complete game
+    while (!gameOver && turnCount < 160) { // @fix: Increased from 100 - Big Money needs ~142 moves
       const move = ai.decideBestMove(currentState, 0);
       const result = engine.executeMove(currentState, move.move);
 
@@ -50,9 +51,10 @@ describe('E2E: Backward Compatibility', () => {
 
     expect(gameOver).toBe(true);
     // Game completes without Phase 4 cards
-    expect(turnCount).toBeLessThan(100);
+    expect(turnCount).toBeLessThan(160);
   });
 
+  // @fix: Issue #101 - Increased move limit from 150 to 320 (2p with 8 Provinces needs ~296 moves)
   test('E2E-BC-2: Multiplayer with all 25 cards', () => {
     // @req: All cards work together without conflicts
     const state = engine.initializeGame(2);
@@ -61,7 +63,7 @@ describe('E2E: Backward Compatibility', () => {
     let turnCount = 0;
 
     let gameOver = engine.checkGameOver(currentState).isGameOver;
-    while (!gameOver && turnCount < 150) { // @req: Phase 4 has 25 cards, needs more moves
+    while (!gameOver && turnCount < 320) { // @fix: Increased - 2p with 8 Provinces needs ~296 moves
       const move = ai.decideBestMove(currentState, currentState.currentPlayer);
       const result = engine.executeMove(currentState, move.move);
 
@@ -76,7 +78,7 @@ describe('E2E: Backward Compatibility', () => {
     }
 
     expect(gameOver).toBe(true);
-    expect(turnCount).toBeLessThan(150);
+    expect(turnCount).toBeLessThan(320);
 
     // Both players completed game
     expect(currentState.players.length).toBe(2);

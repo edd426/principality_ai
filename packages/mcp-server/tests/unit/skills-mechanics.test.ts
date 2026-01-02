@@ -27,7 +27,9 @@ import fs from 'fs';
 import path from 'path';
 
 describe('Feature 1: Dominion Mechanics Skill - Unit Tests', () => {
-  const skillBaseDir = path.join(process.cwd(), '.claude', 'skills', 'dominion-mechanics');
+  // Navigate from test file to project root: tests/unit/ -> packages/mcp-server -> packages -> project root
+  const projectRoot = path.resolve(__dirname, '..', '..', '..', '..');
+  const skillBaseDir = path.join(projectRoot, '.claude', 'skills', 'dominion-mechanics');
 
   /**
    * @req: SKILL.md file loads and contains game mechanics documentation

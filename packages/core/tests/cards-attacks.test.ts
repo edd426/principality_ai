@@ -240,6 +240,55 @@ describe('UT: Attack System Cards', () => {
       expect(result.success).toBe(true);
       expect(result.newState!.players[1].discardPile).not.toContain('Curse');
     });
+
+    /**
+     * UT-WITCH-4: Game log includes effect description
+     * @req: GH-99 - Witch log message should describe effects like Militia does
+     * @why: Militia logs "+$2, opponents must discard" but Witch only logs "played Witch"
+     *       For consistency and player feedback, Witch should log its effects
+     * @assert: Log contains "+2 Cards" and "opponents gain Curse" (or similar)
+     */
+    test('UT-WITCH-4: should log effect description when played', () => {
+      // @req: GH-99 - Witch log should include effect description
+      // @why: Militia logs "(+$2, opponents must discard)" but Witch only logs "played Witch"
+      const state = engine.initializeGame(2);
+
+      const testState: GameState = {
+        ...state,
+        phase: 'action',
+        currentPlayer: 0,
+        supply: new Map([...state.supply, ['Curse', 10]]),
+        players: [
+          {
+            ...state.players[0],
+            hand: ['Witch'],
+            drawPile: ['Silver', 'Gold', 'Estate'],
+            actions: 1
+          },
+          state.players[1]
+        ]
+      };
+
+      const result = engine.executeMove(testState, {
+        type: 'play_action',
+        card: 'Witch'
+      });
+
+      expect(result.success).toBe(true);
+
+      // Find the log entry for playing Witch
+      const witchLogEntry = result.newState!.gameLog.find(
+        (entry) => entry.includes('played Witch')
+      );
+
+      expect(witchLogEntry).toBeDefined();
+
+      // Verify the log includes effect description (like Militia does)
+      // Militia logs: "Player N played Militia (+$2, opponents must discard)"
+      // Witch should log similar: "Player N played Witch (+2 Cards, opponents gain Curse)"
+      expect(witchLogEntry).toMatch(/\+2 Cards/i);
+      expect(witchLogEntry).toMatch(/opponents gain Curse/i);
+    });
   });
 
   describe('UT-BUREAUCRAT: Gain Silver to deck, opponents topdeck Victory', () => {

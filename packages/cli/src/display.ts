@@ -129,13 +129,16 @@ export class Display {
    */
   displaySupply(state: GameState): void {
     console.log('\nSupply:');
-    const { treasures, victory, kingdom } = groupSupplyByType(state);
+    const { treasures, victory, curse, kingdom } = groupSupplyByType(state);
 
     if (treasures.length > 0) {
       console.log('  Treasures: ' + this.formatSupplyGroupFromPiles(treasures));
     }
     if (victory.length > 0) {
       console.log('  Victory:   ' + this.formatSupplyGroupFromPiles(victory));
+    }
+    if (curse.length > 0) {
+      console.log('  Curse:     ' + this.formatSupplyGroupFromPiles(curse));
     }
     if (kingdom.length > 0) {
       console.log('  Kingdom:   ' + this.formatSupplyGroupFromPiles(kingdom));

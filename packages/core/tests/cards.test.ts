@@ -51,7 +51,10 @@ describe('Feature 3: Card Data Model - Phase 1.6', () => {
         type: 'action',
         cost: 3,
         effect: { cards: 1, actions: 2 },
-        description: '+1 Card, +2 Actions'  // REQUIRED field
+        description: '+1 Card, +2 Actions',  // REQUIRED field
+        expansion: 'Base',
+        releaseYear: 2008,
+        officialText: '+1 Card, +2 Actions'
       };
 
       expect(typeof validCard.description).toBe('string');
@@ -435,7 +438,10 @@ describe('Feature 3: Card Data Model - Phase 1.6', () => {
         type: 'action',
         cost: 0,
         effect: {},
-        description: 'Test Description'  // Required
+        description: 'Test Description',  // Required
+        expansion: 'Base',
+        releaseYear: 2008,
+        officialText: 'Test Description'
       };
 
       expect(card.description).toBe('Test Description');

@@ -30,10 +30,14 @@
  */
 
 import { Parser, ParseResult } from '../../src/parser';
-import { GameEngine, GameState, Move } from '@principality/core';
+import { GameEngine, GameState, Move, KINGDOM_CARDS, BASIC_CARDS } from '@principality/core';
 import { ConsoleCapture, GameStateBuilder } from '../utils/test-utils';
 import { handleCardsCommand } from '../../src/commands/cards';
 import { PerformanceHelper } from '../utils/test-utils';
+
+const TOTAL_KINGDOM_CARDS = Object.keys(KINGDOM_CARDS).length;
+const TOTAL_BASIC_CARDS = Object.keys(BASIC_CARDS).length;
+const TOTAL_CARDS = TOTAL_KINGDOM_CARDS + TOTAL_BASIC_CARDS;
 
 describe('Cards Command End-to-End Tests - Full User Workflow', () => {
   let parser: Parser;
@@ -110,12 +114,8 @@ describe('Cards Command End-to-End Tests - Full User Workflow', () => {
     expect(displayedOutput).toContain('Type');
     expect(displayedOutput).toContain('Effect');
 
-    // Verify all kingdom cards present
-    const kingdomCards = [
-      'Village', 'Smithy', 'Laboratory', 'Festival',
-      'Market', 'Woodcutter', 'Council Room', 'Cellar'
-    ];
-    kingdomCards.forEach(card => {
+    // Verify all kingdom cards present (dynamically from KINGDOM_CARDS)
+    Object.keys(KINGDOM_CARDS).forEach(card => {
       expect(displayedOutput).toContain(card);
     });
 
@@ -151,21 +151,29 @@ describe('Cards Command End-to-End Tests - Full User Workflow', () => {
       l.includes('|') && !l.includes('Name') && !l.includes('===') && !l.includes('---')
     );
 
+    // Helper to get base type category for sorting
+    const getTypeCategory = (type: string): string => {
+      if (type.startsWith('action')) return 'action';
+      return type;
+    };
+
     // Verify type order
-    let lastTypeIndex = -1;
-    const typeOrder = { 'action': 0, 'treasure': 1, 'victory': 2, 'curse': 3 };
+    let lastTypeCategory = '';
+    const typeOrder: Record<string, number> = { 'action': 0, 'treasure': 1, 'victory': 2, 'curse': 3 };
 
     cardLines.forEach(line => {
       const parts = line.split('|');
       if (parts.length >= 3) {
         const type = parts[2].trim();
-        const currentTypeIndex = typeOrder[type as keyof typeof typeOrder];
+        const typeCategory = getTypeCategory(type);
+        const currentTypeIndex = typeOrder[typeCategory] ?? 99;
 
-        if (lastTypeIndex !== -1) {
-          // Each type should appear in order
+        if (lastTypeCategory !== '') {
+          const lastTypeIndex = typeOrder[lastTypeCategory] ?? 99;
+          // Each type category should appear in order
           expect(currentTypeIndex).toBeGreaterThanOrEqual(lastTypeIndex);
         }
-        lastTypeIndex = currentTypeIndex;
+        lastTypeCategory = typeCategory;
       }
     });
 
@@ -177,13 +185,13 @@ describe('Cards Command End-to-End Tests - Full User Workflow', () => {
   });
 
   /**
-   * E2E Test 3: All 15 Cards Present with Complete Information
+   * E2E Test 3: All Cards Present with Complete Information
    *
    * @req: Every card displayed with name, cost, type, effect
    * @edge: Data completeness
    * @hint: Validates card data availability and formatting
    */
-  test('E2E-3: all 15 cards displayed with complete information', () => {
+  test(`E2E-3: all ${TOTAL_CARDS} cards displayed with complete information`, () => {
     // @req: All cards with all required fields
     // @edge: Data availability | formatting consistency
     // @hint: Verify handleCardsCommand() accesses complete card data
@@ -195,9 +203,9 @@ describe('Cards Command End-to-End Tests - Full User Workflow', () => {
 
     const displayedOutput = capture.getAllOutput();
 
-    // Expected cards: 8 kingdom + 7 base = 15 total
+    // Expected cards: kingdom cards + base cards
     const expectedCards = {
-      kingdom: ['Village', 'Smithy', 'Laboratory', 'Festival', 'Market', 'Woodcutter', 'Council Room', 'Cellar'],
+      kingdom: Object.keys(KINGDOM_CARDS),
       base: ['Copper', 'Silver', 'Gold', 'Estate', 'Duchy', 'Province', 'Curse']
     };
 
@@ -216,8 +224,8 @@ describe('Cards Command End-to-End Tests - Full User Workflow', () => {
       cardCount += occurrences;
     });
 
-    // Should have ~15 card lines (exactly 15 data rows)
-    expect(cardCount).toBeGreaterThanOrEqual(15);
+    // Should have correct number of card lines
+    expect(cardCount).toBeGreaterThanOrEqual(TOTAL_CARDS);
 
     // Verify descriptions present (no empty effect columns)
     const lines = displayedOutput.split('\n');
@@ -273,7 +281,7 @@ describe('Cards Command End-to-End Tests - Full User Workflow', () => {
     const dataRows = lines.filter(l =>
       l.includes('|') && !l.includes('Name') && !l.includes('===') && !l.includes('---')
     );
-    expect(dataRows.length).toBeGreaterThan(10); // At least 15 data rows
+    expect(dataRows.length).toBeGreaterThan(TOTAL_CARDS - 5); // At least close to total cards
 
     dataRows.forEach(row => {
       expect(row).toContain('|'); // Pipe separators present

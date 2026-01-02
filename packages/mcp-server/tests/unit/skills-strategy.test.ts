@@ -27,7 +27,9 @@ import fs from 'fs';
 import path from 'path';
 
 describe('Feature 2: Dominion Strategy Skill - Unit Tests', () => {
-  const skillBaseDir = path.join(process.cwd(), '.claude', 'skills', 'dominion-strategy');
+  // Navigate from test file to project root: tests/unit/ -> packages/mcp-server -> packages -> project root
+  const projectRoot = path.resolve(__dirname, '..', '..', '..', '..');
+  const skillBaseDir = path.join(projectRoot, '.claude', 'skills', 'dominion-strategy');
 
   /**
    * @req: SKILL.md file loads and contains strategy principles

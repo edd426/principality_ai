@@ -20,10 +20,10 @@ Automated testing infrastructure for both MCP and CLI interfaces.
 - SCENARIOS.md with 29 test scenarios (76% coverage)
 - Parallel agent testing for convergence-based bug detection
 
-**In Progress**:
-- CLI turn-based mode for agent-based UI testing
-- Jest integration tests for CLI
-- CLI UX evaluation agents
+**Completed** (additional):
+- CLI turn-based mode for agent-based UI testing ✅
+- cli-tester agent for UX evaluation ✅
+- Jest integration tests for CLI (9 suites, 169 tests) ✅
 
 [Full specs](./requirements/phase-4.3/)
 

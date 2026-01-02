@@ -64,6 +64,12 @@ export interface GameExecuteResponse {
     error?: string;
     validMoves?: string[];
   };
+  // 2-player MCP: Opponent turn summary after auto-play
+  opponentTurnSummary?: {
+    cardsBought: string[];
+    treasuresPlayed: string[];
+    actionsPlayed: string[];
+  };
   error?: {
     message: string;
     suggestion?: string;
@@ -78,6 +84,8 @@ export interface GameSessionRequest {
   model?: 'haiku' | 'sonnet';
   edition?: '1E' | '2E' | 'mixed';
   gameId?: string;
+  numPlayers?: number; // 1-4 players (default: 1)
+  kingdomCards?: string[]; // Optional specific kingdom cards
 }
 
 export interface GameSessionResponse {

@@ -28,7 +28,7 @@ describe('UT: Gaining System Cards', () => {
      */
     test('UT-WORKSHOP-1: should gain Smithy ($4)', () => {
       // @req: Gain card up to $4
-      const state = engine.initializeGame(1);
+      const state = engine.initializeGame(1, { allCards: true });
 
       const testState: GameState = {
         ...state,
@@ -66,7 +66,7 @@ describe('UT: Gaining System Cards', () => {
      */
     test('UT-WORKSHOP-2: should error when gaining card > $4', () => {
       // @req: Maximum $4 cost limit
-      const state = engine.initializeGame(1);
+      const state = engine.initializeGame(1, { allCards: true });
 
       const testState: GameState = {
         ...state,
@@ -101,7 +101,7 @@ describe('UT: Gaining System Cards', () => {
      */
     test('UT-WORKSHOP-3: should error when supply empty', () => {
       // @req: Cannot gain from empty pile
-      const state = engine.initializeGame(1);
+      const state = engine.initializeGame(1, { allCards: true });
 
       const testState: GameState = {
         ...state,
@@ -138,7 +138,7 @@ describe('UT: Gaining System Cards', () => {
      */
     test('UT-FEAST-1: should trash Feast and gain Duchy', () => {
       // @req: Feast trashes itself automatically
-      const state = engine.initializeGame(1);
+      const state = engine.initializeGame(1, { allCards: true });
 
       const testState: GameState = {
         ...state,
@@ -176,7 +176,7 @@ describe('UT: Gaining System Cards', () => {
      */
     test('UT-FEAST-2: should error when gaining card > $5', () => {
       // @req: Maximum $5 cost limit
-      const state = engine.initializeGame(1);
+      const state = engine.initializeGame(1, { allCards: true });
 
       const testState: GameState = {
         ...state,
@@ -211,7 +211,7 @@ describe('UT: Gaining System Cards', () => {
      */
     test('UT-FEAST-3: Feast should not be in discard after cleanup', () => {
       // @req: Feast trashes itself (not discarded)
-      const state = engine.initializeGame(1);
+      const state = engine.initializeGame(1, { allCards: true });
 
       const testState: GameState = {
         ...state,

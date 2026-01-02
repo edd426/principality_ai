@@ -37,13 +37,13 @@ Your target card will NOT appear if you use the wrong edition!
 | CARD-012 | Village | ✅ Pass | 2025-12-25 | 8+ plays, +1 card +2 actions, chaining works |
 | CARD-013 | Moat | ✅ Pass | 2025-12-25 | 4 plays, +2 cards verified |
 | CARD-014 | Woodcutter | ✅ Pass | 2025-12-25 | 4 plays, +1 buy +2 coins verified |
-| CARD-015 | Market | 🔄 Retest | 2025-12-25 | Agent confused (false positive bug report) |
+| CARD-015 | Market | ✅ Pass | 2026-01-02 | All 4 effects verified (+Card, +Action, +Buy, +$1) |
 | STRAT-001 | Big Money | ✅ Pass | 2025-12-25 | Multiple runs, no issues |
 | STRAT-002 | Action Engine | ⬜ Untested | - | - |
 | STRAT-003 | Rush Strategy | ⬜ Untested | - | - |
 | STRAT-004 | Trasher Strategy | ⬜ Untested | - | - |
 | EDGE-001 | Zero Coins | ✅ Pass | 2025-12-25 | Only Copper/Curse available at 0 coins |
-| EDGE-002 | Empty Supply | ⬜ Untested | - | - |
+| EDGE-002 | Empty Supply | ✅ Pass | 2026-01-02 | Province depletion ends game correctly (27 VP) |
 | EDGE-003 | Province Exhaustion | ✅ Pass | 2025-12-25 | Province buying works, game end detection correct |
 | EDGE-004 | Large Hand | ⬜ Untested | - | - |
 | EDGE-005 | No Valid Actions | ✅ Pass | 2025-12-21 | 1 run, no issues |
@@ -52,10 +52,18 @@ Your target card will NOT appear if you use the wrong edition!
 | UX-001 | Move Syntax | ✅ Pass | 2025-12-25 | Clear syntax, good error messages |
 | UX-002 | Phase Transitions | ⚠️ Findings | 2025-12-21 | Minor UX issues noted |
 | UX-003 | Error Messages | ⬜ Untested | - | - |
+| EDGE-008 | Throne Room + Militia | ⬜ Untested | - | 2-player scenario |
+| EDGE-009 | Curse Pile Exhaustion | ⬜ Untested | - | 2-player scenario |
+| EDGE-010 | Adventurer No Treasures | ⬜ Untested | - | Solo edge case |
+| EDGE-011 | Library All Actions | ⬜ Untested | - | Solo edge case |
+| MULTI-001 | Attack Resolution | ✅ Pass | 2026-01-02 | 2-player: Militia auto-discard works |
+| MULTI-002 | Moat Reaction | ✅ Pass | 2026-01-02 | Unit tests verify auto-reveal |
+| MULTI-003 | Witch Curse Giving | ✅ Pass | 2026-01-02 | 2-player: Curse given, +2 cards works |
+| MULTI-004 | Turn Cycling | ✅ Pass | 2026-01-02 | 2-player: P0→P1→P0 verified |
 
 **Legend:** ✅ Pass | ⚠️ Findings | ❌ Fail | 🔄 Retest | ⬜ Untested
 
-**Coverage Summary**: 22/29 scenarios tested (76%), 21 passed, 1 needs retest
+**Coverage Summary**: 28/37 scenarios tested (76%), 27 passed, 1 has findings
 
 ---
 
@@ -237,6 +245,86 @@ Your target card will NOT appear if you use the wrong edition!
 - Verify discard → deck transition
 **Watch for**: Shuffle mechanics, card continuity
 
+### EDGE-008: Throne Room + Militia (2-player)
+**Focus**: Test double attack via Throne Room
+**Setup**: `seed="2p-throne-militia"`, `edition="mixed"`, `numPlayers=2`
+**Instructions**:
+- Buy Throne Room and Militia
+- Play Throne Room on Militia
+- Verify opponent discards twice (should end at 3 cards, not 1)
+**Watch for**: Double attack resolution, opponent response
+
+### EDGE-009: Curse Pile Exhaustion (2-player)
+**Focus**: Test Witch when Curse pile is nearly empty
+**Setup**: `seed="2p-witch-curse"`, `edition="mixed"`, `numPlayers=2`
+**Instructions**:
+- Play Witch repeatedly to deplete Curse pile
+- Verify final Witch play when 0-1 Curses remain
+- Check that no crash occurs
+**Watch for**: Empty pile handling, Curse distribution
+
+### EDGE-010: Adventurer No Treasures
+**Focus**: Test Adventurer when deck has no treasures
+**Setup**: `seed="mixed-test-0"`, `edition="mixed"`, `numPlayers=1`
+**Instructions**:
+- Use Chapel to trash all Coppers
+- Play Adventurer with no treasures in deck
+- Verify graceful handling (draws 0 treasures, no crash)
+**Watch for**: Edge case handling, error messages
+
+### EDGE-011: Library All Actions
+**Focus**: Test Library when deck contains only action cards
+**Setup**: Custom scenario with action-heavy deck
+**Instructions**:
+- Build deck with many action cards
+- Play Library aiming to draw to 7
+- Verify set-aside mechanics work correctly
+**Watch for**: Library's skip-action behavior
+
+---
+
+## 2-Player Scenarios
+
+These scenarios require `numPlayers=2`. The opponent auto-plays Big Money strategy.
+
+### MULTI-001: Attack Resolution (Militia)
+**Focus**: Test Militia attack affects opponent
+**Setup**: `seed="2p-militia-test"`, `edition="mixed"`, `numPlayers=2`, `kingdomCards=["Militia"]`
+**Instructions**:
+- Buy and play Militia
+- Verify opponent hand reduced to 3 cards
+- Check +$2 is gained
+**Watch for**: Attack resolution, hand size change
+
+### MULTI-002: Moat Reaction
+**Focus**: Test Moat blocks attacks
+**Setup**: `seed="2p-moat-test"`, `edition="mixed"`, `numPlayers=2`, `kingdomCards=["Militia", "Moat"]`
+**Instructions**:
+- Ensure opponent has Moat in hand
+- Play attack card (Militia or Witch)
+- Verify attack is blocked when Moat revealed
+**Watch for**: Moat auto-reveal, attack cancellation
+
+### MULTI-003: Witch Curse Giving
+**Focus**: Test Witch gives Curse to opponent
+**Setup**: `seed="2p-witch-test"`, `edition="mixed"`, `numPlayers=2`, `kingdomCards=["Witch"]`
+**Instructions**:
+- Buy and play Witch
+- Verify opponent gains Curse
+- Check Curse pile decrements
+- Verify +2 cards for player
+**Watch for**: Curse distribution, draw effect
+
+### MULTI-004: Turn Cycling
+**Focus**: Test P0 → P1 → P0 turn rotation
+**Setup**: `seed="2p-cycle-test"`, `edition="mixed"`, `numPlayers=2`
+**Instructions**:
+- Complete full turn (action → buy → cleanup)
+- Verify opponent takes automated turn
+- Confirm turn returns to Player 0
+- Check turn number increments correctly
+**Watch for**: Turn rotation, opponentTurnSummary field
+
 ---
 
 ## Usability Tests
@@ -379,7 +467,7 @@ The following kingdom cards have no dedicated playtest scenarios:
 | Spy | `mixed-test-0` | High | Low (1E-only, complex) |
 | Thief | `mixed-test-15` | High | Low (1E-only, attack) |
 
-### Scenarios Not Yet Tested (7 of 29)
+### Scenarios Not Yet Tested - Solo (7 of 29)
 
 | ID | Focus | Complexity | Priority |
 |----|-------|------------|----------|
@@ -391,10 +479,28 @@ The following kingdom cards have no dedicated playtest scenarios:
 | EDGE-004 | Large Hand | Medium | Low |
 | UX-003 | Error Messages | Low | Low |
 
+### New Solo Edge Cases
+
+| ID | Focus | Complexity | Priority |
+|----|-------|------------|----------|
+| EDGE-010 | Adventurer No Treasures | Medium | Medium |
+| EDGE-011 | Library All Actions | Medium | Medium |
+
+### New 2-Player Scenarios (requires numPlayers=2)
+
+| ID | Focus | Complexity | Priority |
+|----|-------|------------|----------|
+| MULTI-001 | Attack Resolution (Militia) | Medium | High |
+| MULTI-002 | Moat Reaction | Medium | High |
+| MULTI-003 | Witch Curse Giving | Medium | High |
+| MULTI-004 | Turn Cycling | Low | High |
+| EDGE-008 | Throne Room + Militia | Medium | Medium |
+| EDGE-009 | Curse Pile Exhaustion | Medium | Medium |
+
 ### Recommended Next Steps
 
-1. **High Priority**: EDGE-002 (Empty Supply), CARD-015 (Market retest), Moneylender, Remodel
-2. **Medium Priority**: Gardens, Bureaucrat, STRAT-003, STRAT-004
+1. **High Priority**: MULTI-001-004 (2-player core mechanics), EDGE-002 (Empty Supply), CARD-015 (Market retest)
+2. **Medium Priority**: EDGE-008, EDGE-009, EDGE-010, EDGE-011, STRAT-003, STRAT-004
 3. **Low Priority**: 1E-only cards (Adventurer, Chancellor, Feast, Spy, Thief)
 
 ---

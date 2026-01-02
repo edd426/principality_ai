@@ -1,5 +1,5 @@
 import { GameState, PlayerState, Move, GameResult, Victory, CardName, GameOptions, PendingEffect } from './types';
-import { getCard, isActionCard, isTreasureCard, isVictoryCard, isReactionCard, KINGDOM_CARDS, getKingdomCardsByEdition } from './cards';
+import { getCard, isActionCard, isTreasureCard, isVictoryCard, isReactionCard, KINGDOM_CARDS, BASIC_CARDS, getKingdomCardsByEdition } from './cards';
 import { SeededRandom, createStartingDeck, createDefaultSupply, calculateScore, getAllPlayerCards } from './utils';
 
 // @decision: Helper functions for Phase 4 card mechanics
@@ -176,21 +176,13 @@ export class GameEngine {
 
     // Validate all cards exist and are kingdom cards
     for (const card of cards) {
-      // Check if card exists
-      try {
-        const cardData = getCard(card);
-        // Check if it's a basic card
-        if (cardData.type === 'treasure' || cardData.type === 'victory' || cardData.type === 'curse') {
-          throw new Error(`${card} is a basic card, not a kingdom card. Only action cards can be in kingdomCards.`);
-        }
-        // Check if it's actually a kingdom card
-        if (!KINGDOM_CARDS[card]) {
-          throw new Error(`Invalid card: ${card} is not a valid kingdom card`);
-        }
-      } catch (e) {
-        if (e instanceof Error && e.message.includes('basic card')) {
-          throw e;
-        }
+      // Check if it's a basic card first (Copper, Silver, Gold, Estate, Duchy, Province, Curse)
+      if (BASIC_CARDS[card]) {
+        throw new Error(`${card} is a basic card, not a kingdom card. Only kingdom cards can be in kingdomCards.`);
+      }
+      // Check if it's actually a kingdom card
+      // This allows victory-type kingdom cards like Gardens
+      if (!KINGDOM_CARDS[card]) {
         throw new Error(`Invalid card: ${card} is not a valid kingdom card`);
       }
     }
@@ -1248,7 +1240,7 @@ export class GameEngine {
 
     return {
       ...attackedState,
-      gameLog: [...attackedState.gameLog, `Player ${attackedState.currentPlayer + 1} played Witch`]
+      gameLog: [...attackedState.gameLog, `Player ${attackedState.currentPlayer + 1} played Witch (+2 Cards, opponents gain Curse)`]
     };
   }
 
@@ -2471,60 +2463,56 @@ export class GameEngine {
         // Chapel: trash up to 4 cards (any combination)
         // Generate all possible combinations of cards to trash
         if (pending.card === 'Chapel') {
-          // Start with the "trash nothing" option
-          moves.push({ type: 'trash_cards', cards: [] });
-
-          // Generate all possible combinations up to maxTrash cards
           const maxTrash = pending.maxTrash ?? 4;
-          const uniqueCards = Array.from(new Set(player.hand));
+          const effectiveMax = Math.min(maxTrash, player.hand.length);
 
-          // For simplicity, generate single-card and multi-card combinations
-          // Single cards
-          uniqueCards.forEach(card => {
-            moves.push({ type: 'trash_cards', cards: [card] });
+          // @decision: GH-98 fix - Generate unique combinations respecting duplicate cards
+          // Previous bug: Used uniqueCards.length to gate combination generation,
+          // which failed when hand had duplicate cards (e.g., 4 Coppers -> only 1 unique type)
+          // Fix: Group cards by type and generate combinations that can include
+          // multiple instances of the same card type
+
+          // Group cards by type and count occurrences
+          const cardCounts = new Map<CardName, number>();
+          player.hand.forEach(card => {
+            cardCounts.set(card, (cardCounts.get(card) || 0) + 1);
           });
 
-          // Two-card combinations (if hand has 2+ cards)
-          if (uniqueCards.length >= 2 && maxTrash >= 2) {
-            for (let i = 0; i < uniqueCards.length; i++) {
-              for (let j = i + 1; j < uniqueCards.length; j++) {
-                moves.push({
-                  type: 'trash_cards',
-                  cards: [uniqueCards[i], uniqueCards[j]]
-                });
-              }
-            }
-          }
+          const uniqueCardTypes = Array.from(cardCounts.keys());
+          const combinations: CardName[][] = [];
 
-          // Three-card combinations (if hand has 3+ cards)
-          if (uniqueCards.length >= 3 && maxTrash >= 3) {
-            for (let i = 0; i < uniqueCards.length; i++) {
-              for (let j = i + 1; j < uniqueCards.length; j++) {
-                for (let k = j + 1; k < uniqueCards.length; k++) {
-                  moves.push({
-                    type: 'trash_cards',
-                    cards: [uniqueCards[i], uniqueCards[j], uniqueCards[k]]
-                  });
-                }
+          // Generate all unique combinations using recursive backtracking
+          const generateCombinations = (index: number, currentCombo: CardName[]) => {
+            // Base case: processed all card types
+            if (index >= uniqueCardTypes.length) {
+              // Add combination if within size limit
+              if (currentCombo.length <= effectiveMax) {
+                combinations.push([...currentCombo]);
               }
+              return;
             }
-          }
 
-          // Four-card combinations (if hand has 4+ cards)
-          if (uniqueCards.length >= 4 && maxTrash >= 4) {
-            for (let i = 0; i < uniqueCards.length; i++) {
-              for (let j = i + 1; j < uniqueCards.length; j++) {
-                for (let k = j + 1; k < uniqueCards.length; k++) {
-                  for (let l = k + 1; l < uniqueCards.length; l++) {
-                    moves.push({
-                      type: 'trash_cards',
-                      cards: [uniqueCards[i], uniqueCards[j], uniqueCards[k], uniqueCards[l]]
-                    });
-                  }
-                }
+            const cardType = uniqueCardTypes[index];
+            const count = cardCounts.get(cardType)!;
+
+            // Try adding 0 to count instances of this card type
+            for (let i = 0; i <= count && currentCombo.length + i <= effectiveMax; i++) {
+              // Add i instances of this card type
+              const newCombo = [...currentCombo];
+              for (let j = 0; j < i; j++) {
+                newCombo.push(cardType);
               }
+              // Continue with next card type
+              generateCombinations(index + 1, newCombo);
             }
-          }
+          };
+
+          generateCombinations(0, []);
+
+          // Add all generated combinations as valid moves
+          combinations.forEach(cards => {
+            moves.push({ type: 'trash_cards', cards });
+          });
         }
         break;
       }
