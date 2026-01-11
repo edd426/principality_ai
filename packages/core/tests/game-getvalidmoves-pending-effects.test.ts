@@ -519,8 +519,8 @@ describe('BUG: getValidMoves() ignores pendingEffect', () => {
       // 1. Should have exactly 3 moves (Copper, Estate, Village)
       expect(validMoves.length).toBe(3);
 
-      // 2. ALL moves should be select_treasure_to_trash type
-      expect(validMoves.every(m => m.type === 'select_treasure_to_trash')).toBe(true);
+      // 2. ALL moves should be trash_cards type (Remodel can trash ANY card)
+      expect(validMoves.every(m => m.type === 'trash_cards')).toBe(true);
 
       // 3. Should NOT contain play_action (even with actions > 0)
       expect(validMoves.filter(m => m.type === 'play_action').length).toBe(0);
@@ -530,16 +530,16 @@ describe('BUG: getValidMoves() ignores pendingEffect', () => {
 
       // 5. Should contain all hand cards as options
       expect(validMoves).toContainEqual({
-        type: 'select_treasure_to_trash',
-        card: 'Copper'
+        type: 'trash_cards',
+        cards: ['Copper']
       });
       expect(validMoves).toContainEqual({
-        type: 'select_treasure_to_trash',
-        card: 'Estate'
+        type: 'trash_cards',
+        cards: ['Estate']
       });
       expect(validMoves).toContainEqual({
-        type: 'select_treasure_to_trash',
-        card: 'Village'
+        type: 'trash_cards',
+        cards: ['Village']
       });
     });
 
@@ -707,9 +707,9 @@ describe('BUG: getValidMoves() ignores pendingEffect', () => {
 
       // ASSERTIONS (WILL FAIL with bug):
 
-      // 1. Both should return ONLY select_treasure_to_trash moves
+      // 1. Mine returns select_treasure_to_trash, Remodel returns trash_cards
       expect(mineValidMoves.every(m => m.type === 'select_treasure_to_trash')).toBe(true);
-      expect(remodelValidMoves.every(m => m.type === 'select_treasure_to_trash')).toBe(true);
+      expect(remodelValidMoves.every(m => m.type === 'trash_cards')).toBe(true);
 
       // 2. Neither should contain play_action (even with actions > 0)
       expect(mineValidMoves.filter(m => m.type === 'play_action').length).toBe(0);
@@ -719,7 +719,7 @@ describe('BUG: getValidMoves() ignores pendingEffect', () => {
       expect(mineValidMoves.filter(m => m.type === 'end_phase').length).toBe(0);
       expect(remodelValidMoves.filter(m => m.type === 'end_phase').length).toBe(0);
 
-      // 4. Both should have same move count (Copper, Village available for both)
+      // 4. Different move counts (Mine: only treasures, Remodel: any card)
       expect(mineValidMoves.length).toBe(1); // Only Copper (Mine requires treasure)
       expect(remodelValidMoves.length).toBe(2); // Copper and Village (Remodel accepts any card)
     });

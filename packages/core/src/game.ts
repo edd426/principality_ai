@@ -2326,10 +2326,10 @@ export class GameEngine {
       }
 
       case 'trash_for_remodel': {
-        // Remodel step 1: trash any card
+        // Remodel step 1: trash any card (using trash_cards, not select_treasure_to_trash)
         const uniqueCards = Array.from(new Set(player.hand));
         uniqueCards.forEach(card => {
-          moves.push({ type: 'select_treasure_to_trash', card });
+          moves.push({ type: 'trash_cards', cards: [card] });
         });
         break;
       }

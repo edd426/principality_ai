@@ -208,11 +208,11 @@ export class MCPGameServer {
 
   /**
    * Stop the server gracefully
+   * Note: Does not call process.exit() to allow tests to clean up properly
    */
   async stop(): Promise<void> {
     this.logger.info('MCP Server shutting down gracefully');
     this.gameRegistry.stop();
-    process.exit(0);
   }
 
   /**

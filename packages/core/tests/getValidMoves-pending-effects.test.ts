@@ -666,9 +666,10 @@ describe('getValidMoves() with pending effects', () => {
       const validMoves = engine.getValidMoves(testState);
 
       // @req R-PENDING-002: Remodel can trash ANY card (treasures, actions, victories)
-      expect(validMoves).toContainEqual({ type: 'select_treasure_to_trash', card: 'Copper' });
-      expect(validMoves).toContainEqual({ type: 'select_treasure_to_trash', card: 'Estate' });
-      expect(validMoves).toContainEqual({ type: 'select_treasure_to_trash', card: 'Village' });
+      // Uses trash_cards move type with cards array (not select_treasure_to_trash)
+      expect(validMoves).toContainEqual({ type: 'trash_cards', cards: ['Copper'] });
+      expect(validMoves).toContainEqual({ type: 'trash_cards', cards: ['Estate'] });
+      expect(validMoves).toContainEqual({ type: 'trash_cards', cards: ['Village'] });
 
       // All unique cards in hand
       expect(validMoves).toHaveLength(3);

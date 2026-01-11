@@ -54,7 +54,7 @@ export interface GameExecuteResponse {
   pendingEffect?: {
     card: string;
     effect: string;
-    step?: number;
+    step?: number | null;  // null = not multi-step, number = current step
     options?: Array<{
       index: number;
       description: string;

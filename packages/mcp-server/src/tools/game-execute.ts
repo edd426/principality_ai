@@ -85,8 +85,31 @@ export class GameExecuteTool {
       };
     }
 
-    // Parse move string
-    const parseResult = parseMove(move, state);
+    // Handle numeric selection (e.g., "select 2" or just "2")
+    // This translates numeric selections to actual move commands when pending effect is active
+    const numericSelectionResult = this.handleNumericSelection(move, state, game.engine);
+    if (numericSelectionResult.handled) {
+      if (numericSelectionResult.error) {
+        // Return error response for invalid selection
+        const gameState = this.formatStateForAutoReturn(state);
+        const validMoves = this.formatValidMovesForAutoReturn(state, game.engine);
+        return {
+          success: false,
+          error: {
+            message: numericSelectionResult.error,
+            suggestion: numericSelectionResult.suggestion || 'Use a valid option number or the full move command.'
+          },
+          gameState: gameState,
+          validMoves: validMoves,
+          gameOver: gameState.gameOver
+        };
+      }
+      // Use the translated move command
+      request.move = numericSelectionResult.translatedMove!;
+    }
+
+    // Parse move string (may be original or translated from numeric selection)
+    const parseResult = parseMove(request.move, state);
     if (!parseResult.success || !parseResult.move) {
       this.logger?.warn('Failed to parse move', { move, phase: state.phase });
       return {
@@ -505,7 +528,8 @@ export class GameExecuteTool {
 
         if (options.length > 0) {
           // Determine step number for multi-step cards
-          let step: number | undefined = undefined;
+          // null = not a multi-step card, number = current step
+          let step: number | null = null;
           if (pendingEffect.card === 'Remodel' || pendingEffect.card === 'Mine') {
             // @decision: Remodel uses 'trash_for_remodel', Mine uses 'select_treasure_to_trash' for step 1
             // Both use 'gain_card'/'gain_treasure' for step 2
@@ -946,5 +970,91 @@ export class GameExecuteTool {
       });
       return { state, resolved: false };
     }
+  }
+
+  /**
+   * Handle numeric selection commands (e.g., "select 2" or just "2")
+   * Translates to actual move commands when a pending effect is active
+   *
+   * @returns Object with:
+   *   - handled: true if the move was a numeric selection attempt
+   *   - translatedMove: the actual move command (if valid)
+   *   - error: error message (if invalid selection)
+   *   - suggestion: helpful suggestion for error cases
+   */
+  private handleNumericSelection(
+    move: string,
+    state: GameState,
+    engine: GameEngine
+  ): {
+    handled: boolean;
+    translatedMove?: string;
+    error?: string;
+    suggestion?: string;
+  } {
+    const trimmed = move.trim();
+
+    // Check if move is numeric selection: "select N" or just "N"
+    const selectMatch = trimmed.match(/^select\s+(\d+)$/i);
+    const plainNumberMatch = trimmed.match(/^(\d+)$/);
+
+    const selectionNumber = selectMatch
+      ? parseInt(selectMatch[1], 10)
+      : plainNumberMatch
+        ? parseInt(plainNumberMatch[1], 10)
+        : null;
+
+    if (selectionNumber === null) {
+      // Not a numeric selection, let normal parsing handle it
+      return { handled: false };
+    }
+
+    // Numeric selection only makes sense when there's a pending effect
+    if (!state.pendingEffect) {
+      return {
+        handled: true,
+        error: `Invalid selection "${selectionNumber}": No pending choice to select from.`,
+        suggestion: 'Numeric selection only works after playing a card that requires a choice.'
+      };
+    }
+
+    // Generate options for the pending effect
+    const validMoves = engine.getValidMoves(state);
+    const options = generateMoveOptions(state, validMoves);
+
+    if (options.length === 0) {
+      return {
+        handled: true,
+        error: `No options available for pending effect.`,
+        suggestion: 'The current pending effect may not have any valid options.'
+      };
+    }
+
+    // Find the option by index (options use 1-based indexing)
+    const selectedOption = options.find((opt: any) => opt.index === selectionNumber);
+
+    if (!selectedOption) {
+      const validRange = `1-${options.length}`;
+      return {
+        handled: true,
+        error: `Invalid selection "${selectionNumber}": Out of range. Valid options are ${validRange}.`,
+        suggestion: `Choose a number between 1 and ${options.length}.`
+      };
+    }
+
+    // Translate to actual move command
+    const translatedMove = formatMoveCommand(selectedOption.move);
+
+    this.logger?.info('Numeric selection translated', {
+      originalMove: move,
+      selection: selectionNumber,
+      translatedMove: translatedMove,
+      pendingCard: state.pendingEffect.card
+    });
+
+    return {
+      handled: true,
+      translatedMove: translatedMove
+    };
   }
 }

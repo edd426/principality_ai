@@ -451,11 +451,12 @@ describe('generateRemodelStep1Options', () => {
     expect(options[0].description).toContain('No cards');
   });
 
-  it('should include move type trash_for_remodel', () => {
+  it('should include move type trash_cards', () => {
     const hand: CardName[] = ['Estate'];
     const options = generateRemodelStep1Options(hand);
 
-    expect(options[0].move.type).toBe('select_treasure_to_trash'); // Actually should be a specific remodel type
+    // Remodel step 1 uses trash_cards (can trash any card, not just treasures)
+    expect(options[0].move.type).toBe('trash_cards');
   });
 
   it('should include maxGainCost in description', () => {
