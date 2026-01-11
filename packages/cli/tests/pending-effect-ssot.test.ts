@@ -7,8 +7,8 @@ import { GameEngine, GameState, generateMoveOptions } from '@principality/core';
 // @why: Prevent wrong moves from being executed when user selects from menu
 // @level: integration
 
-// @skip: Bug #37 - These tests intentionally capture SSOT violations that need fixing
-describe.skip('Pending Effect SSOT Violation (Bug #37, #12)', () => {
+// Bug #37 - Testing SSOT fix
+describe('Pending Effect SSOT Violation (Bug #37, #12)', () => {
   let engine: GameEngine;
 
   beforeEach(() => {

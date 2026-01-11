@@ -349,7 +349,11 @@ export function generateChapelOptions(hand: readonly CardName[], maxTrash: numbe
  * Player chooses which card to trash
  *
  * @param hand - Player's current hand
- * @returns Array of options for each card in hand
+ * @returns Array of options for each UNIQUE card type in hand
+ *
+ * @fix: Issue #103 - Deduplicate to match getValidMoves() behavior
+ * Since all cards of the same type are functionally identical for Remodel,
+ * we show one option per card type, not per card instance.
  */
 export function generateRemodelStep1Options(hand: readonly CardName[]): MoveOption[] {
   if (hand.length === 0) {
@@ -365,7 +369,10 @@ export function generateRemodelStep1Options(hand: readonly CardName[]): MoveOpti
     ];
   }
 
-  return hand.map((card, idx) => {
+  // Deduplicate: only one option per card type (matches getValidMoves behavior)
+  const uniqueCards = Array.from(new Set(hand));
+
+  return uniqueCards.map((card, idx) => {
     const cardDef = getCard(card);
     const maxGainCost = cardDef.cost + 2;
 
@@ -438,7 +445,11 @@ export function generateRemodelStep2Options(
  * Player chooses which treasure to trash
  *
  * @param hand - Player's current hand
- * @returns Array of treasure options
+ * @returns Array of UNIQUE treasure options
+ *
+ * @fix: Issue #103 - Deduplicate to match getValidMoves() behavior
+ * Since all treasures of the same type are functionally identical for Mine,
+ * we show one option per treasure type, not per treasure instance.
  */
 export function generateMineStep1Options(hand: readonly CardName[]): MoveOption[] {
   // Filter hand for treasures only
@@ -457,7 +468,10 @@ export function generateMineStep1Options(hand: readonly CardName[]): MoveOption[
     ];
   }
 
-  return treasures.map((card, idx) => {
+  // Deduplicate: only one option per treasure type (matches getValidMoves behavior)
+  const uniqueTreasures = Array.from(new Set(treasures));
+
+  return uniqueTreasures.map((card, idx) => {
     const cardDef = getCard(card);
     const maxGainCost = cardDef.cost + 3;
 
