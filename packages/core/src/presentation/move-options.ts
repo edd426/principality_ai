@@ -357,7 +357,7 @@ export function generateRemodelStep1Options(hand: readonly CardName[]): MoveOpti
     return [
       {
         index: 1,
-        move: { type: 'select_treasure_to_trash', card: '' as CardName },
+        move: { type: 'trash_cards', cards: [] },
         description: "No cards to trash",
         cardNames: [],
         details: { action: 'skip' }
@@ -371,7 +371,7 @@ export function generateRemodelStep1Options(hand: readonly CardName[]): MoveOpti
 
     return {
       index: idx + 1,
-      move: { type: 'select_treasure_to_trash', card },
+      move: { type: 'trash_cards', cards: [card] },
       description: `Trash: ${card} ($${cardDef.cost}) → Can gain up to $${maxGainCost}`,
       cardNames: [card],
       details: { trashCost: cardDef.cost, maxGainCost }
