@@ -59,10 +59,10 @@ export class GameRegistryManager {
     // Store game
     this.games.set(gameId, gameInstance);
 
-    // Set as default if this is the first game
-    if (this.defaultGameId === null) {
-      this.defaultGameId = gameId;
-    }
+    // FIX #107: Always set newly created game as the default
+    // Previously only set default when it was the first game, causing
+    // game_execute to return stale state from old games.
+    this.defaultGameId = gameId;
 
     this.logger?.info('Game created', {
       gameId,

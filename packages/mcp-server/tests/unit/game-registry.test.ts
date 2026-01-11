@@ -522,6 +522,44 @@ describe('Unit: GameRegistryManager', () => {
       expect(true).toBe(true); // Placeholder
     });
 
+    /**
+     * @bug Issue #107: State desynchronization - game_execute falsely reports 'Province pile empty'
+     *
+     * When a new game is created after another game exists, the new game should become
+     * the default game. This ensures that game_execute and game_observe without explicit
+     * gameId operate on the most recently created game, not a stale/ended game.
+     */
+    test('BUG #107: should set newly created game as default (not just first game)', () => {
+      // @req: createGame() always sets new game as default
+      // @input: Create game1, create game2; getGame()
+      // @output: game2 returned (the newer game)
+      // @assert: New game becomes default, not just first game
+      // @why: Prevents state desync where execute returns stale game state
+      // @bug: Issue #107 - game_execute falsely reports 'Province pile empty' after new game
+      // @level: Unit
+
+      const { GameRegistryManager } = require('../../src/game-registry');
+      const registry = new GameRegistryManager(10, 60 * 60 * 1000);
+
+      // Create first game
+      const game1 = registry.createGame('seed-1');
+      expect(game1.id).toBeDefined();
+
+      // Create second game
+      const game2 = registry.createGame('seed-2');
+      expect(game2.id).toBeDefined();
+      expect(game2.id).not.toBe(game1.id);
+
+      // Getting default game (no ID) should return the NEWER game (game2)
+      // This is the expected behavior for user intent - when you create a new game,
+      // you want that game to be the "active" game.
+      const defaultGame = registry.getGame();
+      expect(defaultGame).not.toBeNull();
+      expect(defaultGame!.id).toBe(game2.id); // BUG: Currently returns game1.id
+
+      registry.stop();
+    });
+
     test('should update default game when first game is ended', () => {
       // @req: Default updates to next game when current default ends
       // @input: Create game1, game2; endGame(game1.id); getGame()
