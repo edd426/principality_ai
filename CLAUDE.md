@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-**Status**: ACTIVE | **Phase**: 4 | **Last-Updated**: 2025-12-27
+**Status**: ACTIVE
 
 ---
 
@@ -19,10 +19,11 @@
 
 ```
 packages/
-├── core/       # Game engine
+├── api-server/ # HTTP API server
 ├── cli/        # CLI interface
+├── core/       # Game engine
 ├── mcp-server/ # MCP integration
-└── web/        # Web UI (Phase 5)
+└── web/        # Web UI
 ```
 
 ## Commands
@@ -47,6 +48,8 @@ npm run play    # Start CLI game (--seed, --stable-numbers)
 | **Refactor** | Ensure tests exist → Run tests (green) → Refactor → Run tests (still green) |
 
 **Agents**: Use `test-architect` for requirements/tests, `dev-agent` for implementation. For simple fixes with existing tests, work directly.
+
+**TDD Skill**: The `/tdd-workflow` skill auto-activates for implementation tasks (implement, add, create, fix, build). It enforces the Requirements → Tests → Implementation workflow and guides subagent usage. See [.claude/skills/tdd-workflow/SKILL.md](./.claude/skills/tdd-workflow/SKILL.md).
 
 ---
 
@@ -96,12 +99,10 @@ After modifying MCP server code, restart Claude Code for changes to take effect:
 
 ## Development Standards
 
-**Current phase**: 4 (Complete Dominion Base Set) - 25 cards implemented.
-
 | Topic | Reference |
 |-------|-----------|
 | TDD Workflow | [docs/TDD_WORKFLOW.md](./docs/TDD_WORKFLOW.md) |
-| Phase Status | [docs/PHASE_STATUS.md](./docs/PHASE_STATUS.md) |
+| Roadmap | [docs/ROADMAP.md](./docs/ROADMAP.md) |
 | Documentation | [docs/DOCUMENTATION_GUIDELINES.md](./docs/DOCUMENTATION_GUIDELINES.md) |
 | Agent Communication | [.claude/AGENT_COMMUNICATION.md](./.claude/AGENT_COMMUNICATION.md) |
 | MCP Playtesting | [docs/testing/mcp-playtests/](./docs/testing/mcp-playtests/) |
@@ -115,5 +116,5 @@ After modifying MCP server code, restart Claude Code for changes to take effect:
 
 - [API Reference](./docs/reference/API.md)
 - [Development Guide](./docs/reference/DEVELOPMENT_GUIDE.md)
-- [Phase 4 Requirements](./docs/requirements/phase-4/)
+- [Requirements](./docs/requirements/)
 - [MCP Playtest Scenarios](./docs/testing/mcp-playtests/SCENARIOS.md)

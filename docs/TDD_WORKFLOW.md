@@ -1,8 +1,6 @@
 # TDD Workflow
 
 **Status**: ACTIVE
-**Created**: 2025-12-20
-**Phase**: All
 
 ---
 
@@ -75,6 +73,6 @@ This project follows Test-Driven Development (TDD). Tests are written **first**,
 
 ## Test Locations
 
-- Test specifications: `docs/requirements/phase-X/TESTING.md`
+- Test specifications: `docs/requirements/`
 - Test files: `packages/{core,cli,mcp-server}/tests/`
 - Coverage report: `npm run test -- --coverage`

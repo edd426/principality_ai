@@ -1,8 +1,6 @@
 # Development Guide
 
 **Status**: ACTIVE
-**Created**: 2025-10-19
-**Phase**: 1
 
 ---
 
@@ -335,27 +333,27 @@ web           # Depends on core + cli
 
 ---
 
-## Phase-Specific Guidance
+## Development Areas
 
-### Phase 1 (Complete)
-- **Focus**: Core engine validation
-- **Testing**: CLI manual testing + unit tests
+### Core Engine (`packages/core/`)
+- **Focus**: Game state, card effects, move validation
+- **Testing**: Unit tests for all card mechanics
 - **Commands**: `npm run play` for interactive testing
 
-### Phase 1.5 (Complete)
-- **Focus**: CLI UX improvements
-- **Testing**: Integration tests for new features
+### CLI Interface (`packages/cli/`)
+- **Focus**: Command-line UX and display
+- **Testing**: Integration tests, turn-based mode
 - **Commands**: Test with `--stable-numbers`, `--manual-cleanup`, etc.
 
-### Phase 2 (Future)
-- **Focus**: MCP server integration
-- **Testing**: MCP endpoint tests, LLM gameplay
-- **Commands**: Azure Functions deployment
+### MCP Server (`packages/mcp-server/`)
+- **Focus**: Model Context Protocol integration
+- **Testing**: MCP tool tests, LLM gameplay
+- **Commands**: Restart Claude Code after changes
 
-### Phase 3 (Future)
-- **Focus**: Multiplayer support
-- **Testing**: Multi-client synchronization tests
-- **Commands**: Multiplayer CLI mode
+### Web UI (`packages/web/`)
+- **Focus**: Browser-based interface
+- **Testing**: Component tests, E2E with Playwright
+- **Commands**: `npm run dev` in packages/web/
 
 ---
 
@@ -503,5 +501,5 @@ AI agent needs strategy advice → checks dominion-strategy skill
 - [API.md](./API.md) - Detailed API reference including game_execute tool
 - [ARCHITECTURE.md](./ARCHITECTURE.md) - System architecture
 - [PERFORMANCE.md](./PERFORMANCE.md) - Performance benchmarks
-- [Phase 2.1 Requirements](../requirements/phase-2.1/FEATURES.md) - R2.1-ACC feature details
+- [Requirements](../requirements/) - Feature specifications
 - [CLAUDE.md](../../CLAUDE.md) - Project overview

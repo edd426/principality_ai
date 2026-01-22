@@ -1,8 +1,6 @@
 # Documentation Guidelines
 
 **Status**: ACTIVE
-**Created**: 2025-12-20
-**Phase**: All
 
 ---
 
@@ -22,7 +20,7 @@ Any other .md at root violates project policy.
 | Permanent docs | `docs/` (reference, guides, requirements) |
 | Session notes | `docs/sessions/YYYY-MM-DD/` |
 | Agent communication | @ tags in code/tests |
-| Requirements | `docs/requirements/phase-X/` |
+| Requirements | `docs/requirements/` |
 
 ## Session Report Naming
 
@@ -69,8 +67,6 @@ Single source of truth:
 ```markdown
 # {Title}
 **Status**: DRAFT | ACTIVE | APPROVED | ARCHIVED
-**Created**: YYYY-MM-DD
-**Phase**: {1, 1.5, 2, etc.}
 ```
 
 ## Agent Communication
