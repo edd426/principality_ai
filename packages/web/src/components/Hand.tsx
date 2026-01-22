@@ -13,7 +13,7 @@ interface HandProps {
  * Check if a card at given index can be played
  */
 function canPlayCard(
-  index: number,
+  _index: number,
   card: string,
   validMoves: ValidMove[],
   phase: Phase
@@ -23,7 +23,7 @@ function canPlayCard(
     if (phase === 'action') {
       return move.type === 'play_action' && move.card === card;
     } else if (phase === 'buy') {
-      return move.type === 'play_treasure' && move.playerIndex === index;
+      return move.type === 'play_treasure' && move.card === card;
     }
     return false;
   });

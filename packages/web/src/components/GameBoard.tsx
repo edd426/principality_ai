@@ -19,13 +19,13 @@ export default function GameBoard({ game, onExecuteMove, loading = false }: Game
   const isDisabled = loading || !isYourTurn;
 
   // Move handlers
-  const handlePlayCard = (index: number, card: string) => {
+  const handlePlayCard = (_index: number, card: string) => {
     if (gameState.phase === 'action') {
       // For actions, we use the card name
       onExecuteMove(`play ${card}`);
     } else if (gameState.phase === 'buy') {
-      // For treasures, we use the index
-      onExecuteMove(`play ${index}`);
+      // For treasures, we use the card name
+      onExecuteMove(`play ${card}`);
     }
   };
 

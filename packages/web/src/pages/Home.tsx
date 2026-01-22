@@ -7,6 +7,7 @@ export default function Home() {
   const navigate = useNavigate();
   const [aiModel, setAiModel] = useState<AIModel>('haiku');
   const [seed, setSeed] = useState('');
+  const [manualAI, setManualAI] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -18,6 +19,7 @@ export default function Home() {
       const response = await createGame({
         aiModel,
         seed: seed || undefined,
+        manualAI: manualAI || undefined,
       });
       navigate(`/game/${response.gameId}`);
     } catch (e) {
@@ -71,6 +73,24 @@ export default function Home() {
               Use the same seed to replay identical shuffles
             </p>
           </div>
+
+          <div className="flex items-center gap-3">
+            <input
+              type="checkbox"
+              id="manualAI"
+              checked={manualAI}
+              onChange={(e) => setManualAI(e.target.checked)}
+              className="w-4 h-4 bg-gray-700 border-gray-600 rounded text-blue-500 focus:ring-blue-500 focus:ring-offset-gray-800"
+            />
+            <label htmlFor="manualAI" className="text-sm text-gray-300">
+              Manual AI Mode
+            </label>
+          </div>
+          {manualAI && (
+            <p className="text-xs text-yellow-400 -mt-4">
+              AI turns will not auto-play. Use for Claude MCP testing or manual control.
+            </p>
+          )}
 
           {error && (
             <div className="bg-red-900/50 border border-red-500 rounded p-3 text-red-300 text-sm">

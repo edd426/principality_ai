@@ -34,6 +34,8 @@ export interface CreateGameRequest {
   seed?: string;
   kingdomCards?: string[];
   enableNarration?: boolean;
+  /** If true, AI turns are not auto-played (for Claude MCP control) */
+  manualAI?: boolean;
 }
 
 export interface CreateGameResponse {
