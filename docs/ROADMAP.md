@@ -31,9 +31,17 @@ Principality AI is a solo-first Dominion-inspired deck-building game with deep A
 - **API Server**: REST API for web client
 
 ### AI Integration
-- Rules-based Big Money AI opponent
+- **Claude AI opponent** via Anthropic SDK (Haiku, Sonnet, Opus model selection)
+- Big Money fallback strategy when Claude API unavailable
+- AI prompt engineering for game state → move decisions
 - MCP tools for Claude gameplay
 - Claude Code skills for strategy and mechanics guidance
+
+### Real-Time Infrastructure
+- **WebSocket server** for real-time game state broadcasting
+- **Turn coordinator** for human↔AI turn synchronization
+- REST API endpoints (create, observe, move, end games)
+- Client state filtering (opponent hand hidden)
 
 ### Testing Infrastructure
 - MCP playtesting with Haiku agents
@@ -45,10 +53,10 @@ Principality AI is a solo-first Dominion-inspired deck-building game with deep A
 ## Future Vision
 
 ### Human vs Claude AI
-Enable humans to play against Claude AI opponents with:
-- Hybrid game mode (CLI/Web human + MCP AI)
-- Turn synchronization between interfaces
-- Claude opponent selection (Haiku, Sonnet, Opus)
+Remaining integration work to enable end-to-end human vs Claude gameplay:
+- Wire WebSocket server into HTTP dev server (upgrade handler)
+- Hook turn coordinator into game routes for auto AI turns
+- End-to-end CLI human vs Claude AI game flow
 - Optional game narration from AI
 
 ### Advanced AI & Strategy

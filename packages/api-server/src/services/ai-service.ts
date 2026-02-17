@@ -1,13 +1,18 @@
 /**
  * AI Service
  *
- * Handles AI opponent turns using Big Money strategy.
- * Claude AI integration will be added in Phase 5.3.
+ * Handles AI opponent turns using Claude AI with Big Money fallback.
+ * Orchestrates the strategy chain: Claude API -> Big Money.
  *
+ * @req AI-001 - AI model selection (Haiku/Sonnet/Opus)
+ * @req AI-002 - AI decision context and reasoning
  * @req AI-003 - Big Money fallback strategy
  */
 
 import { GameState, GameEngine, Move, isTreasureCard } from '@principality/core';
+import type { AIModel, AIDecisionContext, AIDecision } from '../types/ai';
+import { ClaudeAIStrategy } from './claude-ai-strategy';
+import { BigMoneyStrategy } from './big-money-strategy';
 
 /**
  * Summary of an AI turn
@@ -20,8 +25,78 @@ export interface AITurnSummary {
 
 /**
  * AI Service for opponent turn automation
+ *
+ * Supports two modes:
+ * - playBigMoneyTurn: Original deterministic strategy (synchronous)
+ * - decideNextMove: Claude AI with Big Money fallback (async)
  */
 export class AIService {
+  private claudeStrategy: ClaudeAIStrategy | null = null;
+  private bigMoneyStrategy = new BigMoneyStrategy();
+
+  /**
+   * Initialize Claude AI strategy for a specific model.
+   * Call this when a game starts with AI enabled.
+   */
+  initClaudeAI(model: AIModel, apiKey?: string): void {
+    this.claudeStrategy = new ClaudeAIStrategy(model, apiKey);
+  }
+
+  /**
+   * Decide the next move using Claude AI, falling back to Big Money.
+   *
+   * @req AI-002 - Returns decision with reasoning
+   * @req AI-003 - Falls back to Big Money on API errors
+   */
+  async decideNextMove(
+    state: GameState,
+    engine: GameEngine,
+    playerIndex: number
+  ): Promise<AIDecision> {
+    const context = this.buildDecisionContext(state, engine, playerIndex);
+
+    // Try Claude AI first
+    if (this.claudeStrategy && this.claudeStrategy.canHandle(context)) {
+      try {
+        return await this.claudeStrategy.decideMove(context);
+      } catch (_error) {
+        // Fall through to Big Money
+      }
+    }
+
+    // Fallback to Big Money
+    return this.bigMoneyStrategy.decideMove(context);
+  }
+
+  /**
+   * Build the decision context from game state.
+   */
+  buildDecisionContext(
+    state: GameState,
+    engine: GameEngine,
+    playerIndex: number
+  ): AIDecisionContext {
+    const player = state.players[playerIndex];
+    const validMoves = engine.getValidMoves(state);
+
+    return {
+      gameState: state,
+      playerIndex,
+      validMoves,
+      phase: state.phase,
+      turnNumber: state.turnNumber,
+      hand: [...player.hand],
+      resources: {
+        actions: player.actions,
+        buys: player.buys,
+        coins: player.coins,
+      },
+      playedThisTurn: [...player.inPlay],
+      kingdomCards: state.selectedKingdomCards ? [...state.selectedKingdomCards] : [],
+      gameLog: state.gameLog ? [...state.gameLog] : [],
+    };
+  }
+
   /**
    * Play a full Big Money turn for the AI opponent
    *

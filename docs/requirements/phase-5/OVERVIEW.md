@@ -17,47 +17,47 @@ Phase 5 adds a web-based interface for playing Dominion against Claude AI. This 
 
 | ID | Requirement | Status |
 |----|-------------|--------|
-| @req API-001.1 | `POST /api/games` creates a new human vs AI game | Defined |
-| @req API-001.2 | `GET /api/games/:gameId` returns filtered game state and valid moves | Defined |
-| @req API-001.3 | `POST /api/games/:gameId/move` executes a human player move | Defined |
-| @req API-001.4 | `DELETE /api/games/:gameId` ends a game early | Defined |
+| @req API-001.1 | `POST /api/games` creates a new human vs AI game | Implemented |
+| @req API-001.2 | `GET /api/games/:gameId` returns filtered game state and valid moves | Implemented |
+| @req API-001.3 | `POST /api/games/:gameId/move` executes a human player move | Implemented |
+| @req API-001.4 | `DELETE /api/games/:gameId` ends a game early | Implemented |
 
 ### API-002: WebSocket Events
 
 | ID | Requirement | Status |
 |----|-------------|--------|
-| @req API-002.1 | `game_state_update` sent when state changes | Defined |
-| @req API-002.2 | `ai_turn_start` sent when AI begins thinking | Defined |
-| @req API-002.3 | `ai_move` sent when AI executes a move | Defined |
-| @req API-002.4 | `narration` sent for optional game commentary | Defined |
-| @req API-002.5 | `game_over` sent when game ends | Defined |
-| @req API-002.6 | `subscribe` client event to join game channel | Defined |
-| @req API-002.7 | `set_narration` client event to toggle commentary | Defined |
+| @req API-002.1 | `game_state_update` sent when state changes | Implemented |
+| @req API-002.2 | `ai_turn_start` sent when AI begins thinking | Implemented |
+| @req API-002.3 | `ai_move` sent when AI executes a move | Implemented |
+| @req API-002.4 | `narration` sent for optional game commentary | Implemented |
+| @req API-002.5 | `game_over` sent when game ends | Implemented |
+| @req API-002.6 | `subscribe` client event to join game channel | Implemented |
+| @req API-002.7 | `set_narration` client event to toggle commentary | Implemented |
 
 ### API-003: State Filtering
 
 | ID | Requirement | Status |
 |----|-------------|--------|
-| @req API-003 | ClientGameState hides opponent's hand contents | Defined |
+| @req API-003 | ClientGameState hides opponent's hand contents | Implemented |
 
 ### AI-001: AI Model Selection
 
 | ID | Requirement | Status |
 |----|-------------|--------|
-| @req AI-001 | Support Haiku, Sonnet, and Opus model selection | Defined |
+| @req AI-001 | Support Haiku, Sonnet, and Opus model selection | Implemented |
 
 ### AI-002: AI Decision Making
 
 | ID | Requirement | Status |
 |----|-------------|--------|
-| @req AI-002.1 | AI receives full game context for decision making | Defined |
-| @req AI-002.2 | AI decisions include optional reasoning | Defined |
+| @req AI-002.1 | AI receives full game context for decision making | Implemented |
+| @req AI-002.2 | AI decisions include optional reasoning | Implemented |
 
 ### AI-003: Fallback Strategy
 
 | ID | Requirement | Status |
 |----|-------------|--------|
-| @req AI-003 | Big Money fallback when Claude API unavailable | Defined |
+| @req AI-003 | Big Money fallback when Claude API unavailable | Implemented |
 
 ---
 
@@ -221,10 +221,18 @@ All types are defined in `packages/api-server/src/types/`:
 
 ---
 
-## Next Steps
+## Implementation Status
 
-1. **Phase 5.1**: Implement HTTP endpoints with Hono
-2. **Phase 5.2**: Implement WebSocket server
-3. **Phase 5.3**: Implement Claude AI strategy
-4. **Phase 5.4**: Implement Big Money fallback
-5. **Phase 5.5**: Build web UI (React/Vite)
+| Phase | Scope | Status |
+|-------|-------|--------|
+| 5.1 | HTTP endpoints (Hono) | Implemented |
+| 5.2 | WebSocket server | Implemented |
+| 5.3 | Claude AI strategy | Implemented |
+| 5.4 | Big Money fallback | Implemented |
+| 5.5 | Web UI (React/Vite) | In Progress |
+
+## Remaining Work
+
+- Wire WebSocket server into HTTP dev server (upgrade handler)
+- Hook turn coordinator into game routes for auto AI turns
+- End-to-end human vs Claude AI game flow via web UI

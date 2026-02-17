@@ -13,6 +13,8 @@ module.exports = {
         esModuleInterop: true,
         strict: true,
         skipLibCheck: true,
+        noUnusedLocals: false,
+        noUnusedParameters: false,
       }
     }],
   },

@@ -21,6 +21,13 @@ export {
   calculatePlayerScores,
   formatCompactState,
 } from './services/state-filter';
+export { WebSocketServer } from './services/websocket-server';
+export {
+  TurnCoordinator,
+  type TurnCoordinatorOptions,
+  type AITurnResult,
+  type PendingEffectResult,
+} from './services/turn-coordinator';
 
 // Middleware
 export {

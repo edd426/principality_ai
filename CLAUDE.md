@@ -33,6 +33,10 @@ npm run build   # Build all packages
 npm run test    # Run all tests
 npm run lint    # Check code style
 npm run play    # Start CLI game (--seed, --stable-numbers)
+
+# API Server development
+npm run dev --workspace=packages/api-server   # Start dev server (hot reload)
+npm test --workspace=packages/api-server      # Run api-server tests only
 ```
 
 ---
@@ -76,6 +80,13 @@ const move = {type: 'play_action', card: 'Village'};
 // Supply is a Map
 supply.get('Copper')  // ✓
 supply['Copper']      // ✗
+
+// AI Service: init Claude before using
+const aiService = new AIService();
+aiService.initClaudeAI('sonnet');  // requires ANTHROPIC_API_KEY env var
+// Falls back to Big Money if API key missing or API fails
+
+// api-server jest roots to src/ — tests go in src/__tests__/
 ```
 
 ---
