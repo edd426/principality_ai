@@ -1,8 +1,7 @@
 # Principality AI - API Reference
 
-**Version**: 1.0.0 (Phase 1)
+**Status**: ACTIVE
 **Package**: `@principality/core`
-**Last Updated**: October 4, 2025
 
 This document provides complete API documentation for the Principality AI game engine. All public interfaces, methods, and types are documented here.
 
@@ -951,16 +950,17 @@ Response: {
 
 ## Version History
 
-**1.0.0** (Phase 1 - October 2025)
+**1.0.0**
 - Initial API release
 - Core game engine with 8 kingdom cards
 - Immutable state pattern
 - Comprehensive validation
 
-**Upcoming** (Phase 2 - MCP Integration)
-- Additional helper methods for natural language parsing
+**1.x+**
+- Complete Dominion Base Set (25 kingdom cards)
+- MCP server integration
+- Natural language move parsing
 - Game state serialization utilities
-- Move history and replay support
 
 ---
 

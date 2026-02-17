@@ -1,0 +1,46 @@
+{
+  "name": "@principality/api-server",
+  "version": "1.0.0",
+  "description": "HTTP/WebSocket API server for Principality AI",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx src/dev-server.ts",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "lint": "eslint src/**/*.ts",
+    "clean": "rm -rf dist"
+  },
+  "keywords": [
+    "dominion",
+    "card-game",
+    "api-server",
+    "websocket"
+  ],
+  "author": "Evan DeLord",
+  "license": "MIT",
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.30.0",
+    "@principality/core": "^1.0.0",
+    "hono": "^4.0.0",
+    "ws": "^8.19.0",
+    "zod": "^3.0.0"
+  },
+  "devDependencies": {
+    "@hono/node-server": "^1.0.0",
+    "@types/jest": "^29.0.0",
+    "@types/node": "^20.0.0",
+    "@types/supertest": "^6.0.0",
+    "@types/ws": "^8.18.1",
+    "jest": "^29.0.0",
+    "supertest": "^6.0.0",
+    "ts-jest": "^29.0.0",
+    "tsx": "^4.0.0",
+    "typescript": "^5.0.0"
+  },
+  "files": [
+    "dist"
+  ]
+}

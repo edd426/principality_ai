@@ -9,10 +9,16 @@ import { DEFAULT_CONFIG, MCPServerConfig } from './config';
 import { GameObserveTool } from './tools/game-observe';
 import { GameExecuteTool } from './tools/game-execute';
 import { GameSessionTool } from './tools/game-session';
+import { WebGameCreateTool } from './tools/web-game-create';
+import { WebGameObserveTool } from './tools/web-game-observe';
+import { WebGameExecuteTool } from './tools/web-game-execute';
 import { GameRegistryManager } from './game-registry';
 import { GAME_OBSERVE_SCHEMA } from './schemas/game-observe';
 import { GAME_EXECUTE_SCHEMA } from './schemas/game-execute';
 import { GAME_SESSION_SCHEMA } from './schemas/game-session';
+import { WEB_GAME_CREATE_SCHEMA } from './schemas/web-game-create';
+import { WEB_GAME_OBSERVE_SCHEMA } from './schemas/web-game-observe';
+import { WEB_GAME_EXECUTE_SCHEMA } from './schemas/web-game-execute';
 import { ToolSchema, ToolResponse } from './types';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
@@ -24,6 +30,9 @@ export class MCPGameServer {
   private observeTool: GameObserveTool;
   private executeTool: GameExecuteTool;
   private sessionTool: GameSessionTool;
+  private webGameCreateTool: WebGameCreateTool;
+  private webGameObserveTool: WebGameObserveTool;
+  private webGameExecuteTool: WebGameExecuteTool;
   private logger: Logger;
   private config: MCPServerConfig;
   private tools: Map<string, ToolSchema>;
@@ -51,17 +60,28 @@ export class MCPGameServer {
     this.executeTool = new GameExecuteTool(this.gameRegistry, this.logger);
     this.sessionTool = new GameSessionTool(this.gameRegistry, this.config.defaultModel, this.logger);
 
+    // Initialize web game tools (for API server integration)
+    this.webGameCreateTool = new WebGameCreateTool(this.logger);
+    this.webGameObserveTool = new WebGameObserveTool(this.logger);
+    this.webGameExecuteTool = new WebGameExecuteTool(this.logger);
+
     // Register tool schemas
     this.tools = new Map();
     this.tools.set('game_observe', GAME_OBSERVE_SCHEMA);
     this.tools.set('game_execute', GAME_EXECUTE_SCHEMA);
     this.tools.set('game_session', GAME_SESSION_SCHEMA);
+    this.tools.set('web_game_create', WEB_GAME_CREATE_SCHEMA);
+    this.tools.set('web_game_observe', WEB_GAME_OBSERVE_SCHEMA);
+    this.tools.set('web_game_execute', WEB_GAME_EXECUTE_SCHEMA);
 
     // Register tool handlers
     this.requestHandlers = new Map();
     this.requestHandlers.set('game_observe', (args) => this.observeTool.execute(args));
     this.requestHandlers.set('game_execute', (args) => this.executeTool.execute(args));
     this.requestHandlers.set('game_session', (args) => this.sessionTool.execute(args));
+    this.requestHandlers.set('web_game_create', (args) => this.webGameCreateTool.execute(args));
+    this.requestHandlers.set('web_game_observe', (args) => this.webGameObserveTool.execute(args));
+    this.requestHandlers.set('web_game_execute', (args) => this.webGameExecuteTool.execute(args));
 
     // Register game_observe tool
     this.server.tool(
@@ -107,6 +127,53 @@ export class MCPGameServer {
       },
       async (args) => {
         const result = await this.sessionTool.execute(args);
+        return { content: [{ type: 'text', text: JSON.stringify(result) }] };
+      }
+    );
+
+    // Register web_game_create tool (for API server integration)
+    this.server.tool(
+      'web_game_create',
+      WEB_GAME_CREATE_SCHEMA.description,
+      {
+        seed: z.string().optional().describe('Optional seed for deterministic shuffle'),
+        kingdomCards: z.array(z.string()).optional().describe('Optional specific kingdom cards to use'),
+        manualAI: z.boolean().optional().describe('If true (default), AI turns are not auto-played'),
+        apiServerUrl: z.string().optional().describe('API server URL (default: http://localhost:3000)')
+      },
+      async (args) => {
+        const result = await this.webGameCreateTool.execute(args);
+        return { content: [{ type: 'text', text: JSON.stringify(result) }] };
+      }
+    );
+
+    // Register web_game_observe tool
+    this.server.tool(
+      'web_game_observe',
+      WEB_GAME_OBSERVE_SCHEMA.description,
+      {
+        gameId: z.string().describe('Game ID from web_game_create'),
+        detail_level: z.enum(['minimal', 'standard', 'full']).optional().describe('Level of detail for response'),
+        apiServerUrl: z.string().optional().describe('API server URL (default: http://localhost:3000)')
+      },
+      async (args) => {
+        const result = await this.webGameObserveTool.execute(args);
+        return { content: [{ type: 'text', text: JSON.stringify(result) }] };
+      }
+    );
+
+    // Register web_game_execute tool
+    this.server.tool(
+      'web_game_execute',
+      WEB_GAME_EXECUTE_SCHEMA.description,
+      {
+        gameId: z.string().describe('Game ID from web_game_create'),
+        move: z.string().describe('The move to execute (e.g., "play Copper", "buy Silver", "end")'),
+        reasoning: z.string().optional().describe('Optional brief rationale for this move'),
+        apiServerUrl: z.string().optional().describe('API server URL (default: http://localhost:3000)')
+      },
+      async (args) => {
+        const result = await this.webGameExecuteTool.execute(args);
         return { content: [{ type: 'text', text: JSON.stringify(result) }] };
       }
     );
@@ -192,14 +259,14 @@ export class MCPGameServer {
       const transport = new StdioServerTransport();
       await this.server.connect(transport);
 
-      this.logger.info('MCP Server ready (stdio, 3 tools)', {
+      this.logger.info('MCP Server ready (stdio, 6 tools)', {
         name: this.config.name,
         version: this.config.version,
-        tools: ['game_observe', 'game_execute', 'game_session'],
+        tools: ['game_observe', 'game_execute', 'game_session', 'web_game_create', 'web_game_observe', 'web_game_execute'],
         transport: 'stdio'
       });
 
-      console.log('MCP Server ready (stdio, 3 tools)');
+      console.log('MCP Server ready (stdio, 6 tools)');
     } catch (error) {
       this.logger.error('Failed to start MCP server', error);
       throw error;

@@ -1,8 +1,6 @@
 # Development Guide
 
 **Status**: ACTIVE
-**Created**: 2025-10-19
-**Phase**: 1
 
 ---
 
@@ -292,70 +290,72 @@ npm test -- tests/performance.test.ts --verbose
 ```
 principality-ai/
 ├── packages/
+│   ├── api-server/        # HTTP/WebSocket API server
+│   │   ├── src/
+│   │   │   ├── server.ts  # Hono app setup
+│   │   │   ├── routes/    # REST endpoints
+│   │   │   ├── services/  # AI, WebSocket, game logic
+│   │   │   └── types/     # API and AI types
+│   │   └── src/__tests__/ # Jest tests (roots to src/)
+│   ├── cli/               # CLI interface
+│   │   ├── src/
+│   │   │   ├── cli.ts     # Game loop
+│   │   │   ├── display.ts # Output formatting
+│   │   │   └── parser.ts  # Input parsing
+│   │   └── tests/
 │   ├── core/              # Game engine
 │   │   ├── src/
 │   │   │   ├── game.ts    # Main engine
 │   │   │   ├── cards.ts   # Card definitions
 │   │   │   └── types.ts   # TypeScript types
 │   │   └── tests/
-│   │       ├── game.test.ts
-│   │       ├── cards.test.ts
-│   │       └── performance.test.ts
-│   ├── cli/               # CLI interface
-│   │   ├── src/
-│   │   │   ├── index.ts   # Entry point
-│   │   │   ├── cli.ts     # Game loop
-│   │   │   ├── display.ts # Output formatting
-│   │   │   └── parser.ts  # Input parsing
-│   │   └── tests/
-│   ├── mcp-server/        # MCP integration (Phase 2)
-│   ├── ai-simple/         # Rule-based AI (Phase 3)
-│   └── web/               # Web UI (Phase 4)
+│   ├── mcp-server/        # MCP integration
+│   └── web/               # Web UI (React + Vite)
 ├── docs/                  # Documentation
-│   ├── reference/         # API, architecture, performance
-│   ├── requirements/      # Phase specifications
+│   ├── reference/         # API, performance guides
+│   ├── requirements/      # Feature specifications
 │   └── archive/           # Historical docs
-├── .github/workflows/     # CI/CD
-└── azure/functions/       # Azure deployment (Phase 2+)
+└── .claude/               # Agent config, skills, hooks
 ```
 
 ### Package Dependencies
 
 ```
-core          # No dependencies (standalone)
-  ↓
-cli           # Depends on core
-  ↓
-mcp-server    # Depends on core
-  ↓
-ai-simple     # Depends on core
-  ↓
-web           # Depends on core + cli
+core            # No dependencies (standalone)
+  ├── cli       # Depends on core
+  ├── mcp-server# Depends on core
+  ├── api-server# Depends on core
+  └── web       # Depends on api-server (via HTTP/WS)
 ```
 
 ---
 
-## Phase-Specific Guidance
+## Development Areas
 
-### Phase 1 (Complete)
-- **Focus**: Core engine validation
-- **Testing**: CLI manual testing + unit tests
+### Core Engine (`packages/core/`)
+- **Focus**: Game state, card effects, move validation
+- **Testing**: Unit tests for all card mechanics
 - **Commands**: `npm run play` for interactive testing
 
-### Phase 1.5 (Complete)
-- **Focus**: CLI UX improvements
-- **Testing**: Integration tests for new features
+### CLI Interface (`packages/cli/`)
+- **Focus**: Command-line UX and display
+- **Testing**: Integration tests, turn-based mode
 - **Commands**: Test with `--stable-numbers`, `--manual-cleanup`, etc.
 
-### Phase 2 (Future)
-- **Focus**: MCP server integration
-- **Testing**: MCP endpoint tests, LLM gameplay
-- **Commands**: Azure Functions deployment
+### MCP Server (`packages/mcp-server/`)
+- **Focus**: Model Context Protocol integration
+- **Testing**: MCP tool tests, LLM gameplay
+- **Commands**: Restart Claude Code after changes
 
-### Phase 3 (Future)
-- **Focus**: Multiplayer support
-- **Testing**: Multi-client synchronization tests
-- **Commands**: Multiplayer CLI mode
+### API Server (`packages/api-server/`)
+- **Focus**: REST API, WebSocket server, AI player, turn coordination
+- **Testing**: Jest (roots to `src/`, tests in `src/__tests__/`)
+- **Commands**: `npm run dev --workspace=packages/api-server`
+
+### Web UI (`packages/web/`)
+- **Focus**: Browser-based interface
+- **Testing**: Component tests, E2E with Playwright
+- **Commands**: `npm run dev` in packages/web/
 
 ---
 
@@ -501,7 +501,6 @@ AI agent needs strategy advice → checks dominion-strategy skill
 ## See Also
 
 - [API.md](./API.md) - Detailed API reference including game_execute tool
-- [ARCHITECTURE.md](./ARCHITECTURE.md) - System architecture
 - [PERFORMANCE.md](./PERFORMANCE.md) - Performance benchmarks
-- [Phase 2.1 Requirements](../requirements/phase-2.1/FEATURES.md) - R2.1-ACC feature details
+- [Requirements](../requirements/) - Feature specifications
 - [CLAUDE.md](../../CLAUDE.md) - Project overview
