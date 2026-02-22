@@ -14,7 +14,7 @@ interface PhaseIndicatorProps {
 function canPlayAllTreasures(validMoves: ValidMove[]): boolean {
   return validMoves.some((vm) => {
     const move = vm.move as { type: string };
-    return move.type === 'play_all_treasures';
+    return move.type === 'play_treasure';
   });
 }
 

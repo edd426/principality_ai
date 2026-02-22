@@ -158,8 +158,8 @@ export function formatMoveCommand(move: Move): string {
       return `select_treasure_to_trash ${move.card}`;
 
     case 'library_set_aside':
-      return move.cards && move.cards.length > 0
-        ? `library_set_aside ${move.cards[0]}`
+      return move.card
+        ? `library_set_aside ${move.card}`
         : 'library_set_aside';
 
     case 'select_action_for_throne':
@@ -620,14 +620,14 @@ export function generateLibraryOptions(card: CardName): MoveOption[] {
   return [
     {
       index: 1,
-      move: { type: 'library_set_aside', cards: [card], choice: true },
+      move: { type: 'library_set_aside', card, choice: true },
       description: `Set aside: ${card} (skip it, discard at end)`,
       cardNames: [card],
       details: { action: 'set_aside' }
     },
     {
       index: 2,
-      move: { type: 'library_set_aside', cards: [card], choice: false },
+      move: { type: 'library_set_aside', card, choice: false },
       description: `Keep: ${card} in hand`,
       cardNames: [card],
       details: { action: 'keep' }

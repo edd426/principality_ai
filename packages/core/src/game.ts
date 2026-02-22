@@ -114,35 +114,6 @@ function checkForMoatReveal(state: GameState, defendingPlayerIndex: number): boo
   return defendingPlayer.hand.includes('Moat');
 }
 
-/**
- * Apply an attack effect to all other players (excluding attacker)
- * Skips players who reveal Moat
- */
-function resolveAttack(
-  state: GameState,
-  attackEffect: (state: GameState, playerIndex: number) => GameState
-): GameState {
-  let newState = state;
-
-  for (let i = 0; i < state.players.length; i++) {
-    if (i === state.currentPlayer) continue; // Skip attacker
-
-    // Check for Moat - if revealed, skip this player
-    if (checkForMoatReveal(newState, i)) {
-      newState = {
-        ...newState,
-        gameLog: [...newState.gameLog, `Player ${i + 1} revealed Moat and blocked the attack`]
-      };
-      continue;
-    }
-
-    // Apply attack effect to this player
-    newState = attackEffect(newState, i);
-  }
-
-  return newState;
-}
-
 export class GameEngine {
   private random: SeededRandom;
   private seed: string;
@@ -1228,19 +1199,36 @@ export class GameEngine {
 
   private handleWitch(state: GameState): GameState {
     // Witch already drew +2 cards in standard effects
-    // Now apply attack: each other player gains a Curse
-    const attackedState = resolveAttack(state, (s, playerIndex) => {
-      try {
-        return gainCard(s, 'Curse', 'discard', playerIndex);
-      } catch {
-        // No Curses left in supply
-        return s;
+    // Now apply attack: each other player gains a Curse with per-opponent feedback
+    let newState = state;
+    const perOpponentLogs: string[] = [];
+
+    for (let i = 0; i < newState.players.length; i++) {
+      if (i === newState.currentPlayer) continue;
+
+      // Check for Moat
+      if (checkForMoatReveal(newState, i)) {
+        perOpponentLogs.push(`Player ${i + 1} revealed Moat and blocked the attack`);
+        continue;
       }
-    });
+
+      // Check Curse supply before attempting to give
+      const curseCount = newState.supply.get('Curse') || 0;
+      if (curseCount > 0) {
+        newState = gainCard(newState, 'Curse', 'discard', i);
+        perOpponentLogs.push(`Player ${i + 1} gained a Curse`);
+      } else {
+        perOpponentLogs.push(`No Curses left for Player ${i + 1}`);
+      }
+    }
 
     return {
-      ...attackedState,
-      gameLog: [...attackedState.gameLog, `Player ${attackedState.currentPlayer + 1} played Witch (+2 Cards, opponents gain Curse)`]
+      ...newState,
+      gameLog: [
+        ...newState.gameLog,
+        `Player ${newState.currentPlayer + 1} played Witch (+2 Cards, opponents gain Curse)`,
+        ...perOpponentLogs
+      ]
     };
   }
 
@@ -2623,10 +2611,12 @@ export class GameEngine {
 
       case 'library_set_aside': {
         // Library: binary choice to set aside or keep revealed action
-        // Two options: set aside (cards: [revealed]) or keep (cards: [])
-        moves.push({ type: 'library_set_aside', cards: [] });
-        // If there's a revealed card in pending, allow setting it aside
-        // For now, just provide the empty option as fallback
+        const drawnCard = state.pendingEffect?.drawnCard;
+        if (drawnCard) {
+          // Keep: choice=false, Set aside: choice=true
+          moves.push({ type: 'library_set_aside', card: drawnCard, choice: false });
+          moves.push({ type: 'library_set_aside', card: drawnCard, choice: true });
+        }
         break;
       }
 

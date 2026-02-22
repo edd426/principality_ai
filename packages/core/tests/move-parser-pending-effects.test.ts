@@ -515,7 +515,7 @@ describe('Move Parser: Pending Effect Commands', () => {
       expect(result.success).toBe(true);
       expect(result.move).toEqual({
         type: 'library_set_aside',
-        cards: ['Village']
+        card: 'Village'
       });
     });
 
@@ -526,7 +526,7 @@ describe('Move Parser: Pending Effect Commands', () => {
       expect(result.success).toBe(true);
       expect(result.move).toEqual({
         type: 'library_set_aside',
-        cards: ['Throne Room']
+        card: 'Throne Room'
       });
     });
 

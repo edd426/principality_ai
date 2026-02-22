@@ -81,6 +81,40 @@ export function parseMove(moveStr: string, state: GameState): ParseMoveResult {
         error: `Card at index ${index} (${cardName}) is not playable`
       };
     }
+
+    // If not a valid index, try treating the argument as a card name
+    if (isNaN(index)) {
+      const normalizedName = capitalizeCardName(indexStr);
+
+      if (player.hand.includes(normalizedName)) {
+        if (isActionCard(normalizedName)) {
+          return {
+            success: true,
+            move: {
+              type: 'play_action',
+              card: normalizedName
+            }
+          };
+        } else if (isTreasureCard(normalizedName)) {
+          return {
+            success: true,
+            move: {
+              type: 'play_treasure',
+              card: normalizedName
+            }
+          };
+        }
+        return {
+          success: false,
+          error: `"${normalizedName}" is not a playable card`
+        };
+      }
+      return {
+        success: false,
+        error: `"${normalizedName}" is not in hand`
+      };
+    }
+
     return {
       success: false,
       error: `Invalid index: ${indexStr}. Must be 0-${player.hand.length - 1}`
@@ -467,7 +501,7 @@ export function parseMove(moveStr: string, state: GameState): ParseMoveResult {
       success: true,
       move: {
         type: 'library_set_aside',
-        cards: [normalizedName]
+        card: normalizedName
       }
     };
   }

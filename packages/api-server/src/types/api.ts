@@ -165,6 +165,8 @@ export interface ClientPendingEffect {
   maxTrash?: number;
   /** Maximum cost of card that can be gained (if applicable) */
   maxGainCost?: number;
+  /** The action card drawn by Library that the player must decide on */
+  drawnCard?: CardName;
 }
 
 /**

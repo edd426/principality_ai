@@ -112,6 +112,8 @@ export interface ClientPendingEffect {
   respondingPlayer: number;
   maxTrash?: number;
   maxGainCost?: number;
+  /** The action card drawn by Library that the player must decide on */
+  drawnCard?: string;
 }
 
 export interface ValidMove {

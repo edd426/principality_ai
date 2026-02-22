@@ -289,6 +289,97 @@ describe('UT: Attack System Cards', () => {
       expect(witchLogEntry).toMatch(/\+2 Cards/i);
       expect(witchLogEntry).toMatch(/opponents gain Curse/i);
     });
+
+    /**
+     * UT-WITCH-5: Curse supply runs out mid-attack
+     * @req: GH-99 - When Curse supply runs out mid-attack, log should reflect
+     *       which players got Cursed and which didn't due to empty supply
+     * @edge: 1 Curse left, 2 opponents
+     * @assert: First opponent gets Curse, second gets "no Curses left" log
+     */
+    test('UT-WITCH-5: should log when Curse supply runs out mid-attack', () => {
+      // @req: GH-99 - Per-opponent feedback when Curses run out
+      const state = engine.initializeGame(3);
+
+      const testState: GameState = {
+        ...state,
+        phase: 'action',
+        currentPlayer: 0,
+        supply: new Map([...state.supply, ['Curse', 1]]), // Only 1 Curse left
+        players: [
+          {
+            ...state.players[0],
+            hand: ['Witch'],
+            drawPile: ['Silver', 'Gold', 'Estate'],
+            actions: 1
+          },
+          state.players[1],
+          state.players[2]
+        ]
+      };
+
+      const result = engine.executeMove(testState, {
+        type: 'play_action',
+        card: 'Witch'
+      });
+
+      expect(result.success).toBe(true);
+      const logString = result.newState!.gameLog.join('\n');
+
+      // First opponent (Player 2) should get a Curse
+      expect(logString).toMatch(/Player 2 gained a Curse/i);
+
+      // Second opponent (Player 3) should NOT get a Curse (supply empty)
+      expect(result.newState!.players[2].discardPile).not.toContain('Curse');
+      expect(logString).toMatch(/no Curses left/i);
+
+      // Supply should be 0
+      expect(result.newState!.supply.get('Curse')).toBe(0);
+    });
+
+    /**
+     * UT-WITCH-6: Per-opponent "gained a Curse" log entries
+     * @req: GH-99 - Each opponent who gains a Curse gets individual log entry
+     * @assert: Log contains per-opponent Curse gain messages
+     */
+    test('UT-WITCH-6: should log per-opponent Curse gains', () => {
+      // @req: GH-99 - Individual log entries per opponent
+      const state = engine.initializeGame(3);
+
+      const testState: GameState = {
+        ...state,
+        phase: 'action',
+        currentPlayer: 0,
+        supply: new Map([...state.supply, ['Curse', 10]]),
+        players: [
+          {
+            ...state.players[0],
+            hand: ['Witch'],
+            drawPile: ['Silver', 'Gold', 'Estate'],
+            actions: 1
+          },
+          state.players[1],
+          state.players[2]
+        ]
+      };
+
+      const result = engine.executeMove(testState, {
+        type: 'play_action',
+        card: 'Witch'
+      });
+
+      expect(result.success).toBe(true);
+      const logString = result.newState!.gameLog.join('\n');
+
+      // Each opponent should have individual log entry
+      expect(logString).toMatch(/Player 2 gained a Curse/i);
+      expect(logString).toMatch(/Player 3 gained a Curse/i);
+
+      // Both should have Curse in discard
+      expect(result.newState!.players[1].discardPile).toContain('Curse');
+      expect(result.newState!.players[2].discardPile).toContain('Curse');
+      expect(result.newState!.supply.get('Curse')).toBe(8);
+    });
   });
 
   describe('UT-BUREAUCRAT: Gain Silver to deck, opponents topdeck Victory', () => {
