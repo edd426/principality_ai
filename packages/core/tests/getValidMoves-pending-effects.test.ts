@@ -852,8 +852,8 @@ describe('getValidMoves() with pending effects', () => {
         ...state,
         pendingEffect: {
           card: 'Library',
-          effect: 'library_set_aside'
-          // Revealed action would be tracked in pendingEffect context
+          effect: 'library_set_aside',
+          drawnCard: 'Village'
         }
       };
 

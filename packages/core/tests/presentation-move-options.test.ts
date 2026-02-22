@@ -127,7 +127,7 @@ describe('Helper Functions', () => {
     });
 
     it('should format library_set_aside move', () => {
-      const move = { type: 'library_set_aside' as const, cards: ['Village'], choice: true };
+      const move = { type: 'library_set_aside' as const, card: 'Village' as const, choice: true };
       const command = formatMoveCommand(move);
 
       expect(command).toBe('library_set_aside Village');

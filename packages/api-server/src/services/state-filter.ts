@@ -86,6 +86,7 @@ export function filterStateForHuman(
           : state.currentPlayer,
       maxTrash: state.pendingEffect.maxTrash,
       maxGainCost: state.pendingEffect.maxGainCost,
+      drawnCard: state.pendingEffect.drawnCard,
     };
   }
 

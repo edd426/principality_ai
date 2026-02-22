@@ -1278,7 +1278,7 @@ describe('Presentation Layer: Move Descriptions', () => {
     });
 
     test('should handle library_set_aside with card', () => {
-      const move: Move = { type: 'library_set_aside', cards: ['Village'] };
+      const move: Move = { type: 'library_set_aside', card: 'Village' };
       expect(getMoveDescriptionCompact(move)).toBe('Set aside: Village');
     });
 
@@ -1396,7 +1396,7 @@ describe('Presentation Layer: Move Descriptions', () => {
     });
 
     test('should generate library_set_aside command', () => {
-      const move: Move = { type: 'library_set_aside', cards: ['Village'] };
+      const move: Move = { type: 'library_set_aside', card: 'Village' };
       expect(getMoveCommand(move)).toBe('library_set_aside Village');
     });
   });

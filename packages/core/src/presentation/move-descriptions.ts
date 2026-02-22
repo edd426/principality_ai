@@ -71,8 +71,8 @@ export function getMoveDescription(move: Move): string {
       return move.choice ? 'Shuffle deck into discard' : 'Keep deck as is';
 
     case 'library_set_aside':
-      return move.cards && move.cards.length > 0
-        ? `Set aside ${move.cards[0]}`
+      return move.card
+        ? `Set aside ${move.card}`
         : 'Set aside action card';
 
     default:
@@ -137,8 +137,8 @@ export function getMoveDescriptionCompact(move: Move): string {
         : 'Select treasure to trash';
 
     case 'library_set_aside':
-      return move.cards && move.cards.length > 0
-        ? `Set aside: ${move.cards[0]}`
+      return move.card
+        ? `Set aside: ${move.card}`
         : 'Set aside action card';
 
     case 'select_action_for_throne':
@@ -248,8 +248,8 @@ export function getMoveCommand(move: Move): string {
       return `chancellor_decision ${move.choice ? 'yes' : 'no'}`;
 
     case 'library_set_aside':
-      return move.cards && move.cards.length > 0
-        ? `library_set_aside ${move.cards[0]}`
+      return move.card
+        ? `library_set_aside ${move.card}`
         : 'library_set_aside';
 
     default:
